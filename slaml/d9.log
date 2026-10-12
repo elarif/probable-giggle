@@ -1,0 +1,3 @@
+=== L6 grand slam startpos d9 (sweep 8 threads, T3 path) ===
+start: 2026-10-12T22:44:29+00:00, host: codespaces-f31cc3, cores: 8
+[slider path: pext (AuthenticAMD family 0x19 + bmi2+popcnt+movbe)]

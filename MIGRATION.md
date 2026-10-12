@@ -187,6 +187,36 @@ sous accès dispersé ; l'hyperviseur plafonne la résolution). La règle
 committée reste conforme au contrat : pext primaire quand BMI2 &&
 (Intel || AMD family ≥ 0x19), magic pour tout le reste.
 
+## L5 — `--memo` (cap RAM ≈ 8 GiB)
+
+`src/memo.rs` : table ouverte à capacité fixe **2^28 × 24 B = 6.00 GiB**
+(hash8 + verify4 + count8 + meta4, layout vérifié par compile-time
+assert), sans eviction/rehash ; clé = finalizer splitmix(zobrist ⊕ sel
+profondeur), verify = dérivé indépendant (identité effective 96 bits) ;
+meta = profondeur+1 (0 = slot vide). Cutoff `min_depth = 3` : les
+feuilles restent sur `count_moves`. CLI :
+`mychess perft <fen> <depth> --memo [--memo-log2 N]`.
+
+**GATE L5 passée** : memo == exhaustif d≤4 sur les 6 positions dorées
+(always-on, petite table 2^20 pour forcer le probing), et d≤6 opt-in
+sur les 5 positions à référence publiée (startpos, kiwipete, pos3, pos4,
+pos6) en 29.5 s — **memo == golden partout**. NB : la CPW ne publie pas
+de d6 pour la Position 5 (vérifié sur la page Perft_Results en récup.
+lecture-seule) ; le gate la saute explicitement, pas de valeur
+auto-inventée. Usage CLI : kiwipete d6 = 8,031,647,685 en 18.9 s
+(fills 61,285 / hits 38,614, 426 Mnps effectifs vs ~300 bruts).
+
+## L6 — grand slam d9 (T3, 8T, nohup détaché)
+
+Estimation à l'nps 8T mesuré post-L1 (~940 Mnps) : **~43 min** (attendu
+45–90). Exécution : `slaml/run_d9.sh` via **nohup** (résiste à la
+coupure de session), log `slaml/d9.log`; valeur cible
+**2,439,530,234,167** — résultat consigné ici à l'arrivée.
+
+| run | résultat | temps | Mnps 8T |
+|---|---|---|---|
+| d9 startpos | _en cours_ | — | — |
+
 ### GATE-1 : NON ATTEINT — analyse consignée
 
 Seuil pré-commité : ≥ 2.5× baseline 1T (≈ 428 Mnps), intervalle attendu
