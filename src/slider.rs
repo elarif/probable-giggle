@@ -1,0 +1,221 @@
+//! Sliding-piece attacks: PEXT-indexed lookup on BMI2 hardware, classical ray
+//! walk otherwise (portable ARM/WASM fallback). Runtime dispatch is per call
+//! and never invokes `_pext_u64` without a positive `is_x86_feature_detected!`
+//! check (avoids SIGILL on pre-Zen3 AMD / older Intel).
+//!
+//! DEVIATIONS (documented):
+//!  * The portable fallback is the classical ray walk instead of "magic
+//!    bitboards" (no unverified published magic constants are used).
+//!  * The PEXT attack tables are built once with `OnceLock` rather than in a
+//!    `const`: the ~2 MB rook table trips rustc's hard `long_running_const_eval`
+//!    deny. `OnceLock` is thread-safe and leaves the per-node path as a single
+//!    relaxed atomic load; there is no mutable `static`.
+
+use crate::tables::{BISHOP_DIRS, RAYS, ROOK_DIRS};
+use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU8, Ordering};
+
+const EDGES: u64 = crate::tables::RANK_1
+    | crate::tables::RANK_8
+    | crate::tables::FILE_A
+    | crate::tables::FILE_H;
+
+const fn rook_mask(sq: usize) -> u64 {
+    // Exclude only the far edge square in each direction (not the whole file),
+    // otherwise rooks on the a/h files lose their own vertical blockers.
+    let north = RAYS[ROOK_DIRS[0]][sq] & !crate::tables::RANK_8;
+    let east = RAYS[ROOK_DIRS[1]][sq] & !crate::tables::FILE_H;
+    let south = RAYS[ROOK_DIRS[2]][sq] & !crate::tables::RANK_1;
+    let west = RAYS[ROOK_DIRS[3]][sq] & !crate::tables::FILE_A;
+    north | east | south | west
+}
+
+const fn bishop_mask(sq: usize) -> u64 {
+    // Diagonals always terminate on a board edge, so removing all edges is exact.
+    let mut m = 0u64;
+    let mut i = 0;
+    while i < 4 {
+        m |= RAYS[BISHOP_DIRS[i]][sq];
+        i += 1;
+    }
+    m & !EDGES
+}
+
+const fn build_masks(bishop: bool) -> [u64; 64] {
+    let mut t = [0u64; 64];
+    let mut s = 0;
+    while s < 64 {
+        t[s] = if bishop { bishop_mask(s) } else { rook_mask(s) };
+        s += 1;
+    }
+    t
+}
+
+pub const ROOK_MASKS: [u64; 64] = build_masks(false);
+pub const BISHOP_MASKS: [u64; 64] = build_masks(true);
+
+fn pext_const(x: u64, mut mask: u64) -> u64 {
+    let mut res = 0u64;
+    let mut k = 0u32;
+    while mask != 0 {
+        let b = mask & mask.wrapping_neg();
+        if x & b != 0 {
+            res |= 1u64 << k;
+        }
+        mask ^= b;
+        k += 1;
+    }
+    res
+}
+
+fn build_table(bishop: bool, masks: &[u64; 64]) -> Vec<[u64; 4096]> {
+    let mut t: Vec<[u64; 4096]> = vec![[0u64; 4096]; 64];
+    let dirs = if bishop { BISHOP_DIRS } else { ROOK_DIRS };
+    for s in 0..64 {
+        let mask = masks[s];
+        let mut sub = 0u64;
+        loop {
+            let idx = pext_const(sub, mask) as usize;
+            let mut att = 0u64;
+            let mut i = 0;
+            while i < 4 {
+                att |= ray_attack_ref(s as u8, sub, dirs[i]);
+                i += 1;
+            }
+            t[s][idx] = att;
+            sub = sub.wrapping_sub(mask) & mask;
+            if sub == 0 {
+                break;
+            }
+        }
+    }
+    t
+}
+
+static ROOK_TABLE: OnceLock<Vec<[u64; 4096]>> = OnceLock::new();
+static BISHOP_TABLE: OnceLock<Vec<[u64; 4096]>> = OnceLock::new();
+
+#[inline]
+fn rook_table() -> &'static Vec<[u64; 4096]> {
+    ROOK_TABLE.get_or_init(|| build_table(false, &ROOK_MASKS))
+}
+#[inline]
+fn bishop_table() -> &'static Vec<[u64; 4096]> {
+    BISHOP_TABLE.get_or_init(|| build_table(true, &BISHOP_MASKS))
+}
+
+/// Arithmetic ray walk used for table construction (no intrinsics).
+fn ray_attack_ref(sq: u8, occ: u64, d: usize) -> u64 {
+    let dirs = crate::tables::DIRS;
+    let mut f = (sq % 8) as i32;
+    let mut r = (sq / 8) as i32;
+    let mut res = 0u64;
+    loop {
+        f += dirs[d].0;
+        r += dirs[d].1;
+        if !(0..8).contains(&f) || !(0..8).contains(&r) {
+            break;
+        }
+        let s = (r * 8 + f) as u32;
+        res |= 1u64 << s;
+        if occ & (1u64 << s) != 0 {
+            break;
+        }
+    }
+    res
+}
+
+#[inline(always)]
+fn classical(sq: u8, occ: u64, dirs: &[usize; 4]) -> u64 {
+    crate::tables::ray_attack(sq, occ, dirs[0])
+        | crate::tables::ray_attack(sq, occ, dirs[1])
+        | crate::tables::ray_attack(sq, occ, dirs[2])
+        | crate::tables::ray_attack(sq, occ, dirs[3])
+}
+
+static DISPATCH: AtomicU8 = AtomicU8::new(0);
+
+/// PEXT-indexed tables are only a win on Intel (fast `pext`); on AMD Zen1/2
+/// `pext` is microcoded (~18 cycles) so the classical walk is used instead.
+#[cfg(target_arch = "x86_64")]
+fn cpu_is_intel() -> bool {
+    // SAFETY: CPUID leaf 0 is unconditionally valid on x86_64.
+    let r = unsafe { core::arch::x86_64::__cpuid(0) };
+    r.ebx == 0x756e_6547 && r.edx == 0x4965_6e69 // "Genu" + "ineI"
+}
+
+#[inline(always)]
+fn use_pext() -> bool {
+    #[cfg(target_arch = "x86_64")]
+    {
+        let v = DISPATCH.load(Ordering::Relaxed);
+        if v != 0 {
+            return v == 2;
+        }
+        let yes = std::is_x86_feature_detected!("bmi2") && cpu_is_intel();
+        DISPATCH.store(if yes { 2 } else { 1 }, Ordering::Relaxed);
+        yes
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        false
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "bmi2")]
+unsafe fn pext(x: u64, mask: u64) -> u64 {
+    core::arch::x86_64::_pext_u64(x, mask)
+}
+
+#[inline(always)]
+pub fn rook_attacks(sq: u8, occ: u64) -> u64 {
+    #[cfg(target_arch = "x86_64")]
+    {
+        if use_pext() {
+            // SAFETY: guarded by the runtime BMI2 detection above.
+            let idx = unsafe { pext(occ, ROOK_MASKS[sq as usize]) } as usize;
+            return rook_table()[sq as usize][idx];
+        }
+    }
+    classical(sq, occ, &ROOK_DIRS)
+}
+
+#[inline(always)]
+pub fn bishop_attacks(sq: u8, occ: u64) -> u64 {
+    #[cfg(target_arch = "x86_64")]
+    {
+        if use_pext() {
+            // SAFETY: guarded by the runtime BMI2 detection above.
+            let idx = unsafe { pext(occ, BISHOP_MASKS[sq as usize]) } as usize;
+            return bishop_table()[sq as usize][idx];
+        }
+    }
+    classical(sq, occ, &BISHOP_DIRS)
+}
+
+#[inline(always)]
+pub fn queen_attacks(sq: u8, occ: u64) -> u64 {
+    rook_attacks(sq, occ) | bishop_attacks(sq, occ)
+}
+
+/// Squares between `a` and `b` (0 when not aligned).
+#[inline(always)]
+pub fn between(a: u8, b: u8) -> u64 {
+    crate::tables::BETWEEN[a as usize][b as usize]
+}
+
+/// Debug helper: verify every PEXT table entry agrees with the classical walk.
+pub fn _selftest() -> bool {
+    for sq in 0..64u8 {
+        for occ in [0u64, 0x00FF_0000_0000_FF00, 0x8142_2418_1824_4281, u64::MAX] {
+            if classical(sq, occ, &ROOK_DIRS) != rook_attacks(sq, occ) {
+                return false;
+            }
+            if classical(sq, occ, &BISHOP_DIRS) != bishop_attacks(sq, occ) {
+                return false;
+            }
+        }
+    }
+    true
+}

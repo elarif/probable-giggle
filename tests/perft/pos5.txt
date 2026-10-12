@@ -1,0 +1,10 @@
+# position 5  rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+# source: https://www.chessprogramming.org/Perft_Results#Position_5
+# (only node counts published -> "-")
+rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+# depth nodes captures ep castles promotions checks discovery double mates
+1 44 - - - - - - - -
+2 1486 - - - - - - - -
+3 62379 - - - - - - - -
+4 2103487 - - - - - - - -
+5 89941194 - - - - - - - -
