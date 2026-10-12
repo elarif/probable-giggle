@@ -24,8 +24,33 @@ fn main() {
             let fen = &args[2];
             let depth: u32 = args[3].parse().expect("depth");
             let detailed = args.iter().any(|a| a == "--detailed");
+            let memo_on = args.iter().any(|a| a == "--memo");
             let mut pos = Position::from_fen(fen).expect("bad fen");
             let t = Instant::now();
+            if memo_on {
+                let log2: u32 = args
+                    .iter()
+                    .position(|a| a == "--memo-log2")
+                    .and_then(|i| args.get(i + 1))
+                    .map(|s| s.parse().expect("memo-log2"))
+                    .unwrap_or(28);
+                eprintln!(
+                    "memo: {} entries x 24B = {:.2} GiB, min_depth=3",
+                    1u64 << log2,
+                    ((1u64 << log2) * 24) as f64 / (1u64 << 30) as f64
+                );
+                let mut memo = mychess::memo::Memo::new(log2);
+                let n = mychess::memo::perft_memo(&mut pos, depth, &mut memo);
+                let s = t.elapsed().as_secs_f64();
+                println!(
+                    "perft({depth}) = {n}  [memo: fills={} hits={}] [{:.2}s, {:.1} Mnodes/s]",
+                    memo.fills,
+                    memo.hits,
+                    s,
+                    n as f64 / s / 1e6
+                );
+                return;
+            }
             if detailed {
                 let c = perft_detailed(&mut pos, depth);
                 let s = t.elapsed().as_secs_f64();

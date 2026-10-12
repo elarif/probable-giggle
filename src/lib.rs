@@ -2,6 +2,7 @@
 //! make/unmake with incremental Zobrist, FEN, perft. No search / eval / UCI.
 
 pub mod movegen;
+pub mod memo;
 pub mod perft;
 pub mod position;
 pub mod refgen;
