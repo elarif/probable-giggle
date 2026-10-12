@@ -1,21 +1,22 @@
 //! Perft: fast bulk-counting perft, detailed counters, divide, parallel.
 
-use crate::movegen::{attackers_to, generate, MoveList};
+use crate::movegen::{attackers_to, count_moves, generate, MoveList};
 use crate::position::Position;
 use crate::types::*;
 use rayon::prelude::*;
 
 /// Bulk-counting perft (single-threaded). Leaves at depth 1 are counted via
-/// `MoveList::len`, i.e. no per-leaf make/unmake.
+/// `count_moves` (popcount over target bitboards, L1), i.e. no per-leaf
+/// make/unmake and no `MoveList` materialisation.
 pub fn perft(pos: &mut Position, depth: u32) -> u64 {
     if depth == 0 {
         return 1;
     }
+    if depth == 1 {
+        return count_moves(pos);
+    }
     let mut list = MoveList::new();
     generate(pos, &mut list, GenKind::All);
-    if depth == 1 {
-        return list.len() as u64;
-    }
     let mut nodes = 0;
     for mv in list.iter() {
         let u = pos.make(mv);

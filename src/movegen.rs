@@ -498,6 +498,232 @@ pub fn generate_captures(pos: &Position) -> MoveList {
     l
 }
 
+/// Leaf-only fast path (L1): count legal moves WITHOUT emitting them into a
+/// `MoveList`. Mirrors `generate` exactly — same checkmask, pins, en-passant
+/// validation and castling conditions — but replaces every `push` by a
+/// popcount over the corresponding target bitboard.
+///
+/// Used by perft at `depth == 1`: a leaf position needs only `MoveList::len`,
+/// never the moves themselves. Promotions count 4 moves per target square and
+/// en passant / castling keep their exact legality gates.
+///
+/// Differential-checked against `generate(.., All).len()` on golden positions
+/// and thousands of self-play positions (tests).
+pub fn count_moves(pos: &Position) -> u64 {
+    let us = pos.side;
+    let them = us.opp();
+    let occ = pos.occ();
+    let us_bb = pos.color_bb(us);
+    let them_bb = pos.color_bb(them);
+    let empty = !occ;
+    let ksq = pos.king_sq(us);
+    let checkers = attackers_to(pos, ksq, them);
+    let ncheck = checkers.count_ones();
+
+    // King moves (always legal here: `!us_bb & !danger`).
+    let danger = attacks_by(pos, them, occ ^ (1u64 << ksq));
+    let mut n = (KING_ATT[ksq as usize] & !us_bb & !danger).count_ones() as u64;
+    if ncheck >= 2 {
+        return n; // double check: only king moves
+    }
+
+    let allowed = if ncheck == 1 {
+        let c = checkers.trailing_zeros() as u8;
+        between(ksq, c) | checkers
+    } else {
+        !0u64
+    };
+    let (pin_diag, pin_ortho) = compute_pins(pos, us, ksq);
+    let pinned = pin_diag | pin_ortho;
+
+    // ---- Pawns (bulk target bitboards) ----
+    let pawns = pos.bb_piece[PAWN] & us_bb;
+    let free = pawns & !pinned;
+    n += count_pawns_bulk(us, them_bb, free, allowed, empty);
+    let mut pp = pawns & pinned;
+    while pp != 0 {
+        let from = pp.trailing_zeros() as u8;
+        pp &= pp - 1;
+        n += count_pawn_pinned(pos, us, them_bb, from, allowed & pin_line(ksq, from), empty);
+    }
+
+    // ---- En passant: same make/unmake validation as in generate ----
+    if let Some(ep) = pos.ep_square() {
+        let mut m = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
+        while m != 0 {
+            let from = m.trailing_zeros() as u8;
+            m &= m - 1;
+            let mv = Move::new(from, ep, FLAG_EP_CAPTURE);
+            let mut b = *pos;
+            b.make(mv);
+            if !b.is_square_attacked(b.king_sq(us), them) {
+                n += 1;
+            }
+        }
+    }
+
+    // ---- Knights (a pinned knight never moves) ----
+    let mut kn = pos.bb_piece[KNIGHT] & us_bb & !pinned;
+    while kn != 0 {
+        let s = kn.trailing_zeros() as u8;
+        kn &= kn - 1;
+        n += (KNIGHT_ATT[s as usize] & !us_bb & allowed).count_ones() as u64;
+    }
+
+    // ---- Bishops + queens (diagonal part) ----
+    let mut bq = (pos.bb_piece[BISHOP] | pos.bb_piece[QUEEN]) & us_bb;
+    while bq != 0 {
+        let s = bq.trailing_zeros() as u8;
+        bq &= bq - 1;
+        let mut t = bishop_attacks(s, occ) & !us_bb & allowed;
+        if pinned & (1u64 << s) != 0 {
+            t &= pin_line(ksq, s);
+        }
+        n += t.count_ones() as u64;
+    }
+
+    // ---- Rooks + queens (orthogonal part) ----
+    let mut rq = (pos.bb_piece[ROOK] | pos.bb_piece[QUEEN]) & us_bb;
+    while rq != 0 {
+        let s = rq.trailing_zeros() as u8;
+        rq &= rq - 1;
+        let mut t = rook_attacks(s, occ) & !us_bb & allowed;
+        if pinned & (1u64 << s) != 0 {
+            t &= pin_line(ksq, s);
+        }
+        n += t.count_ones() as u64;
+    }
+
+    // ---- Castling (All-kind semantics, only when not in check) ----
+    if ncheck == 0 {
+        n += count_castles(pos, us, occ);
+    }
+    n
+}
+
+/// Popcount twin of `gen_pawns_bulk` for `GenKind::All`.
+fn count_pawns_bulk(us: Color, them: u64, pawns: u64, allowed: u64, empty: u64) -> u64 {
+    if pawns == 0 {
+        return 0;
+    }
+    if us == Color::White {
+        let push = (pawns << 8) & empty;
+        let promo = push & RANK_8 & allowed;
+        let quiet = push & !RANK_8 & allowed;
+        let double = ((push & RANK_3) << 8) & empty & allowed;
+        let cap_r = ((pawns & !FILE_H) << 9) & them & allowed;
+        let cap_l = ((pawns & !FILE_A) << 7) & them & allowed;
+        // Each promotion square yields 4 moves (N/B/R/Q).
+        4 * promo.count_ones() as u64
+            + quiet.count_ones() as u64
+            + double.count_ones() as u64
+            + 4 * (cap_r & RANK_8).count_ones() as u64
+            + (cap_r & !RANK_8).count_ones() as u64
+            + 4 * (cap_l & RANK_8).count_ones() as u64
+            + (cap_l & !RANK_8).count_ones() as u64
+    } else {
+        let push = (pawns >> 8) & empty;
+        let promo = push & crate::tables::RANK_1 & allowed;
+        let quiet = push & !crate::tables::RANK_1 & allowed;
+        let double = ((push & RANK_6) >> 8) & empty & allowed;
+        let cap_r = ((pawns & !FILE_H) >> 7) & them & allowed;
+        let cap_l = ((pawns & !FILE_A) >> 9) & them & allowed;
+        4 * promo.count_ones() as u64
+            + quiet.count_ones() as u64
+            + double.count_ones() as u64
+            + 4 * (cap_r & crate::tables::RANK_1).count_ones() as u64
+            + (cap_r & !crate::tables::RANK_1).count_ones() as u64
+            + 4 * (cap_l & crate::tables::RANK_1).count_ones() as u64
+            + (cap_l & !crate::tables::RANK_1).count_ones() as u64
+    }
+}
+
+/// Popcount twin of `gen_pawn_pinned` (White and Black) for `GenKind::All`.
+fn count_pawn_pinned(pos: &Position, us: Color, them: u64, from: u8, mask: u64, _empty: u64) -> u64 {
+    let mut n = 0;
+    if us == Color::White {
+        let one = from + 8;
+        if pos.piece_on(one) == 0 && mask & (1u64 << one) != 0 {
+            n += if one >= 56 { 4 } else { 1 };
+        }
+        if (8..16).contains(&from) && pos.piece_on(from + 8) == 0 && pos.piece_on(from + 16) == 0 {
+            let two = from + 16;
+            if mask & (1u64 << two) != 0 {
+                n += 1;
+            }
+        }
+        for df in [-1i8, 1] {
+            let tf = (from % 8) as i8 + df;
+            if !(0..8).contains(&tf) {
+                continue;
+            }
+            let to = (from as i8 + 8 + df) as u8;
+            if them & (1u64 << to) != 0 && mask & (1u64 << to) != 0 {
+                n += if to >= 56 { 4 } else { 1 };
+            }
+        }
+    } else {
+        let one = from - 8;
+        if pos.piece_on(one) == 0 && mask & (1u64 << one) != 0 {
+            n += if one < 8 { 4 } else { 1 };
+        }
+        if (48..56).contains(&from) && pos.piece_on(from - 8) == 0 && pos.piece_on(from - 16) == 0 {
+            let two = from - 16;
+            if mask & (1u64 << two) != 0 {
+                n += 1;
+            }
+        }
+        for df in [-1i8, 1] {
+            let tf = (from % 8) as i8 + df;
+            if !(0..8).contains(&tf) {
+                continue;
+            }
+            let to = (from as i8 - 8 + df) as u8;
+            if them & (1u64 << to) != 0 && mask & (1u64 << to) != 0 {
+                n += if to < 8 { 4 } else { 1 };
+            }
+        }
+    }
+    n
+}
+
+/// Popcount twin of `gen_castle` (counts 1 per legal side).
+fn count_castles(pos: &Position, us: Color, occ: u64) -> u64 {
+    let them = us.opp();
+    let back = if us.idx() == WHITE { 0 } else { 56 };
+    let (ks_bit, qs_bit) = if us.idx() == WHITE {
+        (CASTLE_WK, CASTLE_WQ)
+    } else {
+        (CASTLE_BK, CASTLE_BQ)
+    };
+    let mut n = 0;
+    if pos.castle & ks_bit != 0 {
+        let f = back + 5;
+        let g = back + 6;
+        if occ & (1 << f) == 0
+            && occ & (1 << g) == 0
+            && !pos.is_square_attacked(f, them)
+            && !pos.is_square_attacked(g, them)
+        {
+            n += 1;
+        }
+    }
+    if pos.castle & qs_bit != 0 {
+        let b = back + 1;
+        let c = back + 2;
+        let d = back + 3;
+        if occ & (1 << b) == 0
+            && occ & (1 << c) == 0
+            && occ & (1 << d) == 0
+            && !pos.is_square_attacked(d, them)
+            && !pos.is_square_attacked(c, them)
+        {
+            n += 1;
+        }
+    }
+    n
+}
+
 // Keep PAWN_ATTACKS referenced (used by refgen / tests for documentation).
 #[allow(dead_code)]
 pub(crate) const _PAWN_ATTACKS: [[u64; 64]; 2] = PAWN_ATTACKS;

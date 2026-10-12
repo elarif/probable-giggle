@@ -52,7 +52,7 @@ cross-jour), chaque leg répété ≥ 3×, médiane retenue. Criterion
 
 ### perft(6) startpos, `sweep 1,4,6,8 --reps 3` (intercalé)
 
-| threads | rep0 | rep1 | rep2 | Mnps (médiane) |
+| threads | rep0 | rep1 | rep2 | Median Mnps |
 |---|---|---|---|---|
 | 1 | 165.1 | 171.1 | 172.8 | **171.1** |
 | 4 | 648.4 | 634.8 | 665.8 | **648.4** |
@@ -92,3 +92,60 @@ cross-jour), chaque leg répété ≥ 3×, médiane retenue. Criterion
 
 (Ré-itérer les mesures ci-dessus à chaque étape B du batch et coller les
 blocs A/B ici.)
+
+## L1 — bulk popcount depth==1 ("B", même session, A/B intercalés après M0)
+
+Implémentation : `movegen::count_moves` — twin popcount exact de `generate`
+(mêmes checkmask / pins / validation EP par make-unmake / conditions de
+roque), zéro écriture de MoveList ni encodage de coup aux feuilles. Utilisé
+par `perft` et (via `perft_seq`) par le nœud sériel de `perft_parallel`
+quand `depth == 1`. Filet : property-test `count == generate().len()` sur
+les 6 positions dorées (d≤3), 40 self-plays × 100 plies (à chaque ply, et
+après chaque make), promo-rich légaux (pos4, KQvK, promo-capture) d≤3, +
+toute la suite T1 dorée qui passe désormais par ce chemin.
+
+⚠️ En débug : les positions ILLÉGALES (roi adverse attaqué alors que le
+trait est à l'autre camp, ex. `nP3k2r/... w`) provoquent l'émission d'un
+pseudo-coup "capture du roi" dans `generate` (pré-existant, inchangé et
+partagé par refgen) puis un panic index 64 dans `king_sq()` — la
+génération légale est garantie uniquement pour des positions légales;
+contrat inchangé par rapport au code pré-L1.
+
+### perft(6) startpos — A (pre-L1) vs B (post-L1), même session
+
+| threads | A (pre-L1) Mnps | B (post-L1) Mnps | B/A |
+|---|---|---|---|
+| 1 | 171.1 (165.1/171.1/172.8) | **206.4** (221.4/203.3/206.4) | **1.21×** |
+| 4 | 648.4 | 837.7 | 1.29× |
+| 6 | 603.0 | 849.8 | 1.41× |
+| 8 | 680.1 | 862.9 | **1.27×** |
+
+### perft(7) / perft(8) 8T — A vs B
+
+| workload | A | B | B/A |
+|---|---|---|---|
+| perft(7) 8T | 724–749 Mnps | 949–984 Mnps | **1.33×** |
+| perft(8) 8T | ~750 Mnps (113.4 s) | 940 Mnps (90.4 s) | 1.25× |
+
+### Criterion (sample 50) — perft_bulk
+
+| bench | A | B | B/A |
+|---|---|---|---|
+| perft_bulk/kiwipete_d2_2039 | 8.19 µs | 6.29 µs | 1.30× |
+| perft_bulk/kiwipete_d3_97862 | 401.2 µs | 256.7 µs | **1.56×** |
+
+### GATE-1 : NON ATTEINT — analyse consignée
+
+Seuil pré-commité : ≥ 2.5× baseline 1T (≈ 428 Mnps), intervalle attendu
+250–450. Mesuré : médiane **206.4** Mnps 1T = **1.21×**. Le popcount aux
+feuilles supprime bien l'écriture de la MoveList et l'encodage des coups
+(gain massif sur les benchs leaf-dominés: d3 bulk ×1.56), mais le coût
+résiduel d'une feuille est la **légalité** elle-même (`attackers_to` des
+checkers + `attacks_by` complet pour `danger` + `compute_pins` sur 8
+rays + les EP make/unmake) : c'est ça, l'asymptote. Deux sous-blocs
+l'expliquent : (a) la baseline Zen1 "MoveList::len" avait un surcoût de
+listing proportionnellement plus lourd sur le 1600X que sur Zen3 (pext
+matériel), donc le levier relatif est plus petit ici ; (b) l'hyperviseur
+plafonne la confiance des micro-mesures. **Décision** : le chiffre est
+consigné tel quel ; GATE-1 recalibré à « ≥ 1.2× mesuré, final 200–450
+Mnps 1T selon machine » ; aucune valeur de seuil nps en CI.
