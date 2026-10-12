@@ -207,7 +207,7 @@ impl Position {
         }
 
         let old_castle = self.castle;
-        self.castle &= !castle_mask(from as u8) & !castle_mask(to as u8);
+        self.castle &= !(CASTLE_MASK_LUT[from] | CASTLE_MASK_LUT[to]);
         if old_castle != self.castle {
             zob ^= z.castle[old_castle as usize] ^ z.castle[self.castle as usize];
         }
@@ -380,6 +380,20 @@ pub fn castle_mask(sq: u8) -> u8 {
         _ => 0,
     }
 }
+
+/// L4 micro-tuning: branch-free castle-rights mask per square. `make` applies
+/// `castle &= !(LUT[from] | LUT[to])` instead of two 7-arm matches.
+const fn build_castle_mask_lut() -> [u8; 64] {
+    let mut t = [0u8; 64];
+    t[4] = CASTLE_WK | CASTLE_WQ;
+    t[0] = CASTLE_WQ;
+    t[7] = CASTLE_WK;
+    t[60] = CASTLE_BK | CASTLE_BQ;
+    t[56] = CASTLE_BQ;
+    t[63] = CASTLE_BK;
+    t
+}
+pub(crate) const CASTLE_MASK_LUT: [u8; 64] = build_castle_mask_lut();
 
 impl fmt::Debug for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
