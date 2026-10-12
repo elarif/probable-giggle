@@ -74,7 +74,7 @@ no nps thresholds in CI):
 | perft(6) 8 threads | → **~890 Mnps** |
 | perft(7) 8 threads | 3,195,901,860 in 3.2–3.4 s → **~950 Mnps** |
 | perft(8) 8 threads | 84,998,978,956 (verified, 90 s) |
-| startpos d9 = 2.44e12 | est. ~43 min at ~940 Mnps 8T (see MIGRATION.md for the actual run) |
+| startpos d9 = 2.44e12 | **2,439,530,234,167 verified in 40:34 at 1002 Mnps 8T** |
 
 Historical (AMD Ryzen 5 1600X, pre-migration):
 

@@ -1,3 +1,5 @@
 === L6 grand slam startpos d9 (sweep 8 threads, T3 path) ===
 start: 2026-10-12T22:44:29+00:00, host: codespaces-f31cc3, cores: 8
 [slider path: pext (AuthenticAMD family 0x19 + bmi2+popcnt+movbe)]
+rep0 threads=8  perft(9) = 2439530234167  [2433.985s, 1002.3 Mnps]
+end: 2026-10-12T23:25:03+00:00, exit=0, elapsed=2434s

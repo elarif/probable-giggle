@@ -215,7 +215,13 @@ coupure de session), log `slaml/d9.log`; valeur cible
 
 | run | résultat | temps | Mnps 8T |
 |---|---|---|---|
-| d9 startpos | _en cours_ | — | — |
+| d9 startpos, 8T (T3, `perft_parallel`, session 2026-10-12 22:44→23:25 UTC) | **2,439,530,234,167** = cible ✓ | 2434 s (**40:34**) | **1002.3** |
+
+Verrouillé sur cette machine : EPYC 7763, chemin pext actif, leaf
+popcount L1, log `[slider path: pext (AuthenticAMD family 0x19 +
+bmi2+popcnt+movbe)]` dans slaml/d9.log (pièce à conviction archivée).
+Légèrement sous l'estimation (40.6 min < 45–90 attendues) : l'nps 8T
+réel a dépassé 1.0 Gnps grâce à L1.
 
 ### GATE-1 : NON ATTEINT — analyse consignée
 
