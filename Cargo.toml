@@ -22,6 +22,10 @@ microbench = "0.5.0"
 name = "core"
 harness = false
 
+[[bench]]
+name = "slider"
+harness = false
+
 [profile.release]
 lto = true
 codegen-units = 1

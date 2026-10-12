@@ -15,6 +15,23 @@ use crate::tables::{BISHOP_DIRS, RAYS, ROOK_DIRS};
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU8, Ordering};
 
+/// Slider dispatch path selector (for benchmarks, tests and debugging).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SliderPath {
+    /// Runtime CPUID decision (vendor + family + BMI2 feature).
+    Auto,
+    /// Force the PEXT-indexed tables (requires BMI2 hardware).
+    Pext,
+    /// Force the portable fallback (classical ray walk or magic tables).
+    Rays,
+}
+
+/// 0 = unset (init on first use), 1 = fallback rays/magic, 2 = PEXT.
+const DISPATCH_UNSET: u8 = 0;
+const DISPATCH_RAYS: u8 = 1;
+const DISPATCH_PEXT: u8 = 2;
+static DISPATCH: AtomicU8 = AtomicU8::new(DISPATCH_UNSET);
+
 const EDGES: u64 = crate::tables::RANK_1
     | crate::tables::RANK_8
     | crate::tables::FILE_A
@@ -54,6 +71,7 @@ const fn build_masks(bishop: bool) -> [u64; 64] {
 pub const ROOK_MASKS: [u64; 64] = build_masks(false);
 pub const BISHOP_MASKS: [u64; 64] = build_masks(true);
 
+#[allow(clippy::manual_isolate_lowest_one)] // const-context: keep the bit loop obvious
 fn pext_const(x: u64, mut mask: u64) -> u64 {
     let mut res = 0u64;
     let mut k = 0u32;
@@ -133,34 +151,7 @@ fn classical(sq: u8, occ: u64, dirs: &[usize; 4]) -> u64 {
         | crate::tables::ray_attack(sq, occ, dirs[3])
 }
 
-static DISPATCH: AtomicU8 = AtomicU8::new(0);
 
-/// PEXT-indexed tables are only a win on Intel (fast `pext`); on AMD Zen1/2
-/// `pext` is microcoded (~18 cycles) so the classical walk is used instead.
-#[cfg(target_arch = "x86_64")]
-fn cpu_is_intel() -> bool {
-    // SAFETY: CPUID leaf 0 is unconditionally valid on x86_64.
-    let r = unsafe { core::arch::x86_64::__cpuid(0) };
-    r.ebx == 0x756e_6547 && r.edx == 0x4965_6e69 // "Genu" + "ineI"
-}
-
-#[inline(always)]
-fn use_pext() -> bool {
-    #[cfg(target_arch = "x86_64")]
-    {
-        let v = DISPATCH.load(Ordering::Relaxed);
-        if v != 0 {
-            return v == 2;
-        }
-        let yes = std::is_x86_feature_detected!("bmi2") && cpu_is_intel();
-        DISPATCH.store(if yes { 2 } else { 1 }, Ordering::Relaxed);
-        yes
-    }
-    #[cfg(not(target_arch = "x86_64"))]
-    {
-        false
-    }
-}
 
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "bmi2")]
@@ -197,6 +188,151 @@ pub fn bishop_attacks(sq: u8, occ: u64) -> u64 {
 #[inline(always)]
 pub fn queen_attacks(sq: u8, occ: u64) -> u64 {
     rook_attacks(sq, occ) | bishop_attacks(sq, occ)
+}
+
+// ---- dispatch: CPUID vendor + family gating --------------------------------
+
+#[cfg(target_arch = "x86_64")]
+fn cpuid_vendor() -> String {
+    #[allow(unused_unsafe)] // safe fn on some toolchains, unsafe on others
+    // SAFETY: CPUID leaf 0 is unconditionally valid on x86_64.
+    let r = unsafe { core::arch::x86_64::__cpuid(0) };
+    let mut v = String::with_capacity(12);
+    for part in [r.ebx, r.edx, r.ecx] {
+        for b in part.to_le_bytes() {
+            if b.is_ascii_graphic() {
+                v.push(b as char);
+            } else {
+                return v;
+            }
+        }
+    }
+    v
+}
+
+/// Effective CPU family (e.g. 0x19 = 25 = Zen3 EPYC 7003, 6 = Intel).
+#[cfg(target_arch = "x86_64")]
+fn cpu_family() -> u16 {
+    #[allow(unused_unsafe)] // safe fn on some toolchains, unsafe on others
+    // SAFETY: CPUID leaf 1 is unconditionally valid on x86_64.
+    let r = unsafe { core::arch::x86_64::__cpuid(1) };
+    let base = ((r.eax >> 8) & 0xF) as u16;
+    let ext = ((r.eax >> 20) & 0xFF) as u16;
+    if base == 0xF {
+        base + ext
+    } else {
+        base
+    }
+}
+
+/// `pext` is fast on all Intel, and on AMD from Zen3 (family 0x19, Milan
+/// included) where it is a single-cycle hardware instruction. On AMD Zen1/2
+/// `pext` is microcoded (~18 cycles) and loses to the ray walk.
+#[cfg(target_arch = "x86_64")]
+fn auto_select_pext(bmi2: bool) -> bool {
+    if !bmi2 {
+        return false;
+    }
+    match cpuid_vendor().as_str() {
+        "GenuineIntel" => true,
+        "AuthenticAMD" => cpu_family() >= 0x19,
+        _ => false,
+    }
+}
+
+/// Lazily resolve the dispatch path (once per process): env override
+/// `MYCHESS_SLIDER=pext|rays` for A/B benchmarking, else CPUID auto-detection.
+#[cfg(target_arch = "x86_64")]
+fn init_dispatch() -> u8 {
+    let bmi2 = std::is_x86_feature_detected!("bmi2");
+    let env = std::env::var("MYCHESS_SLIDER").unwrap_or_default().to_ascii_lowercase();
+    let v = match env.as_str() {
+        "pext" if bmi2 => DISPATCH_PEXT,
+        "pext" => {
+            eprintln!("mychess: MYCHESS_SLIDER=pext ignored, BMI2 not detected -> rays");
+            DISPATCH_RAYS
+        }
+        "rays" => DISPATCH_RAYS,
+        _ => {
+            if auto_select_pext(bmi2) {
+                DISPATCH_PEXT
+            } else {
+                DISPATCH_RAYS
+            }
+        }
+    };
+    DISPATCH.store(v, Ordering::Relaxed);
+    v
+}
+
+#[inline(always)]
+fn use_pext() -> bool {
+    #[cfg(target_arch = "x86_64")]
+    {
+        let v = DISPATCH.load(Ordering::Relaxed);
+        if v != DISPATCH_UNSET {
+            return v == DISPATCH_PEXT;
+        }
+        init_dispatch() == DISPATCH_PEXT
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        false
+    }
+}
+
+/// Override the dispatch path (tests / A/B benchmarks). `Auto` restores
+/// runtime detection. Forcing `Pext` on hardware without BMI2 keeps the
+/// fallback (no SIGILL).
+pub fn force_path(p: SliderPath) {
+    #[cfg(target_arch = "x86_64")]
+    match p {
+        SliderPath::Auto => DISPATCH.store(DISPATCH_UNSET, Ordering::Relaxed),
+        SliderPath::Rays => DISPATCH.store(DISPATCH_RAYS, Ordering::Relaxed),
+        SliderPath::Pext => {
+            if std::is_x86_feature_detected!("bmi2") {
+                DISPATCH.store(DISPATCH_PEXT, Ordering::Relaxed);
+            } else {
+                eprintln!("mychess: force_path(Pext) ignored, BMI2 not detected");
+                DISPATCH.store(DISPATCH_RAYS, Ordering::Relaxed);
+            }
+        }
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    let _ = p;
+}
+
+/// Name of the path used after dispatch init: `"pext"` or `"rays"`.
+pub fn path_name() -> &'static str {
+    if use_pext() {
+        "pext"
+    } else {
+        "rays"
+    }
+}
+
+/// Human-readable description for startup logging, e.g.
+/// `pext (AuthenticAMD family 0x19 + bmi2 + movbe)`.
+pub fn describe() -> String {
+    let mut s = format!("slider path: {}", path_name());
+    #[cfg(target_arch = "x86_64")]
+    {
+        let vendor = cpuid_vendor();
+        let fam = cpu_family();
+        let mut feats = Vec::new();
+        for (present, name) in [
+            (std::is_x86_feature_detected!("bmi2"), "bmi2"),
+            (std::is_x86_feature_detected!("popcnt"), "popcnt"),
+            (std::is_x86_feature_detected!("movbe"), "movbe"),
+        ] {
+            if present {
+                feats.push(name);
+            }
+        }
+        let feats = feats.join("+");
+        s += &format!(" ({vendor} family {fam:#04x} + {feats})");
+    }
+    s
 }
 
 /// Squares between `a` and `b` (0 when not aligned).
