@@ -134,6 +134,59 @@ contrat inchangé par rapport au code pré-L1.
 | perft_bulk/kiwipete_d2_2039 | 8.19 µs | 6.29 µs | 1.30× |
 | perft_bulk/kiwipete_d3_97862 | 401.2 µs | 256.7 µs | **1.56×** |
 
+## L4 — micro-tuning make/unmake
+
+Substitution du 7-arm match `castle_mask(from)|castle_mask(to)` par une
+LUT `[u8;64]` const appliquée en une instruction (`castle &= !(A|B)`).
+Mesuré (criterion make_unmake, sample 50, même session):
+23.99/24.79/23.56/24.60 ns vs baseline 23.86/24.53/24.21/24.36 ns —
+**strictement dans le bruit** (le match constant-compilé fait déjà du
+LUT-like codegen sur ce toolchain). LUT conservé (coût nul, codegen
+déterministe), le reste de `make`/`unmake` (~24 ns la paire) est déjà
+tight : mailbox + 2 bitboards + zobrist + ep/castle. Aucun gain à
+déclarer, consigné tel quel.
+
+## L2 — magics build.rs (requalifié portabilité/fallback)
+
+`build.rs` génère les tables magic DETERMINISTEMENT (splitmix64 seed
+constant) et les **PROUVE à la compilation** : pour chaque case, chaque
+sous-ensemble d'occupation de la mask (énumération carry-rmul) doit
+mapper, via index `(occ & mask)*magic >> (64-bits)`, vers l'ensemble
+d'attaques produit par une réimplémentation NAÏVE indépendante du ray
+walk ; toute divergence → échec du build. Émission dans `$OUT_DIR/
+magic_generated.rs` (rook 102400 entrées, bishop 11 072 ≈ 0.9 MB const,
+temps de build total ≈ 7 s). Le fallback sans BMI2 devient magic
+bitboards — arithmétique pure, donc aussi valable ARM/WASM ; le ray walk
+reste dans `tables.rs` comme référence vérifiable humainement et est
+toujours exécuté par `_selftest` / le filet (triangle pext vs magic vs
+classical). Aucun gain mesuré attendu ici — c'est la robustesse de
+l'artefact distribué.
+
+### A/B slider lookups à 3 chemins (post-L2, même session, sample 50)
+
+| bench | pext | magic (fallback) | classical (référence, session M0) |
+|---|---|---|---|
+| rook_attack_x384 | 1199.7 ns* | 1051.8 ns | 1406.4 ns |
+| bishop_attack_x384 | 1072.8 ns* | 932.0 ns | 1244.5 ns |
+| queen_attack_x384 | 1886.9 ns* | 1667.5 ns | 2420.3 ns |
+| attackers_mix_real_pos | 166.6 ns* | 172.4 ns | 235.5 ns |
+
+*re-mesuré cette session : jusqu'à ~20 % sous les chiffres M0
+(968/979/2049/171 ns) — jitter hyperviseur documenté.
+
+### Bout-en-bout perft(6), pext primaire vs fallback magic (même session)
+
+| leg | 1T Mnps | 8T Mnps |
+|---|---|---|
+| pext (actif) | 213.6 / 217.6 | 884.5 / 891.5 |
+| magic (force fallback) | 213.0 / 224.8 | 895.3 / 902.0 |
+
+**Lecture** : sur cette VM partagée, pext ≡ magic en production (le set
+magic ~0.9 MB tient mieux dans les caches que les tables PEXT 4 MB
+sous accès dispersé ; l'hyperviseur plafonne la résolution). La règle
+committée reste conforme au contrat : pext primaire quand BMI2 &&
+(Intel || AMD family ≥ 0x19), magic pour tout le reste.
+
 ### GATE-1 : NON ATTEINT — analyse consignée
 
 Seuil pré-commité : ≥ 2.5× baseline 1T (≈ 428 Mnps), intervalle attendu

@@ -76,7 +76,7 @@ fn goldens() -> Vec<Golden> {
 
 /// The paths to test: rays always; pext when BMI2 hardware is present.
 fn paths() -> Vec<(&'static str, SliderPath)> {
-    let mut v = vec![("rays", SliderPath::Rays)];
+    let mut v = vec![("fallback", SliderPath::Fallback)];
     if std::is_x86_feature_detected!("bmi2") {
         v.push(("pext", SliderPath::Pext));
     }

@@ -1,19 +1,27 @@
-//! Sliding-piece attacks: PEXT-indexed lookup on BMI2 hardware, classical ray
-//! walk otherwise (portable ARM/WASM fallback). Runtime dispatch is per call
-//! and never invokes `_pext_u64` without a positive `is_x86_feature_detected!`
-//! check (avoids SIGILL on pre-Zen3 AMD / older Intel).
+//! Sliding-piece attacks: PEXT-indexed lookup on BMI2-capable hardware
+//! (Intel, or AMD Zen3/family 0x19+), build-generated proven magic bitboards
+//! otherwise (portable: pure arithmetic, also ARM/WASM). Runtime dispatch is
+//! per call and never invokes `_pext_u64` without a positive
+//! `is_x86_feature_detected!` check (avoids SIGILL on pre-Zen3 AMD / older
+//! Intel).
 //!
 //! DEVIATIONS (documented):
-//!  * The portable fallback is the classical ray walk instead of "magic
-//!    bitboards" (no unverified published magic constants are used).
 //!  * The PEXT attack tables are built once with `OnceLock` rather than in a
 //!    `const`: the ~2 MB rook table trips rustc's hard `long_running_const_eval`
 //!    deny. `OnceLock` is thread-safe and leaves the per-node path as a single
 //!    relaxed atomic load; there is no mutable `static`.
+//!  * The magic fallback tables are generated and PROVEN at build time
+//!    (build.rs verifies every occupancy subset against an independent ray
+//!    walk); they are deterministic (fixed-seed PRNG), not unverified
+//!    published magic constants.
 
 use crate::tables::{BISHOP_DIRS, RAYS, ROOK_DIRS};
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU8, Ordering};
+
+// L2: build-generated, proven magic tables (portable fallback, no BMI2 and
+// no x86 required — pure arithmetic).
+include!(concat!(env!("OUT_DIR"), "/magic_generated.rs"));
 
 /// Slider dispatch path selector (for benchmarks, tests and debugging).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -22,13 +30,15 @@ pub enum SliderPath {
     Auto,
     /// Force the PEXT-indexed tables (requires BMI2 hardware).
     Pext,
-    /// Force the portable fallback (classical ray walk or magic tables).
-    Rays,
+    /// Force the portable fallback: build-generated, proven magic bitboards
+    /// (pure arithmetic; also the ARM/WASM path; ray walk stays available as
+    /// the in-crate reference via [`classical`]).
+    Fallback,
 }
 
-/// 0 = unset (init on first use), 1 = fallback rays/magic, 2 = PEXT.
+/// 0 = unset (init on first use), 1 = fallback magic, 2 = PEXT.
 const DISPATCH_UNSET: u8 = 0;
-const DISPATCH_RAYS: u8 = 1;
+const DISPATCH_MAGIC: u8 = 1;
 const DISPATCH_PEXT: u8 = 2;
 static DISPATCH: AtomicU8 = AtomicU8::new(DISPATCH_UNSET);
 
@@ -143,12 +153,37 @@ fn ray_attack_ref(sq: u8, occ: u64, d: usize) -> u64 {
     res
 }
 
+/// In-crate reference: classical ray walk, used by `_selftest` and tests to
+/// validate the PEXT and magic paths.
 #[inline(always)]
-fn classical(sq: u8, occ: u64, dirs: &[usize; 4]) -> u64 {
+pub fn classical(sq: u8, occ: u64, dirs: &[usize; 4]) -> u64 {
     crate::tables::ray_attack(sq, occ, dirs[0])
         | crate::tables::ray_attack(sq, occ, dirs[1])
         | crate::tables::ray_attack(sq, occ, dirs[2])
         | crate::tables::ray_attack(sq, occ, dirs[3])
+}
+
+// ---- L2 portable fallback: magic bitboards (build-proven tables) ----------
+
+/// Magic-table lookup: pure arithmetic, works on any 64-bit target.
+/// Index = `(occ & mask) * magic >> (64 - bits)` into the square's flat
+/// region of the build-verified table.
+#[inline(always)]
+fn magic_lookup(sq: u8, occ: u64, table: &[u64], off: &[u32; 65], masks: &[u64; 64], magics: &[u64; 64], bits: &[u8; 64]) -> u64 {
+    let s = sq as usize;
+    let idx = off[s] as usize
+        + (((occ & masks[s]).wrapping_mul(magics[s])) >> (64 - bits[s])) as usize;
+    table[idx]
+}
+
+#[inline(always)]
+fn magic_rook(sq: u8, occ: u64) -> u64 {
+    magic_lookup(sq, occ, &GEN_ROOK_ATTACKS, &GEN_ROOK_OFF, &GEN_ROOK_MASK, &GEN_ROOK_MAGIC, &GEN_ROOK_BITS)
+}
+
+#[inline(always)]
+fn magic_bishop(sq: u8, occ: u64) -> u64 {
+    magic_lookup(sq, occ, &GEN_BISHOP_ATTACKS, &GEN_BISHOP_OFF, &GEN_BISHOP_MASK, &GEN_BISHOP_MAGIC, &GEN_BISHOP_BITS)
 }
 
 
@@ -169,7 +204,7 @@ pub fn rook_attacks(sq: u8, occ: u64) -> u64 {
             return rook_table()[sq as usize][idx];
         }
     }
-    classical(sq, occ, &ROOK_DIRS)
+    magic_rook(sq, occ)
 }
 
 #[inline(always)]
@@ -182,7 +217,7 @@ pub fn bishop_attacks(sq: u8, occ: u64) -> u64 {
             return bishop_table()[sq as usize][idx];
         }
     }
-    classical(sq, occ, &BISHOP_DIRS)
+    magic_bishop(sq, occ)
 }
 
 #[inline(always)]
@@ -241,7 +276,8 @@ fn auto_select_pext(bmi2: bool) -> bool {
 }
 
 /// Lazily resolve the dispatch path (once per process): env override
-/// `MYCHESS_SLIDER=pext|rays` for A/B benchmarking, else CPUID auto-detection.
+/// `MYCHESS_SLIDER=pext|fallback` (alias `rays`/`magic`) for A/B
+/// benchmarking, else CPUID auto-detection.
 #[cfg(target_arch = "x86_64")]
 fn init_dispatch() -> u8 {
     let bmi2 = std::is_x86_feature_detected!("bmi2");
@@ -249,15 +285,15 @@ fn init_dispatch() -> u8 {
     let v = match env.as_str() {
         "pext" if bmi2 => DISPATCH_PEXT,
         "pext" => {
-            eprintln!("mychess: MYCHESS_SLIDER=pext ignored, BMI2 not detected -> rays");
-            DISPATCH_RAYS
+            eprintln!("mychess: MYCHESS_SLIDER=pext ignored, BMI2 not detected -> fallback");
+            DISPATCH_MAGIC
         }
-        "rays" => DISPATCH_RAYS,
+        "fallback" | "rays" | "magic" => DISPATCH_MAGIC,
         _ => {
             if auto_select_pext(bmi2) {
                 DISPATCH_PEXT
             } else {
-                DISPATCH_RAYS
+                DISPATCH_MAGIC
             }
         }
     };
@@ -288,13 +324,13 @@ pub fn force_path(p: SliderPath) {
     #[cfg(target_arch = "x86_64")]
     match p {
         SliderPath::Auto => DISPATCH.store(DISPATCH_UNSET, Ordering::Relaxed),
-        SliderPath::Rays => DISPATCH.store(DISPATCH_RAYS, Ordering::Relaxed),
+        SliderPath::Fallback => DISPATCH.store(DISPATCH_MAGIC, Ordering::Relaxed),
         SliderPath::Pext => {
             if std::is_x86_feature_detected!("bmi2") {
                 DISPATCH.store(DISPATCH_PEXT, Ordering::Relaxed);
             } else {
                 eprintln!("mychess: force_path(Pext) ignored, BMI2 not detected");
-                DISPATCH.store(DISPATCH_RAYS, Ordering::Relaxed);
+                DISPATCH.store(DISPATCH_MAGIC, Ordering::Relaxed);
             }
         }
     }
@@ -302,12 +338,12 @@ pub fn force_path(p: SliderPath) {
     let _ = p;
 }
 
-/// Name of the path used after dispatch init: `"pext"` or `"rays"`.
+/// Name of the path used after dispatch init: `"pext"` or `"magic"`.
 pub fn path_name() -> &'static str {
     if use_pext() {
         "pext"
     } else {
-        "rays"
+        "magic"
     }
 }
 
@@ -341,7 +377,8 @@ pub fn between(a: u8, b: u8) -> u64 {
     crate::tables::BETWEEN[a as usize][b as usize]
 }
 
-/// Debug helper: verify every PEXT table entry agrees with the classical walk.
+/// Debug helper: verify the active dispatch path agrees with the classical
+/// ray walk over every square and a spread of occupancies.
 pub fn _selftest() -> bool {
     for sq in 0..64u8 {
         for occ in [0u64, 0x00FF_0000_0000_FF00, 0x8142_2418_1824_4281, u64::MAX] {

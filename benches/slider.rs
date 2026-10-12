@@ -30,7 +30,7 @@ fn setup_path() {
             slider::force_path(SliderPath::Pext);
             assert_eq!(slider::path_name(), "pext", "BMI2 required for this A/B leg");
         }
-        "rays" => slider::force_path(SliderPath::Rays),
+        "fallback" => slider::force_path(SliderPath::Fallback),
         _ => {} // machine default (auto)
     }
 }
