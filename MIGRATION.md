@@ -320,3 +320,42 @@ CONSERVÉ : performance neutre dans la bande de bruit, structure
 strictement plus simple au leaf (zéro copie de Position, zéro make par
 candidat EP), crash latent supprimé. Marqué no-gain, conformément au
 protocole (ne compte pas comme gain pour le tableau final).
+
+## GATE 2.5 — M2/L1c : fusion checkmask/pins/danger (session 2026-10-13)
+
+Un passage UNIQUE sur les glisseurs ennemis (`build_legality` → struct
+`Legality`) remplace trois passes redondantes : les boucles slider de
+`attacks_by` (danger), les scans slider d'`attackers_to` á la case du roi,
+et la marche 8-rayons de `compute_pins`. Coût par glisseur ≤2 lookups
+(tour/fou 1, dame 2 — `2 lookups par slider max`) ; classification
+checker/pin par alignement (ortho : same file/rank ; diag : |Δf|==|Δr|) +
+`between(ksq, pinner) & occ` avec popcount==1 et bloqueur ami ; line
+stockée par case (`between(ksq, pinner) | pinner` — la version complète du
+between, PAS `(between & occ)` : les cases vides entre roi et épinglé
+doivent rester atteignables — ce bug exact a été attrapé par differentiels
+durante le dev : kiwipete d3 97 751 < 97 862, tour épingle bloquée).
+Danger-roi : part leaper (pions/cavaliers/roi, shifts tables comme
+`attacks_by`) + attaques glisseurs sur `occ ^ ks_bit` (égal ensembliste à
+l'ancien `attacks_by(them, occ^ksq)`). `attackers_to` reste pour
+`perft_detailed` (double-check) ; `attacks_by`/`pin_line` supprimés,
+`compute_pins` conservé comme référence lisible (plus appelé au hot path).
+
+Filet : suite release complète OK (T1 + colonnes + differentiels
+60×80 + count_moves diff + double-chemin) + les 14 pièges publiés
+(A==B vs L1b).
+
+### A/B/A/B intercalé (médianes, 3 legs alternés, même session)
+
+| workload | A (L1b) | B (L1c) | Δ | règle +5% |
+|---|---|---|---|---|
+| startpos perft(6) 1T | 210.3 Mnps | 250.6 Mnps | **+19.2 % (×1.19)** | **GAIN** |
+| pos3 perft(7) 1T | 207.9 Mnps | 237.3 Mnps | **+14.1 % (×1.14)** | **GAIN** |
+
+Corroboration criterion count_moves (vs base25) : startpos 78.7→70.5 ns
+(−11.6 %), pos3 47.9→44.0 ns (−10.6 %), pos6 85.3→77.4 ns (−8.9 %),
+kiwipete 103.1→103.5 ns (−0.2 %, bruit).
+
+**Décision L1c : GAIN≥5 % → lot adopté.** La cible <60 ns/call est désormais
+atteinte sur pos3/pos6/startpos-médian (70.5/44.0/77.4) mais pas
+systématiquement (kiwipete ~103 ns) : consigné tel quel, la règle
+précommitée (+5 %) gouverne, pas la glace Cible.

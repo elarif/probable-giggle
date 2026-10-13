@@ -51,35 +51,159 @@ impl Default for MoveList {
     }
 }
 
+/// L1c: attack set of one colour restricted to nothing (kept for the pawn /
+/// knight / king part of the fused legality pass — see `build_legality`).
+///
+/// Single fused legality pass (GATE 2.5 M2/L1c): ONE iteration over the
+/// enemy sliders yields the checkers mask, the pinned set (with per-square
+/// pin line stored), and the king-danger set — replacing the three
+/// previously redundant passes (`attacks_by`'s slider loops,
+/// `attackers_to`'s slider scans at the king square and `compute_pins`'s
+/// 8-ray walk). Budget: at most 2 attack lookups per slider (a rook or a
+/// bishop pays one, a queen two); an enemy slider not relevant to the
+/// king's rays still pays its lookup because it may cover a king-adjacent
+/// square (danger), but its checker/pin classification is then skipped via
+/// the alignment guards.
+pub(crate) struct Legality {
+    pub ksq: u8,
+    pub checkers: u64,
+    /// Enemy attacks computed with our king removed from occupancy
+    /// (`occ ^ ks_bit`), exactly the set `attacks_by(them, occ ^ ksq)` produced.
+    pub danger: u64,
+    pub pinned: u64,
+    /// Pinned squares with their allowed line (`between(ksq, pinner) | pinner`),
+    /// in encounter order. A pinned piece's reachable targets are always a
+    /// subset of this line: attacks stop at the king (own colour) and at the
+    /// pinner (blocking), so neither the full ray nor the beyond-pinner part
+    /// is ever generated.
+    pub pin_sq: [u8; 8],
+    pub pin_lines: [u64; 8],
+    pub npins: u8,
+}
+
+impl Legality {
+    #[inline(always)]
+    pub fn line_of(&self, sq: u8) -> u64 {
+        for i in 0..self.npins as usize {
+            if self.pin_sq[i] == sq {
+                return self.pin_lines[i];
+            }
+        }
+        0
+    }
+    #[inline(always)]
+    fn record_pin(&mut self, blocker: u64, line: u64) {
+        debug_assert!(blocker.count_ones() == 1 && (blocker & self.pinned) == 0);
+        debug_assert!((self.npins as usize) < 8);
+        self.pin_sq[self.npins as usize] = blocker.trailing_zeros() as u8;
+        self.pin_lines[self.npins as usize] = line;
+        self.npins += 1;
+        self.pinned |= blocker;
+    }
+}
+
 #[inline(always)]
-fn attacks_by(pos: &Position, by: Color, occ: u64) -> u64 {
-    let b = pos.bb_color[by.idx()];
-    let pawns = pos.bb_piece[PAWN] & b;
-    let mut att = if by == Color::White {
-        ((pawns & !FILE_H) << 9) | ((pawns & !FILE_A) << 7)
-    } else {
-        ((pawns & !FILE_H) >> 7) | ((pawns & !FILE_A) >> 9)
+fn ortho_aligned(sq: u8, ksq: u8) -> bool {
+    (sq ^ ksq) & 7 == 0 || (sq >> 3) == (ksq >> 3)
+}
+
+#[inline(always)]
+fn diag_aligned(sq: u8, ksq: u8) -> bool {
+    let df = ((sq & 7) as i16) - ((ksq & 7) as i16);
+    let dr = ((sq >> 3) as i16) - ((ksq >> 3) as i16);
+    df != 0 && df.abs() == dr.abs()
+}
+
+#[inline]
+pub(crate) fn build_legality(pos: &Position, us: Color) -> Legality {
+    let them = us.opp();
+    let occ = pos.occ();
+    let ksq = pos.king_sq(us);
+    let ks_bit = 1u64 << ksq;
+    let occ2 = occ ^ ks_bit;
+    let us_bb = pos.color_bb(us);
+    let them_all = pos.bb_color[them.idx()];
+
+    let mut ctx = Legality {
+        ksq,
+        checkers: 0,
+        danger: 0,
+        pinned: 0,
+        pin_sq: [0; 8],
+        pin_lines: [0; 8],
+        npins: 0,
     };
-    let mut n = pos.bb_piece[KNIGHT] & b;
+
+    // Leaper checkers + leaper part of the danger set (pawns, knights, king).
+    let pw = pos.bb_piece[PAWN] & them_all;
+    if pw != 0 {
+        ctx.danger |= if them == Color::White {
+            ((pw & !FILE_H) << 9) | ((pw & !FILE_A) << 7)
+        } else {
+            ((pw & !FILE_H) >> 7) | ((pw & !FILE_A) >> 9)
+        };
+        ctx.checkers |= PAWN_ATTACKERS[them.idx()][ksq as usize] & pw;
+    }
+    let nk = pos.bb_piece[KNIGHT] & them_all;
+    ctx.checkers |= KNIGHT_ATT[ksq as usize] & nk;
+    let mut n = nk;
     while n != 0 {
-        att |= KNIGHT_ATT[n.trailing_zeros() as usize];
+        ctx.danger |= KNIGHT_ATT[n.trailing_zeros() as usize];
         n &= n - 1;
     }
-    let k = pos.bb_piece[KING] & b;
-    if k != 0 {
-        att |= KING_ATT[k.trailing_zeros() as usize];
+    let tk = pos.bb_piece[KING] & them_all;
+    if tk != 0 {
+        let att = KING_ATT[tk.trailing_zeros() as usize];
+        ctx.danger |= att;
+        ctx.checkers |= att & ks_bit;
     }
-    let mut rq = (pos.bb_piece[ROOK] | pos.bb_piece[QUEEN]) & b;
-    while rq != 0 {
-        att |= rook_attacks(rq.trailing_zeros() as u8, occ);
-        rq &= rq - 1;
+
+    // Sliders: rook-line pass then bishop-line pass (a queen pays one lookup
+    // in each; a dedicated rook/bishop only in its pass). `occ2` removes the
+    // king so each attack set also yields the checker by testing `ks_bit`
+    // (ray unblocked between slider and king) — equivalent to scanning
+    // rook/bishop attacks FROM the king square.
+    let mut s = (pos.bb_piece[ROOK] | pos.bb_piece[QUEEN]) & them_all;
+    while s != 0 {
+        let sq = s.trailing_zeros() as u8;
+        let bit = s & s.wrapping_neg();
+        s ^= bit;
+        let att = rook_attacks(sq, occ2);
+        if att & ks_bit != 0 {
+            ctx.checkers |= bit;
+        } else {
+            let bl = between(ksq, sq) & occ;
+            if bl != 0
+                && (bl & (bl - 1)) == 0
+                && bl & us_bb != 0
+                && ortho_aligned(sq, ksq)
+            {
+                ctx.record_pin(bl, between(ksq, sq) | bit);
+            }
+        }
+        ctx.danger |= att;
     }
-    let mut bq = (pos.bb_piece[BISHOP] | pos.bb_piece[QUEEN]) & b;
-    while bq != 0 {
-        att |= bishop_attacks(bq.trailing_zeros() as u8, occ);
-        bq &= bq - 1;
+    let mut s = (pos.bb_piece[BISHOP] | pos.bb_piece[QUEEN]) & them_all;
+    while s != 0 {
+        let sq = s.trailing_zeros() as u8;
+        let bit = s & s.wrapping_neg();
+        s ^= bit;
+        let att = bishop_attacks(sq, occ2);
+        if att & ks_bit != 0 {
+            ctx.checkers |= bit;
+        } else {
+            let bl = between(ksq, sq) & occ;
+            if bl != 0
+                && (bl & (bl - 1)) == 0
+                && bl & us_bb != 0
+                && diag_aligned(sq, ksq)
+            {
+                ctx.record_pin(bl, between(ksq, sq) | bit);
+            }
+        }
+        ctx.danger |= att;
     }
-    att
+    ctx
 }
 
 #[inline(always)]
@@ -95,7 +219,8 @@ pub(crate) fn attackers_to(pos: &Position, sq: u8, by: Color) -> u64 {
     m
 }
 
-/// Pinned pieces of `us`, split by pin orientation.
+/// Pinned pieces of `us`, split by pin orientation. Reference implementation
+/// (readable): the per-node hot path uses the fused [`build_legality`] pass.
 pub fn compute_pins(pos: &Position, us: Color, ksq: u8) -> (u64, u64) {
     let occ = pos.occ();
     let mut diag = 0u64;
@@ -142,16 +267,6 @@ pub fn compute_pins(pos: &Position, us: Color, ksq: u8) -> (u64, u64) {
 }
 
 #[inline(always)]
-fn pin_line(ksq: u8, from: u8) -> u64 {
-    for ray in &RAYS {
-        let r = ray[ksq as usize];
-        if r & (1u64 << from) != 0 {
-            return r | between(ksq, from);
-        }
-    }
-    0
-}
-
 fn push_promotions(out: &mut MoveList, from: u8, to: u8, is_cap: bool) {
     let base = if is_cap { FLAG_PROMO_CAP_N } else { FLAG_PROMO_N };
     out.push(Move::new(from, to, base));
@@ -196,13 +311,12 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     let us_bb = pos.color_bb(us);
     let them_bb = pos.color_bb(them);
     let empty = !occ;
-    let ksq = pos.king_sq(us);
-    let checkers = attackers_to(pos, ksq, them);
-    let ncheck = checkers.count_ones();
+    let ctx = build_legality(pos, us);
+    let ksq = ctx.ksq;
+    let ncheck = ctx.checkers.count_ones();
 
     // King moves. The king is removed from occupancy so sliders x-ray through it.
-    let danger = attacks_by(pos, them, occ ^ (1u64 << ksq));
-    let mut kt = KING_ATT[ksq as usize] & !us_bb & !danger;
+    let mut kt = KING_ATT[ksq as usize] & !us_bb & !ctx.danger;
     while kt != 0 {
         let to = kt.trailing_zeros() as u8;
         kt &= kt - 1;
@@ -215,13 +329,12 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     }
 
     let allowed = if ncheck == 1 {
-        let c = checkers.trailing_zeros() as u8;
-        between(ksq, c) | checkers
+        let c = ctx.checkers.trailing_zeros() as u8;
+        between(ksq, c) | ctx.checkers
     } else {
         !0u64
     };
-    let (pin_diag, pin_ortho) = compute_pins(pos, us, ksq);
-    let pinned = pin_diag | pin_ortho;
+    let pinned = ctx.pinned;
 
     let captures_only = kind == GenKind::CapturesOnly;
 
@@ -229,11 +342,14 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     let pawns = pos.bb_piece[PAWN] & us_bb;
     let free = pawns & !pinned;
     gen_pawns_bulk(pos, out, us, them_bb, free, allowed, empty, captures_only);
-    let mut pp = pawns & pinned;
-    while pp != 0 {
-        let from = pp.trailing_zeros() as u8;
-        pp &= pp - 1;
-        gen_pawn_pinned(pos, out, us, them_bb, from, allowed & pin_line(ksq, from), empty, captures_only);
+    if ctx.npins != 0 {
+        for i in 0..ctx.npins as usize {
+            let from = ctx.pin_sq[i];
+            // Only pawn pins matter here; sliders use their own loop below.
+            if pawns & (1u64 << from) != 0 {
+                gen_pawn_pinned(pos, out, us, them_bb, from, allowed & ctx.pin_lines[i], empty, captures_only);
+            }
+        }
     }
 
     // En passant (L1b): legality by ray trick — no make/unmake per candidate.
@@ -244,7 +360,7 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     if let Some(ep) = pos.ep_square() {
         let cap_sq = if us == Color::White { ep - 8 } else { ep + 8 };
         let evades_check = if ncheck == 1 {
-            ((checkers & (1u64 << cap_sq)) | (allowed & (1u64 << ep))) != 0
+            ((ctx.checkers & (1u64 << cap_sq)) | (allowed & (1u64 << ep))) != 0
         } else {
             true
         };
@@ -276,7 +392,7 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
         bq &= bq - 1;
         let mut t = bishop_attacks(s, occ) & !us_bb & allowed;
         if pinned & (1u64 << s) != 0 {
-            t &= pin_line(ksq, s);
+            t &= ctx.line_of(s);
         }
         emit_slider(out, s, t, them_bb, captures_only);
     }
@@ -288,7 +404,7 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
         rq &= rq - 1;
         let mut t = rook_attacks(s, occ) & !us_bb & allowed;
         if pinned & (1u64 << s) != 0 {
-            t &= pin_line(ksq, s);
+            t &= ctx.line_of(s);
         }
         emit_slider(out, s, t, them_bb, captures_only);
     }
@@ -552,42 +668,42 @@ pub fn count_moves(pos: &Position) -> u64 {
     let us_bb = pos.color_bb(us);
     let them_bb = pos.color_bb(them);
     let empty = !occ;
-    let ksq = pos.king_sq(us);
-    let checkers = attackers_to(pos, ksq, them);
-    let ncheck = checkers.count_ones();
+    let ctx = build_legality(pos, us);
+    let ksq = ctx.ksq;
+    let ncheck = ctx.checkers.count_ones();
 
     // King moves (always legal here: `!us_bb & !danger`).
-    let danger = attacks_by(pos, them, occ ^ (1u64 << ksq));
-    let mut n = (KING_ATT[ksq as usize] & !us_bb & !danger).count_ones() as u64;
+    let mut n = (KING_ATT[ksq as usize] & !us_bb & !ctx.danger).count_ones() as u64;
     if ncheck >= 2 {
         return n; // double check: only king moves
     }
 
     let allowed = if ncheck == 1 {
-        let c = checkers.trailing_zeros() as u8;
-        between(ksq, c) | checkers
+        let c = ctx.checkers.trailing_zeros() as u8;
+        between(ksq, c) | ctx.checkers
     } else {
         !0u64
     };
-    let (pin_diag, pin_ortho) = compute_pins(pos, us, ksq);
-    let pinned = pin_diag | pin_ortho;
+    let pinned = ctx.pinned;
 
     // ---- Pawns (bulk target bitboards) ----
     let pawns = pos.bb_piece[PAWN] & us_bb;
     let free = pawns & !pinned;
     n += count_pawns_bulk(us, them_bb, free, allowed, empty);
-    let mut pp = pawns & pinned;
-    while pp != 0 {
-        let from = pp.trailing_zeros() as u8;
-        pp &= pp - 1;
-        n += count_pawn_pinned(pos, us, them_bb, from, allowed & pin_line(ksq, from), empty);
+    if ctx.npins != 0 {
+        for i in 0..ctx.npins as usize {
+            let from = ctx.pin_sq[i];
+            if pawns & (1u64 << from) != 0 {
+                n += count_pawn_pinned(pos, us, them_bb, from, allowed & ctx.pin_lines[i], empty);
+            }
+        }
     }
 
     // ---- En passant (L1b): same ray-trick validation as in generate ----
     if let Some(ep) = pos.ep_square() {
         let cap_sq = if us == Color::White { ep - 8 } else { ep + 8 };
         let evades_check = if ncheck == 1 {
-            ((checkers & (1u64 << cap_sq)) | (allowed & (1u64 << ep))) != 0
+            ((ctx.checkers & (1u64 << cap_sq)) | (allowed & (1u64 << ep))) != 0
         } else {
             true
         };
@@ -618,7 +734,7 @@ pub fn count_moves(pos: &Position) -> u64 {
         bq &= bq - 1;
         let mut t = bishop_attacks(s, occ) & !us_bb & allowed;
         if pinned & (1u64 << s) != 0 {
-            t &= pin_line(ksq, s);
+            t &= ctx.line_of(s);
         }
         n += t.count_ones() as u64;
     }
@@ -630,7 +746,7 @@ pub fn count_moves(pos: &Position) -> u64 {
         rq &= rq - 1;
         let mut t = rook_attacks(s, occ) & !us_bb & allowed;
         if pinned & (1u64 << s) != 0 {
-            t &= pin_line(ksq, s);
+            t &= ctx.line_of(s);
         }
         n += t.count_ones() as u64;
     }
