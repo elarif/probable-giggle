@@ -38,6 +38,18 @@ use crate::movegen::{MoveList, generate};
 use crate::position::Position;
 use crate::types::{GenKind, Move};
 
+// ---- A1 value bridge (TUNABLE AU LOT C3) ------------------------------------
+/// Fixed cp→Q calibration chosen for A1: linear `/1000` clamped to
+/// `±EVAL_Q_CLAMP` (the sigmoid(cp, τ) alternative is rejected for now — see
+/// ELO_LOG A1 notes). These are the ONLY numbers of the bridge: every call
+/// site must go through [`eval_normalized`], never a buried literal.
+///
+/// **Tunable au lot C3**: the tapered-eval lot recalibrates this mapping
+/// (scale and/or clamp and/or sigmoid shape) — flip these constants, nothing
+/// else.
+const EVAL_Q_CP_SCALE: f32 = 1.0 / 1000.0;
+const EVAL_Q_CLAMP: f32 = 1.0;
+
 /// Arena node: visits + mover-perspective accumulated value.
 pub(crate) struct Node {
     pub visits: u64,
@@ -210,19 +222,9 @@ fn search_once(search: &Search, arena: &mut Vec<Node>, rng: &mut Rng) {
         if !expanded {
             if visits == 0 {
                 // A1 leaf: exact terminality first, else the static eval.
-                let mut list0 = MoveList::new();
-                generate(&p, &mut list0, GenKind::All);
-                let r = if list0.is_empty() {
-                    // mate / stalemate (exact, mover value)
-                    if p.in_check(p.side) { -1.0 } else { 0.0 }
-                } else if p.halfmove >= 100
-                    || repetition_draw(&p, &hist)
-                    || eval::insufficient_material(&p)
-                {
-                    0.0
-                } else {
-                    eval_normalized(&p)
-                };
+                // Single source of truth (`mcts::leaf_value`) so the unit
+                // tests exercise the EXACT path the search takes.
+                let r = leaf_value(&p, &hist);
                 backprop(arena, &path, r);
                 return;
             }
@@ -357,11 +359,24 @@ fn repetition_draw(pos: &Position, hist: &[u64]) -> bool {
 }
 
 /// A1 leaf value: static eval normalised to the Q space [-1, 1] used by
-/// MCTS/PUCT/NN (D1 tanh convention): cp is mapped by /1000 clamped. Terminal
-/// positions keep their exact {-1, 0, 1} values (checked by the caller).
+/// MCTS/PUCT/NN (D1 tanh convention): cp is mapped by the named bridge
+/// constants above. Terminal positions keep their exact {-1, 0, 1} values
+/// (checked first — see [`leaf_value`]).
 #[inline]
 pub fn eval_normalized(pos: &Position) -> f32 {
-    (eval::eval_for_mover(pos) as f32 / 1000.0).clamp(-1.0, 1.0)
+    (eval::eval_for_mover(pos) as f32 * EVAL_Q_CP_SCALE).clamp(-EVAL_Q_CLAMP, EVAL_Q_CLAMP)
+}
+
+/// The A1 leaf contract, one function so the unit tests exercise the exact
+/// path the search takes: **terminality first** (exact {-1, 0, 1} — mate,
+/// stalemate, 50-move, triple repetition, insufficient material — NEVER the
+/// eval), static eval only on a non-terminal leaf.
+#[inline(always)]
+pub fn leaf_value(pos: &Position, hist: &[u64]) -> f32 {
+    match terminal_value(pos, hist) {
+        Some(v) => v,
+        None => eval_normalized(pos),
+    }
 }
 
 /// Terminality of `pos` given the history of positions BEFORE it — the
