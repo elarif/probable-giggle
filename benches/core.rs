@@ -38,11 +38,11 @@ fn path32() -> [Move; 32] {
     let mut state = 0xC0FF_EE12_3456_789Au64;
     let mut pos = Position::startpos();
     let mut moves = [Move::NONE; 32];
-    for ply in 0..32 {
+    for (ply, mslot) in moves.iter_mut().enumerate() {
         let moves_list = legal_moves(&pos);
         assert!(!moves_list.is_empty(), "path32 hit an empty position at ply {ply}");
-        let mv = moves_list[(next_rand(&mut state) as usize) % moves_list.len()];
-        moves[ply] = mv;
+        *mslot = moves_list[(next_rand(&mut state) as usize) % moves_list.len()];
+        let mv = *mslot;
         let u = pos.make(mv);
         assert_eq!(pos.zobrist, pos.recompute_zobrist(), "path32 make invariant, ply {ply}");
         pos.unmake(mv, u);
@@ -200,7 +200,7 @@ fn bench_mcts_walkback(c: &mut Criterion) {
     let zero_miss = hashes;
     let mut hit_at4 = hashes;
     let mut cur_zero = splitmix(zero_miss[15] ^ 0xA5A5_5A5A_3C3C_C3C3);
-    while zero_miss.iter().any(|&h| h == cur_zero) {
+    while zero_miss.contains(&cur_zero) {
         cur_zero = splitmix(cur_zero);
     }
     hit_at4[11] = hit_at4[15];

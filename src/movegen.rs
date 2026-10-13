@@ -70,6 +70,12 @@ pub(crate) struct Legality {
     /// Enemy attacks computed with our king removed from occupancy
     /// (`occ ^ ks_bit`), exactly the set `attacks_by(them, occ ^ ksq)` produced.
     pub danger: u64,
+    /// Bit of the enemy king square (0 if absent). Masked out of every target
+    /// set (GATE 2.5 M3): a pseudo king-capture is never emitted — a legal
+    /// position cannot attack the enemy king, so masking is a no-op on legal
+    /// input and merely keeps illegal entries defined, silent and consistent
+    /// between `generate` and `count_moves` (inexact counts = contract).
+    pub them_king: u64,
     pub pinned: u64,
     /// Pinned squares with their allowed line (`between(ksq, pinner) | pinner`),
     /// in encounter order. A pinned piece's reachable targets are always a
@@ -135,10 +141,26 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
     let us_bb = pos.color_bb(us);
     let them_all = pos.bb_color[them.idx()];
 
+    // GATE 2.5 M3 — entry contract: a LEGAL position is required. Debug:
+    // loud, with the contract message, at the single build site. Release:
+    // defined and silent — the king capture is simply never emitted (see
+    // `Legality::them_king`); counts are inaccurate for illegal input by
+    // contract, never a crash.
+    let them_king = pos.bb_piece[KING] & them_all;
+    debug_assert!(
+        them_king != 0,
+        "position légale exigée : roi adverse ABSENT (entrée illégale)"
+    );
+    debug_assert!(
+        them_king == 0 || !pos.is_square_attacked(them_king.trailing_zeros() as u8, us),
+        "enemy king capturable ⇒ position illégale entrée (comptes inexactes = contrat)"
+    );
+
     let mut ctx = Legality {
         ksq,
         checkers: 0,
         danger: 0,
+        them_king,
         pinned: 0,
         pin_sq: [0; 8],
         pin_lines: [0; 8],
@@ -179,7 +201,7 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
     let mut s = (pos.bb_piece[ROOK] | pos.bb_piece[QUEEN]) & them_all;
     while s != 0 {
         let sq = s.trailing_zeros() as u8;
-        let bit = s & s.wrapping_neg();
+        let bit = s.isolate_lowest_one();
         s ^= bit;
         let att = rook_attacks(sq, occ2);
         if att & ks_bit != 0 {
@@ -199,7 +221,7 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
     let mut s = (pos.bb_piece[BISHOP] | pos.bb_piece[QUEEN]) & them_all;
     while s != 0 {
         let sq = s.trailing_zeros() as u8;
-        let bit = s & s.wrapping_neg();
+        let bit = s.isolate_lowest_one();
         s ^= bit;
         let att = bishop_attacks(sq, occ2);
         if att & ks_bit != 0 {
@@ -341,6 +363,18 @@ fn ep_legal_ray_impl<const W: bool>(pos: &Position, from: u8, ep: u8, ksq: u8, o
 }
 
 /// Generate all legal moves (or noisy moves for `CapturesOnly`).
+///
+/// # Contract (GATE 2.5 M3)
+///
+/// A **legal** position is required (both kings present, side to move not
+/// generating while the enemy king is capturable — i.e. the enemy king is not
+/// attackable by us). This is exactly the invariant `perft`, self-play and
+/// the MCTS layer maintain. On illegal input the behaviour is **defined and
+/// silent**: no king-capture pseudo move is ever emitted (the enemy king
+/// square is masked out of every target set) and no panic occurs — counts are
+/// simply inaccurate, by contract. In debug builds the illegal entry is
+/// loudly asserted (`debug_assert!` with the contract message, see
+/// `build_legality_impl` / `Position::king_sq`).
 pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     let us = pos.side;
     let them = us.opp();
@@ -353,7 +387,8 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     let ncheck = ctx.checkers.count_ones();
 
     // King moves. The king is removed from occupancy so sliders x-ray through it.
-    let mut kt = KING_ATT[ksq as usize] & !us_bb & !ctx.danger;
+    // M3: enemy king square never a target (no-op on legal input).
+    let mut kt = KING_ATT[ksq as usize] & !us_bb & !ctx.danger & !ctx.them_king;
     while kt != 0 {
         let to = kt.trailing_zeros() as u8;
         kt &= kt - 1;
@@ -367,9 +402,9 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
 
     let allowed = if ncheck == 1 {
         let c = ctx.checkers.trailing_zeros() as u8;
-        between(ksq, c) | ctx.checkers
+        (between(ksq, c) | ctx.checkers) & !ctx.them_king
     } else {
-        !0u64
+        !ctx.them_king
     };
     let pinned = ctx.pinned;
 
@@ -703,6 +738,11 @@ pub fn generate_captures(pos: &Position) -> MoveList {
 ///
 /// Differential-checked against `generate(.., All).len()` on golden positions
 /// and thousands of self-play positions (tests).
+///
+/// # Contract (GATE 2.5 M3)
+///
+/// Same entry contract as [`generate`]: legal positions only; illegal input
+/// is defined, silent and never emits (or counts) a king capture.
 #[inline]
 pub fn count_moves(pos: &Position) -> u64 {
     if pos.side == Color::White {
@@ -724,17 +764,19 @@ fn count_moves_impl<const W: bool>(pos: &Position) -> u64 {
     let ksq = ctx.ksq;
     let ncheck = ctx.checkers.count_ones();
 
-    // King moves (always legal here: `!us_bb & !danger`).
-    let mut n = (KING_ATT[ksq as usize] & !us_bb & !ctx.danger).count_ones() as u64;
+    // King moves (always legal here: `!us_bb & !danger`; M3: enemy king
+    // square masked out — no-op on legal input).
+    let mut n =
+        (KING_ATT[ksq as usize] & !us_bb & !ctx.danger & !ctx.them_king).count_ones() as u64;
     if ncheck >= 2 {
         return n; // double check: only king moves
     }
 
     let allowed = if ncheck == 1 {
         let c = ctx.checkers.trailing_zeros() as u8;
-        between(ksq, c) | ctx.checkers
+        (between(ksq, c) | ctx.checkers) & !ctx.them_king
     } else {
-        !0u64
+        !ctx.them_king
     };
     let pinned = ctx.pinned;
 

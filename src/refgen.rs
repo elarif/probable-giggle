@@ -1,5 +1,14 @@
 //! Slow, obvious reference generator + naive perft. Oracle for differential
 //! tests against the fast legal movegen. Deliberately naive (per-piece walk).
+//!
+//! # Contract (GATE 2.5 M3)
+//!
+//! A **legal** position is required (as for `movegen::generate`). On illegal
+//! entry (enemy king capturable or absent), behaviour is **defined and
+//! silent**: the pseudo generators never emit a capture of the enemy king —
+//! the emission site asserts loudly in debug with the contract message and
+//! skips the move in release. Counts may be inaccurate for illegal input, by
+//! contract, and no panic is reachable through the oracle.
 
 use crate::movegen::MoveList;
 use crate::position::Position;
@@ -31,6 +40,9 @@ fn push_promotions(out: &mut MoveList, from: u8, to: u8, is_cap: bool) {
 }
 
 /// Pseudo-legal moves: may leave the moving side's king in check.
+///
+/// GATE 2.5 M3: a capture of the enemy KING is never emitted (illegal entry:
+/// loud `debug_assert!` at the emission site, silent skip in release).
 pub fn pseudo_legal(pos: &Position, out: &mut MoveList) {
     let us = pos.side;
     for sq in 0..64u8 {
@@ -57,12 +69,21 @@ pub fn pseudo_legal(pos: &Position, out: &mut MoveList) {
     }
 }
 
+/// `m` holds an enemy KING (capture victim = king ⇒ illegal entry, M3).
+#[inline(always)]
+fn king_victim(m: u8, us: Color) -> bool {
+    let code = m as usize - 1;
+    (code % 6) == KING && (code / 6) != us.idx()
+}
+
 fn pseudo_leaper(pos: &Position, out: &mut MoveList, sq: u8, us: Color, deltas: &[(i8, i8)]) {
     for (df, dr) in deltas {
         if let Some(to) = step(sq, *df, *dr) {
             let m = pos.piece_on(to);
             if m == 0 {
                 out.push(Move::new(sq, to, FLAG_QUIET));
+            } else if king_victim(m, us) {
+                debug_assert!(false, "enemy king capturable ⇒ position illégale entrée");
             } else if (m - 1) / 6 != us.idx() as u8 {
                 out.push(Move::new(sq, to, FLAG_CAPTURE));
             }
@@ -79,7 +100,9 @@ fn pseudo_slider(pos: &Position, out: &mut MoveList, sq: u8, us: Color, deltas: 
             if m == 0 {
                 out.push(Move::new(sq, to, FLAG_QUIET));
             } else {
-                if (m - 1) / 6 != us.idx() as u8 {
+                if king_victim(m, us) {
+                    debug_assert!(false, "enemy king capturable ⇒ position illégale entrée");
+                } else if (m - 1) / 6 != us.idx() as u8 {
                     out.push(Move::new(sq, to, FLAG_CAPTURE));
                 }
                 break;
@@ -110,11 +133,15 @@ fn pseudo_pawn(pos: &Position, out: &mut MoveList, sq: u8, us: Color) {
     for df in [-1i8, 1] {
         if let Some(to) = step(sq, df, dir) {
             let m = pos.piece_on(to);
-            if m != 0 && (m - 1) / 6 != us.idx() as u8 {
-                if (to / 8) as i8 == promo_rank {
-                    push_promotions(out, sq, to, true);
-                } else {
-                    out.push(Move::new(sq, to, FLAG_CAPTURE));
+            if m != 0 {
+                if king_victim(m, us) {
+                    debug_assert!(false, "enemy king capturable ⇒ position illégale entrée");
+                } else if (m - 1) / 6 != us.idx() as u8 {
+                    if (to / 8) as i8 == promo_rank {
+                        push_promotions(out, sq, to, true);
+                    } else {
+                        out.push(Move::new(sq, to, FLAG_CAPTURE));
+                    }
                 }
             } else if pos.ep_square() == Some(to) {
                 out.push(Move::new(sq, to, FLAG_EP_CAPTURE));

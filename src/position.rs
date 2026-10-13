@@ -77,9 +77,20 @@ impl Position {
     pub fn piece_bb(&self, k: usize) -> u64 {
         self.bb_piece[k]
     }
+    /// Square of the king of `c`. *Contract (GATE 2.5 M3): a legal position
+    /// is required — both kings present, neither capturable.* A kingless or
+    /// king-capturable position is an illegal entry: `debug_assert!` aborts
+    /// with the contract message, while in release the result is defined but
+    /// out of contract (the generators never emit a king capture, so engine
+    /// paths never build a kingless position).
     #[inline(always)]
     pub fn king_sq(&self, c: Color) -> u8 {
-        (self.bb_piece[KING] & self.bb_color[c.idx()]).trailing_zeros() as u8
+        let bb = self.bb_piece[KING] & self.bb_color[c.idx()];
+        debug_assert!(
+            bb != 0,
+            "king_sq: roi absent (position légale exigée — entrée illégale: roi capturé ou prenable)"
+        );
+        bb.trailing_zeros() as u8
     }
     #[inline(always)]
     pub fn pieces(&self, c: Color, k: usize) -> u64 {
