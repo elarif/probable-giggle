@@ -156,12 +156,12 @@ fn v1_terminality_frozen() {
     );
 
     // Insufficient material: KN vs K with white to move: draw.
-    let kn_fen = "8/8/8/3n4/3K4/8/8/4K3 w - - 0 1";
+    let kn_fen = "8/8/3k4/8/8/8/4N3/4K3 w - - 0 1";
     let pos = Position::from_fen(kn_fen).unwrap();
     assert_eq!(terminal_value(&pos, &[pos.zobrist]), Some(0.0), "KN vs K");
 
-    // 50-move rule: halfmove >= 100 draws.
-    let fifty_fen = "8/8/8/3k4/3K4/8/8/4R3 w - - 100 60";
+    // 50-move rule: halfmove >= 100 draws (kings d5 / d2: legal, separated).
+    let fifty_fen = "8/8/8/3k4/8/8/3K4/8 w - - 100 60";
     let pos = Position::from_fen(fifty_fen).unwrap();
     assert_eq!(terminal_value(&pos, &[pos.zobrist]), Some(0.0), "50-move");
 }
