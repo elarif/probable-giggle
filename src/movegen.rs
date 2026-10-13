@@ -116,6 +116,17 @@ fn diag_aligned(sq: u8, ksq: u8) -> bool {
 
 #[inline]
 pub(crate) fn build_legality(pos: &Position, us: Color) -> Legality {
+    // L1d: colour monomorphised (one branch at the root, none inside).
+    if us == Color::White {
+        build_legality_impl::<true>(pos)
+    } else {
+        build_legality_impl::<false>(pos)
+    }
+}
+
+#[inline]
+fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
+    let us = if W { Color::White } else { Color::Black };
     let them = us.opp();
     let occ = pos.occ();
     let ksq = pos.king_sq(us);
@@ -137,10 +148,12 @@ pub(crate) fn build_legality(pos: &Position, us: Color) -> Legality {
     // Leaper checkers + leaper part of the danger set (pawns, knights, king).
     let pw = pos.bb_piece[PAWN] & them_all;
     if pw != 0 {
-        ctx.danger |= if them == Color::White {
-            ((pw & !FILE_H) << 9) | ((pw & !FILE_A) << 7)
-        } else {
+        ctx.danger |= if W {
+            // W: 'them' are Black, attacking downwards
             ((pw & !FILE_H) >> 7) | ((pw & !FILE_A) >> 9)
+        } else {
+            // !W: 'them' are White, attacking upwards
+            ((pw & !FILE_H) << 9) | ((pw & !FILE_A) << 7)
         };
         ctx.checkers |= PAWN_ATTACKERS[them.idx()][ksq as usize] & pw;
     }
@@ -292,13 +305,37 @@ fn push_promotions(out: &mut MoveList, from: u8, to: u8, is_cap: bool) {
 /// M3), not a crash.
 #[inline(always)]
 fn ep_legal_ray(pos: &Position, them: Color, from: u8, ep: u8, ksq: u8, occ: u64) -> bool {
-    let cap_sq = if pos.side == Color::White { ep - 8 } else { ep + 8 };
+    if them == Color::Black {
+        ep_legal_ray_impl::<true>(pos, from, ep, ksq, occ)
+    } else {
+        ep_legal_ray_impl::<false>(pos, from, ep, ksq, occ)
+    }
+}
+
+/// L1b: en-passant legality WITHOUT make/unmake. `W` = white to move; after
+/// the EP capture (our pawn leaves `from`, lands on `ep`, the enemy pawn
+/// disappears from `cap_sq`), only sliders can *newly* hit our king,
+/// exclusively through the two vacated squares — leaper attacks are invariant
+/// under the move, removed pieces can only remove attacks. The slider test
+/// runs on the post-move occupancy (our pawn reinstated on `ep`), which also
+/// covers pinned-pawn EPs (diagonal/orthogonal exposure) and, when in check,
+/// a slider checker blocked by the landing pawn. Degenerate entries (no pawn
+/// at `cap_sq`) stay defined: this test needs no mailbox and no make (the
+/// make/unmake version would unconditionally clear `cap_sq`).
+///
+/// Contract note: on illegal entries (enemy king capturable, adjacent kings)
+/// the leaper part of the old make-based test is no longer re-run, so counts
+/// may differ from the oracle — illegal input is out of contract (GATE 2.5
+/// M3), not a crash.
+#[inline(always)]
+fn ep_legal_ray_impl<const W: bool>(pos: &Position, from: u8, ep: u8, ksq: u8, occ: u64) -> bool {
+    let cap_sq = if W { ep - 8 } else { ep + 8 };
     let occ2 = occ ^ (1u64 << from) ^ (1u64 << ep) ^ (1u64 << cap_sq);
-    let b = pos.bb_color[them.idx()];
     // The vacated pair lies on the ep-rank: a horizontal rook/queen ray
     // through the now-open rank between king and captured pawn is the classic
     // discovered check; the diagonal/second vacated square needs the full
     // slider scans anyway (the landing pawn can re-block through `ep`).
+    let b = pos.bb_color[if W { BLACK } else { WHITE }];
     rook_attacks(ksq, occ2) & (pos.bb_piece[ROOK] | pos.bb_piece[QUEEN]) & b == 0
         && bishop_attacks(ksq, occ2) & (pos.bb_piece[BISHOP] | pos.bb_piece[QUEEN]) & b == 0
 }
@@ -655,20 +692,35 @@ pub fn generate_captures(pos: &Position) -> MoveList {
 /// validation and castling conditions — but replaces every `push` by a
 /// popcount over the corresponding target bitboard.
 ///
+/// L1d: colour monomorphised — the dispatcher below is the ONLY colour
+/// branch; inside `count_moves_impl` every `if W` folds at compile time
+/// (pawn shifts, EP capture direction, pawn tables, castle bits), so a leaf
+/// contains no colour branch at all.
+///
 /// Used by perft at `depth == 1`: a leaf position needs only `MoveList::len`,
 /// never the moves themselves. Promotions count 4 moves per target square and
 /// en passant / castling keep their exact legality gates.
 ///
 /// Differential-checked against `generate(.., All).len()` on golden positions
 /// and thousands of self-play positions (tests).
+#[inline]
 pub fn count_moves(pos: &Position) -> u64 {
-    let us = pos.side;
+    if pos.side == Color::White {
+        count_moves_impl::<true>(pos)
+    } else {
+        count_moves_impl::<false>(pos)
+    }
+}
+
+#[inline]
+fn count_moves_impl<const W: bool>(pos: &Position) -> u64 {
+    let us = if W { Color::White } else { Color::Black };
     let them = us.opp();
     let occ = pos.occ();
     let us_bb = pos.color_bb(us);
     let them_bb = pos.color_bb(them);
     let empty = !occ;
-    let ctx = build_legality(pos, us);
+    let ctx = build_legality_impl::<W>(pos);
     let ksq = ctx.ksq;
     let ncheck = ctx.checkers.count_ones();
 
@@ -689,30 +741,31 @@ pub fn count_moves(pos: &Position) -> u64 {
     // ---- Pawns (bulk target bitboards) ----
     let pawns = pos.bb_piece[PAWN] & us_bb;
     let free = pawns & !pinned;
-    n += count_pawns_bulk(us, them_bb, free, allowed, empty);
+    n += count_pawns_bulk::<W>(them_bb, free, allowed, empty);
     if ctx.npins != 0 {
         for i in 0..ctx.npins as usize {
             let from = ctx.pin_sq[i];
             if pawns & (1u64 << from) != 0 {
-                n += count_pawn_pinned(pos, us, them_bb, from, allowed & ctx.pin_lines[i], empty);
+                n += count_pawn_pinned::<W>(pos, them_bb, from, allowed & ctx.pin_lines[i], empty);
             }
         }
     }
 
     // ---- En passant (L1b): same ray-trick validation as in generate ----
     if let Some(ep) = pos.ep_square() {
-        let cap_sq = if us == Color::White { ep - 8 } else { ep + 8 };
+        let cap_sq = if W { ep - 8 } else { ep + 8 };
         let evades_check = if ncheck == 1 {
             ((ctx.checkers & (1u64 << cap_sq)) | (allowed & (1u64 << ep))) != 0
         } else {
             true
         };
         if evades_check {
-            let mut m = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
+            let attackers = if W { PAWN_ATTACKERS[0] } else { PAWN_ATTACKERS[1] };
+            let mut m = attackers[ep as usize] & pawns;
             while m != 0 {
                 let from = m.trailing_zeros() as u8;
                 m &= m - 1;
-                if ep_legal_ray(pos, them, from, ep, ksq, occ) {
+                if ep_legal_ray_impl::<W>(pos, from, ep, ksq, occ) {
                     n += 1;
                 }
             }
@@ -753,17 +806,18 @@ pub fn count_moves(pos: &Position) -> u64 {
 
     // ---- Castling (All-kind semantics, only when not in check) ----
     if ncheck == 0 {
-        n += count_castles(pos, us, occ);
+        n += count_castles::<W>(pos, occ);
     }
     n
 }
 
-/// Popcount twin of `gen_pawns_bulk` for `GenKind::All`.
-fn count_pawns_bulk(us: Color, them: u64, pawns: u64, allowed: u64, empty: u64) -> u64 {
+/// Popcount twin of `gen_pawns_bulk` for `GenKind::All` (L1d: colour folded).
+#[inline]
+fn count_pawns_bulk<const W: bool>(them: u64, pawns: u64, allowed: u64, empty: u64) -> u64 {
     if pawns == 0 {
         return 0;
     }
-    if us == Color::White {
+    if W {
         let push = (pawns << 8) & empty;
         let promo = push & RANK_8 & allowed;
         let quiet = push & !RANK_8 & allowed;
@@ -795,10 +849,11 @@ fn count_pawns_bulk(us: Color, them: u64, pawns: u64, allowed: u64, empty: u64) 
     }
 }
 
-/// Popcount twin of `gen_pawn_pinned` (White and Black) for `GenKind::All`.
-fn count_pawn_pinned(pos: &Position, us: Color, them: u64, from: u8, mask: u64, _empty: u64) -> u64 {
+/// Popcount twin of `gen_pawn_pinned` for `GenKind::All` (L1d: colour folded).
+#[inline]
+fn count_pawn_pinned<const W: bool>(pos: &Position, them: u64, from: u8, mask: u64, _empty: u64) -> u64 {
     let mut n = 0;
-    if us == Color::White {
+    if W {
         let one = from + 8;
         if pos.piece_on(one) == 0 && mask & (1u64 << one) != 0 {
             n += if one >= 56 { 4 } else { 1 };
@@ -844,15 +899,16 @@ fn count_pawn_pinned(pos: &Position, us: Color, them: u64, from: u8, mask: u64, 
     n
 }
 
-/// Popcount twin of `gen_castle` (counts 1 per legal side).
-fn count_castles(pos: &Position, us: Color, occ: u64) -> u64 {
-    let them = us.opp();
-    let back = if us.idx() == WHITE { 0 } else { 56 };
-    let (ks_bit, qs_bit) = if us.idx() == WHITE {
+/// Popcount twin of `gen_castle` (counts 1 per legal side; L1d: colour folded).
+#[inline]
+fn count_castles<const W: bool>(pos: &Position, occ: u64) -> u64 {
+    let back = if W { 0 } else { 56 };
+    let (ks_bit, qs_bit) = if W {
         (CASTLE_WK, CASTLE_WQ)
     } else {
         (CASTLE_BK, CASTLE_BQ)
     };
+    let them = if W { Color::Black } else { Color::White };
     let mut n = 0;
     if pos.castle & ks_bit != 0 {
         let f = back + 5;

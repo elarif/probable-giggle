@@ -359,3 +359,46 @@ kiwipete 103.1→103.5 ns (−0.2 %, bruit).
 atteinte sur pos3/pos6/startpos-médian (70.5/44.0/77.4) mais pas
 systématiquement (kiwipete ~103 ns) : consigné tel quel, la règle
 précommitée (+5 %) gouverne, pas la glace Cible.
+
+## GATE 2.5 — M2/L1d : monomorphisation couleur du leaf (session 2026-10-13)
+
+`count_moves` scindé en dispatcher racine (`if pos.side == White`) +
+`count_moves_impl::<const W>` : zéro branche de couleur au leaf (`if W`
+replié au compilateur — shifts pions, direction EP, tables
+`PAWN_ATTACKERS[W]`, bits/case de départ de roque). Même monomorphisation
+pour `build_legality` (impl::<W>) et `ep_legal_ray` (impl::<W>), thin
+wrappers runtime pour `generate` (hors périmètre demandé, inchangé
+sémantiquement). `count_pawns_bulk`/`count_pawn_pinned`/`count_castles`
+deviennent génériques `<const W>`.
+
+Filet : suite release complète OK (T1 + differentiels + double-chemin).
+
+### A/B/A/B intercalé (médianes, 3 legs alternés, même session)
+
+| workload | A (L1c) | B (L1d) | Δ | règle +5% |
+|---|---|---|---|---|
+| startpos perft(6) 1T (sweep) | 251.7 Mnps | 251.4 Mnps | −0.1 % | no-gain |
+| startpos perft(6) 1T (criterion perft1t) | 472.99 ms | 464.29 ms | **−1.8 % temps** | no-gain |
+| pos3 perft(7) 1T (sweep) | 246.4 Mnps | 238.0 Mnps | −3.4 % (bruit ±7 %) | no-gain |
+
+Corroboration criterion count_moves (L1c→L1d, p<0.05 partout) :
+startpos 70.5→66.9 ns (−5.1 %), kiwipete 103.5→90.1 (−13.0 %), pos3
+44.0→36.9 (−16.2 %), pos6 77.4→73.1 (−5.6 %). Cumul criterion vs base25 :
+perft1t/startpos_d6 544.3→464.3 ms (−14.6 %, ×1.17), perft_bulk
+kiwipete_d2 6.25→5.47 µs (−13.4 %), d3 249.0→237.3 µs (−5.4 %).
+
+**Décision L1d : no-gain au seuil précommité sur perft(6) 1T** (−1.8 % <
++5 %) — code CONSERVÉ : gains criterion feuilles réels et consistants sur
+les 4 positions (−5…−16 %, p<0.05), coût end-to-end nul dans le bruit,
+comportement inchangé (filet binaire vert). Marqué no-gain.
+
+## GATE 2.5 — M2 : clôture des lots
+
+| lot | décision | mesure clé |
+|---|---|---|
+| L1b EP ray-trick | no-gain (conservé : robustesse, copie en moins) | d6 startpos +0.1 % |
+| L1c fusion masks | **GAIN ×1.19** (d6 startpos sweep), ×1.14 pos3 d7 | count_moves −9…−12 % |
+| L1d monomorphisation | no-gain (conservé : count_moves −5…−16 % p<0.05) | perft1t −1.8 % vs L1c |
+
+Règle des deux no-gain consécutifs non déclenchée (L1c GAIN entre les
+deux). Aucun lot de secours. **M2 clôturé.**
