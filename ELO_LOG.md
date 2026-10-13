@@ -89,3 +89,15 @@ Budget sims/s : le playout aléatoire (~76 µs) disparaît ; une feuille =
 make/unmake de descente (~22 ns/ply) + eval (~40-90 ns/position) → le
 dénominateur attendu de sims/s augmente d'un ordre de grandeur ; valeur
 exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
+
+## Signaux design (rapportés, jamais implémentés discrètement)
+
+* A2 (priors) : les données nécessaires (captures via `Move::is_capture`,
+  checks via `Position::gives_check`, promotions via flags, PST-delta via
+  `eval`) sont TOUTES accessibles par le contrat API du core FROZEN —
+  **aucun changement core réclamé** pour les priors heuristiques v1. Le SEE
+  pour C2 sera du code mcts-side (`mcts::prior`) — pas de movegen stagée.
+* B3 (transpositions) : la table vivra mcts-side (`mcts::tt`) sur les
+  Zobrist du core — aucune demande core.
+* D1 (NN) : les hooks A1 (eval leaf) / A2 (prior) délimitent déjà la
+  surface ; le core n'a jamais besoin de les connaître.
