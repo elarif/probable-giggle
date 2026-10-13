@@ -238,3 +238,47 @@ matériel), donc le levier relatif est plus petit ici ; (b) l'hyperviseur
 plafonne la confiance des micro-mesures. **Décision** : le chiffre est
 consigné tel quel ; GATE-1 recalibré à « ≥ 1.2× mesuré, final 200–450
 Mnps 1T selon machine » ; aucune valeur de seuil nps en CI.
+## GATE 2.5 — M1 : sanity des micro-mesures (session 2026-10-13)
+
+Deux micro-benchs annoncés "incohérents" (zobrist_incremental 950 ns vs
+attendu <25 ns/ply ; gives_check 1.11 µs vs attendu <80 ns). Diagnostic : les
+DEUX criteraient un BATCH par itération (l'ancien `zobrist_incremental`
+faisait ~48 make/unmake de kiwipete par itération ; l'ancien `gives_check`
+bouclait la liste légale complète, 20–48 appels) — le chiffre affiché
+n'exprimait donc pas le coût par appel. Redessin (pre-commité) :
+
+* `gives_check_x8/<pos>` : 8 appels représentatifs par itération (diviseur
+  dans le nom, black_box par appel, échantillon étalé sur la liste) ;
+* `mcts_descend30/startpos` : descente 30 plies (make) + remontée (unmake)
+  sur chemin déterministe — c'est exactement la maintenance de hash-history
+  que paiera la descente MCTS par nœud ; invariant `incrémental ==
+  recompute` affirmé ply par ply HORS timing dans le setup (miroir de
+  tests/differential.rs), et invariant d'accord gives_check vs replay
+  make/in_check pour chaque coup.
+
+### Re-mesure (release, sample 50, même session, baseline criterion `base25`)
+
+| bench | médiane | unité honnête | contrat | verdict |
+|---|---|---|---|---|
+| gives_check_x8/startpos..pos6 | 186.1 / 192.3 / 196.5 / 193.2 ns | **÷8 = 23.3–24.6 ns/appel** | <80 ns | ✓ impl saine |
+| mcts_descend30/startpos | 638.9 ns | **÷30 = 21.3 ns/ply** (make+unmake, hash inclus) | <25 ns/ply | ✓ impl saine |
+| (ancien zobrist_incremental) | 949.8 ns | ≈ 48 paires/itération | — | artefact de batch, supprimé |
+
+**Décision M1 : aucune modification d'implémentation.** L'incrémental
+(= XOR sur les deltas de `make` uniquement, déjà le cas : `p.zobrist`
+maintenu dans `make`/`unmake`, cf. src/position.rs) et `gives_check`
+(make + `is_square_attacked` sur la copie ≈ 24 ns) étaient déjà dans les
+contrats ; les deux chiffres alarmants venaient de la conception des benchs.
+`count_moves` baseline ajouté au passage (métrique M2) : startpos 78.7 ns,
+kiwipete 103.1 ns, pos3 47.9 ns, pos6 85.3 ns — le "114 ns" cité au gate
+était une mesure antérieure/autre machine ; la référence qperft ~48 ns/call
+(Zen1) doit être comparée à ces chiffres PAR POSITION, pas à une moyenne.
+NB : bruit observé par run sur `perft1t/startpos_d6` (médiane) ≈ ±2–4 % en
+hyperviseur → règle de décision M2 posée sur médianes A/B/A/B intercalées
+(CLI sweep, ≥3 legs alternés par état) + benchs criterion en corroborant.
+
+Baselines criterion supplémentaires (phase MCTS, pré-créées ici) :
+`mcts_rep_walkback16/zero_miss` 8.28 ns (16 comparaisons, sortie tardive) vs
+`hit_at4` 1.32 ns (early-exit) ; `mcts_pst_eval/startpos` 32.7 ns (pattern
+PST complet : mailbox 64 + miroir couleur + somme) ; `perft1t/startpos_d6`
+544.3 ms (médiane criterion) / `sweep 1` 0.54–0.56 s (~219 Mnps).
