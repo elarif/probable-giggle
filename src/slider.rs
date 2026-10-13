@@ -42,10 +42,8 @@ const DISPATCH_MAGIC: u8 = 1;
 const DISPATCH_PEXT: u8 = 2;
 static DISPATCH: AtomicU8 = AtomicU8::new(DISPATCH_UNSET);
 
-const EDGES: u64 = crate::tables::RANK_1
-    | crate::tables::RANK_8
-    | crate::tables::FILE_A
-    | crate::tables::FILE_H;
+const EDGES: u64 =
+    crate::tables::RANK_1 | crate::tables::RANK_8 | crate::tables::FILE_A | crate::tables::FILE_H;
 
 const fn rook_mask(sq: usize) -> u64 {
     // Exclude only the far edge square in each direction (not the whole file),
@@ -169,24 +167,46 @@ pub fn classical(sq: u8, occ: u64, dirs: &[usize; 4]) -> u64 {
 /// Index = `(occ & mask) * magic >> (64 - bits)` into the square's flat
 /// region of the build-verified table.
 #[inline(always)]
-fn magic_lookup(sq: u8, occ: u64, table: &[u64], off: &[u32; 65], masks: &[u64; 64], magics: &[u64; 64], bits: &[u8; 64]) -> u64 {
+fn magic_lookup(
+    sq: u8,
+    occ: u64,
+    table: &[u64],
+    off: &[u32; 65],
+    masks: &[u64; 64],
+    magics: &[u64; 64],
+    bits: &[u8; 64],
+) -> u64 {
     let s = sq as usize;
-    let idx = off[s] as usize
-        + (((occ & masks[s]).wrapping_mul(magics[s])) >> (64 - bits[s])) as usize;
+    let idx =
+        off[s] as usize + (((occ & masks[s]).wrapping_mul(magics[s])) >> (64 - bits[s])) as usize;
     table[idx]
 }
 
 #[inline(always)]
 fn magic_rook(sq: u8, occ: u64) -> u64 {
-    magic_lookup(sq, occ, &GEN_ROOK_ATTACKS, &GEN_ROOK_OFF, &GEN_ROOK_MASK, &GEN_ROOK_MAGIC, &GEN_ROOK_BITS)
+    magic_lookup(
+        sq,
+        occ,
+        &GEN_ROOK_ATTACKS,
+        &GEN_ROOK_OFF,
+        &GEN_ROOK_MASK,
+        &GEN_ROOK_MAGIC,
+        &GEN_ROOK_BITS,
+    )
 }
 
 #[inline(always)]
 fn magic_bishop(sq: u8, occ: u64) -> u64 {
-    magic_lookup(sq, occ, &GEN_BISHOP_ATTACKS, &GEN_BISHOP_OFF, &GEN_BISHOP_MASK, &GEN_BISHOP_MAGIC, &GEN_BISHOP_BITS)
+    magic_lookup(
+        sq,
+        occ,
+        &GEN_BISHOP_ATTACKS,
+        &GEN_BISHOP_OFF,
+        &GEN_BISHOP_MASK,
+        &GEN_BISHOP_MAGIC,
+        &GEN_BISHOP_BITS,
+    )
 }
-
-
 
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "bmi2")]
@@ -253,11 +273,7 @@ fn cpu_family() -> u16 {
     let r = unsafe { core::arch::x86_64::__cpuid(1) };
     let base = ((r.eax >> 8) & 0xF) as u16;
     let ext = ((r.eax >> 20) & 0xFF) as u16;
-    if base == 0xF {
-        base + ext
-    } else {
-        base
-    }
+    if base == 0xF { base + ext } else { base }
 }
 
 /// `pext` is fast on all Intel, and on AMD from Zen3 (family 0x19, Milan
@@ -281,7 +297,9 @@ fn auto_select_pext(bmi2: bool) -> bool {
 #[cfg(target_arch = "x86_64")]
 fn init_dispatch() -> u8 {
     let bmi2 = std::is_x86_feature_detected!("bmi2");
-    let env = std::env::var("MYCHESS_SLIDER").unwrap_or_default().to_ascii_lowercase();
+    let env = std::env::var("MYCHESS_SLIDER")
+        .unwrap_or_default()
+        .to_ascii_lowercase();
     let v = match env.as_str() {
         "pext" if bmi2 => DISPATCH_PEXT,
         "pext" => {
@@ -340,11 +358,7 @@ pub fn force_path(p: SliderPath) {
 
 /// Name of the path used after dispatch init: `"pext"` or `"magic"`.
 pub fn path_name() -> &'static str {
-    if use_pext() {
-        "pext"
-    } else {
-        "magic"
-    }
+    if use_pext() { "pext" } else { "magic" }
 }
 
 /// Human-readable description for startup logging, e.g.

@@ -103,7 +103,11 @@ impl Position {
 
     #[inline(always)]
     pub fn ep_square(&self) -> Option<u8> {
-        if self.ep == NO_EP { None } else { Some(self.ep) }
+        if self.ep == NO_EP {
+            None
+        } else {
+            Some(self.ep)
+        }
     }
 
     #[inline(always)]
@@ -226,12 +230,20 @@ impl Position {
         if self.ep != NO_EP {
             zob ^= z.ep_file[(self.ep & 7) as usize];
         }
-        self.ep = if flags == FLAG_DOUBLE_PUSH { ((from + to) / 2) as u8 } else { NO_EP };
+        self.ep = if flags == FLAG_DOUBLE_PUSH {
+            ((from + to) / 2) as u8
+        } else {
+            NO_EP
+        };
         if self.ep != NO_EP {
             zob ^= z.ep_file[(self.ep & 7) as usize];
         }
 
-        self.halfmove = if kind == PAWN || captured != 0 { 0 } else { self.halfmove + 1 };
+        self.halfmove = if kind == PAWN || captured != 0 {
+            0
+        } else {
+            self.halfmove + 1
+        };
         self.side = self.side.opp();
         zob ^= z.side;
         self.zobrist = zob;
@@ -313,7 +325,11 @@ impl Position {
                     if !(0..8).contains(&f) {
                         return Err(FenError::Rank(parts[0].to_string()));
                     }
-                    let color = if c.is_ascii_uppercase() { Color::White } else { Color::Black };
+                    let color = if c.is_ascii_uppercase() {
+                        Color::White
+                    } else {
+                        Color::Black
+                    };
                     let kind = match c.to_ascii_lowercase() {
                         'p' => PieceKind::Pawn,
                         'n' => PieceKind::Knight,
@@ -361,13 +377,16 @@ impl Position {
             }
             rr * 8 + f
         };
-        pos.halfmove =
-            parts.get(4).and_then(|s| s.parse().ok()).ok_or(FenError::Number("halfmove".into()))?;
+        pos.halfmove = parts
+            .get(4)
+            .and_then(|s| s.parse().ok())
+            .ok_or(FenError::Number("halfmove".into()))?;
         // Validate fullmove field if present (not stored).
         if let Some(s) = parts.get(5)
-            && s.parse::<u32>().is_err() {
-                return Err(FenError::Number("fullmove".into()));
-            }
+            && s.parse::<u32>().is_err()
+        {
+            return Err(FenError::Number("fullmove".into()));
+        }
         pos.zobrist = pos.recompute_zobrist();
         Ok(pos)
     }
@@ -376,7 +395,11 @@ impl Position {
 #[inline(always)]
 pub fn castle_rook_squares(color_idx: usize, king_side: bool) -> (usize, usize) {
     let back = if color_idx == WHITE { 0 } else { 56 };
-    if king_side { (back + 7, back + 5) } else { (back, back + 3) }
+    if king_side {
+        (back + 7, back + 5)
+    } else {
+        (back, back + 3)
+    }
 }
 
 #[inline(always)]

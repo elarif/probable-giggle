@@ -41,7 +41,12 @@ const fn build() -> Zobrist {
         f += 1;
     }
     let side = splitmix64(&mut state);
-    Zobrist { piece, castle, ep_file, side }
+    Zobrist {
+        piece,
+        castle,
+        ep_file,
+        side,
+    }
 }
 
 pub const ZOBRIST: Zobrist = build();

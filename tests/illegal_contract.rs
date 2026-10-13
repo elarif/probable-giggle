@@ -6,7 +6,7 @@
 //! holds on any entry), perft stays crash-free — debug builds assert loudly
 //! with the contract message while release builds are defined and silent.
 
-use mychess::movegen::{count_moves, generate, MoveList};
+use mychess::movegen::{MoveList, count_moves, generate};
 use mychess::position::Position;
 use mychess::refgen;
 use mychess::types::{GenKind, Move};
@@ -63,11 +63,20 @@ fn king_capture_contract_frozen() {
                 generate(&pos, &mut l, GenKind::All);
                 l.len()
             });
-            assert!(r.is_err(), "{desc}: debug builds must assert the entry contract");
+            assert!(
+                r.is_err(),
+                "{desc}: debug builds must assert the entry contract"
+            );
             let r2 = std::panic::catch_unwind(|| count_moves(&pos));
-            assert!(r2.is_err(), "{desc}: count_moves must assert the entry contract in debug");
+            assert!(
+                r2.is_err(),
+                "{desc}: count_moves must assert the entry contract in debug"
+            );
             let r3 = std::panic::catch_unwind(|| pseudo(&pos).len());
-            assert!(r3.is_err(), "{desc}: refgen must assert at the emission site in debug");
+            assert!(
+                r3.is_err(),
+                "{desc}: refgen must assert at the emission site in debug"
+            );
         } else {
             // Release: defined and silent — no king capture, no panic.
             let mut list = MoveList::new();
@@ -75,7 +84,11 @@ fn king_capture_contract_frozen() {
             let moves: Vec<Move> = list.iter().collect();
             no_king_capture(&moves, *ks, desc);
             no_king_capture(&pseudo(&pos), *ks, desc);
-            no_king_capture(&refgen::legal_moves(&pos).iter().collect::<Vec<_>>(), *ks, desc);
+            no_king_capture(
+                &refgen::legal_moves(&pos).iter().collect::<Vec<_>>(),
+                *ks,
+                desc,
+            );
 
             // Twin property survives (same masks on both fast paths).
             assert_eq!(
@@ -89,7 +102,11 @@ fn king_capture_contract_frozen() {
             let mut p = pos;
             let p2 = mychess::perft::perft(&mut p, 2);
             let mut p = pos;
-            assert_eq!(p2, mychess::perft::perft(&mut p, 2), "{desc}: perft deterministic");
+            assert_eq!(
+                p2,
+                mychess::perft::perft(&mut p, 2),
+                "{desc}: perft deterministic"
+            );
             let mut p = pos;
             assert_eq!(
                 mychess::perft::perft(&mut p, 1),

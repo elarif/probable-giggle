@@ -1,6 +1,6 @@
 //! Perft: fast bulk-counting perft, detailed counters, divide, parallel.
 
-use crate::movegen::{attackers_to, count_moves, generate, MoveList};
+use crate::movegen::{MoveList, attackers_to, count_moves, generate};
 use crate::position::Position;
 use crate::types::*;
 use rayon::prelude::*;

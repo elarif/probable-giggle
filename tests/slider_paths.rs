@@ -170,8 +170,14 @@ fn perft_details_d4_both_paths() {
                 let mut pos = Position::from_fen(&gi.fen).unwrap();
                 let c = perft_detailed(&mut pos, row.depth);
                 let got = [
-                    c.captures, c.ep, c.castles, c.promotions, c.checks, c.discovery_checks,
-                    c.double_checks, c.mates,
+                    c.captures,
+                    c.ep,
+                    c.castles,
+                    c.promotions,
+                    c.checks,
+                    c.discovery_checks,
+                    c.double_checks,
+                    c.mates,
                 ];
                 for (i, want) in row.cols.iter().enumerate() {
                     if let Some(want) = want {
@@ -199,7 +205,13 @@ fn refgen_crosscheck_d3_both_paths() {
                     continue;
                 }
                 let mut pos = Position::from_fen(&gi.fen).unwrap();
-                assert_eq!(perft(&mut pos, row.depth), row.nodes, "{label} {} d{}", gi.fen, row.depth);
+                assert_eq!(
+                    perft(&mut pos, row.depth),
+                    row.nodes,
+                    "{label} {} d{}",
+                    gi.fen,
+                    row.depth
+                );
                 let mut pos2 = Position::from_fen(&gi.fen).unwrap();
                 assert_eq!(
                     mychess::refgen::perft(&mut pos2, row.depth),

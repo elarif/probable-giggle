@@ -9,7 +9,7 @@
 //!
 //! Results are kept separate by the criterion group label (see MIGRATION.md).
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use mychess::slider::{self, SliderPath};
 use std::hint::black_box;
 
@@ -25,10 +25,18 @@ const OCCS: [u64; 6] = [
 ];
 
 fn setup_path() {
-    match std::env::var("MYCHESS_SLIDER").unwrap_or_default().to_ascii_lowercase().as_str() {
+    match std::env::var("MYCHESS_SLIDER")
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "pext" => {
             slider::force_path(SliderPath::Pext);
-            assert_eq!(slider::path_name(), "pext", "BMI2 required for this A/B leg");
+            assert_eq!(
+                slider::path_name(),
+                "pext",
+                "BMI2 required for this A/B leg"
+            );
         }
         "fallback" => slider::force_path(SliderPath::Fallback),
         _ => {} // machine default (auto)

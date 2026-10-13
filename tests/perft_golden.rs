@@ -5,7 +5,7 @@
 //!   T2  (nightly/opt-in): depth 6..=8 nodes, detail columns depth 6
 //!   T3  (opt-in, long)  : startpos depth 9 (parallel)
 
-use mychess::perft::{perft, perft_detailed, perft_parallel, PerftCounts};
+use mychess::perft::{PerftCounts, perft, perft_detailed, perft_parallel};
 use mychess::position::Position;
 
 struct Row {
@@ -78,7 +78,14 @@ fn check_detail(g: &Golden, row: &Row) {
         c.mates,
     ];
     let names = [
-        "captures", "ep", "castles", "promotions", "checks", "discovery", "double", "mates",
+        "captures",
+        "ep",
+        "castles",
+        "promotions",
+        "checks",
+        "discovery",
+        "double",
+        "mates",
     ];
     for i in 0..8 {
         if let Some(want) = row.cols[i] {
@@ -96,7 +103,13 @@ fn t1_perft_nodes() {
                 continue;
             }
             let mut pos = Position::from_fen(&g.fen).unwrap();
-            assert_eq!(perft(&mut pos, row.depth), row.nodes, "{} d{}", g.fen, row.depth);
+            assert_eq!(
+                perft(&mut pos, row.depth),
+                row.nodes,
+                "{} d{}",
+                g.fen,
+                row.depth
+            );
         }
     }
 }
@@ -142,7 +155,13 @@ fn t2_nodes_deep() {
                 continue;
             }
             let mut pos = Position::from_fen(&g.fen).unwrap();
-            assert_eq!(perft(&mut pos, row.depth), row.nodes, "{} d{}", g.fen, row.depth);
+            assert_eq!(
+                perft(&mut pos, row.depth),
+                row.nodes,
+                "{} d{}",
+                g.fen,
+                row.depth
+            );
         }
     }
 }
@@ -162,7 +181,9 @@ fn t2_details_depth6() {
 #[test]
 #[ignore = "T2: parallel nodes for large depths (startpos d8, pos3 d8, pos6 d7)"]
 fn t2_parallel_deep() {
-    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
+    let threads = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
     for g in all() {
         for row in &g.rows {
             if !(7..=8).contains(&row.depth) {
@@ -183,7 +204,10 @@ fn t2_parallel_deep() {
 #[test]
 #[ignore = "T3 grand slam: startpos depth 9 (parallel, ~minutes-hours)"]
 fn t3_startpos_d9() {
-    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
-    let pos = Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
+    let threads = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
+    let pos =
+        Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
     assert_eq!(perft_parallel(&pos, 9, threads), 2439530234167);
 }

@@ -3,7 +3,7 @@
 //! tests/perft/*.txt (single source of truth). Exercises probing (small
 //! table), promotions, EP and castling subtrees.
 
-use mychess::memo::{perft_memo, Memo};
+use mychess::memo::{Memo, perft_memo};
 use mychess::perft::perft;
 use mychess::position::Position;
 

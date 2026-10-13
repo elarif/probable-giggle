@@ -64,15 +64,15 @@ fn main() {
                 println!("discovery_checks {:>18}", c.discovery_checks);
                 println!("double_checks    {:>18}", c.double_checks);
                 println!("mates            {:>18}", c.mates);
-                println!(
-                    "[{:.2}s, {:.1} Mnodes/s]",
-                    s,
-                    c.nodes as f64 / s / 1e6
-                );
+                println!("[{:.2}s, {:.1} Mnodes/s]", s, c.nodes as f64 / s / 1e6);
             } else {
                 let n = perft(&mut pos, depth);
                 let s = t.elapsed().as_secs_f64();
-                println!("perft({depth}) = {n}  [{:.2}s, {:.1} Mnodes/s]", s, n as f64 / s / 1e6);
+                println!(
+                    "perft({depth}) = {n}  [{:.2}s, {:.1} Mnodes/s]",
+                    s,
+                    n as f64 / s / 1e6
+                );
             }
         }
         "divide" => {
@@ -84,8 +84,16 @@ fn main() {
             let depth2 = args.iter().any(|a| a == "--depth2");
             let mut pos = Position::from_fen(fen).expect("bad fen");
             let t = Instant::now();
-            let n = if depth2 { divide2(&mut pos, depth) } else { divide(&mut pos, depth) };
-            println!("{} = {n}  [{:.2}s]", if depth2 { "divide2" } else { "divide" }, t.elapsed().as_secs_f64());
+            let n = if depth2 {
+                divide2(&mut pos, depth)
+            } else {
+                divide(&mut pos, depth)
+            };
+            println!(
+                "{} = {n}  [{:.2}s]",
+                if depth2 { "divide2" } else { "divide" },
+                t.elapsed().as_secs_f64()
+            );
         }
         "sweep" => {
             // Re-baseline helper: perft over a thread sweep, each leg repeated
@@ -137,8 +145,9 @@ fn main() {
                 t.elapsed().as_secs_f64(),
                 n6 as f64 / t.elapsed().as_secs_f64() / 1e6
             );
-            let threads =
-                std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
+            let threads = std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(1);
             let t = Instant::now();
             let n7 = perft_parallel(&startpos, 7, threads);
             println!(

@@ -17,7 +17,10 @@ pub struct MoveList {
 impl MoveList {
     #[inline]
     pub fn new() -> MoveList {
-        MoveList { moves: [Move::NONE; 256], len: 0 }
+        MoveList {
+            moves: [Move::NONE; 256],
+            len: 0,
+        }
     }
     #[inline(always)]
     pub fn push(&mut self, m: Move) {
@@ -208,11 +211,7 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
             ctx.checkers |= bit;
         } else {
             let bl = between(ksq, sq) & occ;
-            if bl != 0
-                && (bl & (bl - 1)) == 0
-                && bl & us_bb != 0
-                && ortho_aligned(sq, ksq)
-            {
+            if bl != 0 && (bl & (bl - 1)) == 0 && bl & us_bb != 0 && ortho_aligned(sq, ksq) {
                 ctx.record_pin(bl, between(ksq, sq) | bit);
             }
         }
@@ -228,11 +227,7 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
             ctx.checkers |= bit;
         } else {
             let bl = between(ksq, sq) & occ;
-            if bl != 0
-                && (bl & (bl - 1)) == 0
-                && bl & us_bb != 0
-                && diag_aligned(sq, ksq)
-            {
+            if bl != 0 && (bl & (bl - 1)) == 0 && bl & us_bb != 0 && diag_aligned(sq, ksq) {
                 ctx.record_pin(bl, between(ksq, sq) | bit);
             }
         }
@@ -303,7 +298,11 @@ pub fn compute_pins(pos: &Position, us: Color, ksq: u8) -> (u64, u64) {
 
 #[inline(always)]
 fn push_promotions(out: &mut MoveList, from: u8, to: u8, is_cap: bool) {
-    let base = if is_cap { FLAG_PROMO_CAP_N } else { FLAG_PROMO_N };
+    let base = if is_cap {
+        FLAG_PROMO_CAP_N
+    } else {
+        FLAG_PROMO_N
+    };
     out.push(Move::new(from, to, base));
     out.push(Move::new(from, to, base + 1));
     out.push(Move::new(from, to, base + 2));
@@ -393,7 +392,11 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
         let to = kt.trailing_zeros() as u8;
         kt &= kt - 1;
         let cap = (them_bb >> to) & 1 != 0;
-        out.push(Move::new(ksq, to, if cap { FLAG_CAPTURE } else { FLAG_QUIET }));
+        out.push(Move::new(
+            ksq,
+            to,
+            if cap { FLAG_CAPTURE } else { FLAG_QUIET },
+        ));
     }
 
     if ncheck >= 2 {
@@ -419,7 +422,16 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
             let from = ctx.pin_sq[i];
             // Only pawn pins matter here; sliders use their own loop below.
             if pawns & (1u64 << from) != 0 {
-                gen_pawn_pinned(pos, out, us, them_bb, from, allowed & ctx.pin_lines[i], empty, captures_only);
+                gen_pawn_pinned(
+                    pos,
+                    out,
+                    us,
+                    them_bb,
+                    from,
+                    allowed & ctx.pin_lines[i],
+                    empty,
+                    captures_only,
+                );
             }
         }
     }
@@ -567,7 +579,11 @@ fn emit_pawn_pushes(
         if promo {
             push_promotions(out, from, to, false);
         } else if !captures_only {
-            let flag = if back == 16 { FLAG_DOUBLE_PUSH } else { FLAG_QUIET };
+            let flag = if back == 16 {
+                FLAG_DOUBLE_PUSH
+            } else {
+                FLAG_QUIET
+            };
             out.push(Move::new(from, to, flag));
         }
     }
@@ -589,7 +605,13 @@ fn emit_pawn_caps(out: &mut MoveList, targets: u64, back: u8, _cap: bool, _captu
 }
 
 #[inline]
-fn emit_pawn_caps_down(out: &mut MoveList, targets: u64, back: u8, _cap: bool, _captures_only: bool) {
+fn emit_pawn_caps_down(
+    out: &mut MoveList,
+    targets: u64,
+    back: u8,
+    _cap: bool,
+    _captures_only: bool,
+) {
     let promo_mask = crate::tables::RANK_1;
     let mut t = targets;
     while t != 0 {
@@ -623,7 +645,8 @@ fn gen_pawn_pinned(
                 out.push(Move::new(from, one, FLAG_QUIET));
             }
         }
-        if (8..16).contains(&from) && _pos.piece_on(from + 8) == 0 && _pos.piece_on(from + 16) == 0 {
+        if (8..16).contains(&from) && _pos.piece_on(from + 8) == 0 && _pos.piece_on(from + 16) == 0
+        {
             let two = from + 16;
             if mask & (1u64 << two) != 0 && !captures_only {
                 out.push(Move::new(from, two, FLAG_DOUBLE_PUSH));
@@ -652,7 +675,8 @@ fn gen_pawn_pinned(
                 out.push(Move::new(from, one, FLAG_QUIET));
             }
         }
-        if (48..56).contains(&from) && _pos.piece_on(from - 8) == 0 && _pos.piece_on(from - 16) == 0 {
+        if (48..56).contains(&from) && _pos.piece_on(from - 8) == 0 && _pos.piece_on(from - 16) == 0
+        {
             let two = from - 16;
             if mask & (1u64 << two) != 0 && !captures_only {
                 out.push(Move::new(from, two, FLAG_DOUBLE_PUSH));
@@ -802,7 +826,11 @@ fn count_moves_impl<const W: bool>(pos: &Position) -> u64 {
             true
         };
         if evades_check {
-            let attackers = if W { PAWN_ATTACKERS[0] } else { PAWN_ATTACKERS[1] };
+            let attackers = if W {
+                PAWN_ATTACKERS[0]
+            } else {
+                PAWN_ATTACKERS[1]
+            };
             let mut m = attackers[ep as usize] & pawns;
             while m != 0 {
                 let from = m.trailing_zeros() as u8;
@@ -893,7 +921,13 @@ fn count_pawns_bulk<const W: bool>(them: u64, pawns: u64, allowed: u64, empty: u
 
 /// Popcount twin of `gen_pawn_pinned` for `GenKind::All` (L1d: colour folded).
 #[inline]
-fn count_pawn_pinned<const W: bool>(pos: &Position, them: u64, from: u8, mask: u64, _empty: u64) -> u64 {
+fn count_pawn_pinned<const W: bool>(
+    pos: &Position,
+    them: u64,
+    from: u8,
+    mask: u64,
+    _empty: u64,
+) -> u64 {
     let mut n = 0;
     if W {
         let one = from + 8;

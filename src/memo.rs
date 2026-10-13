@@ -43,7 +43,15 @@ impl Memo {
     pub fn new(log2_capacity: u32) -> Memo {
         let cap = 1usize << log2_capacity.min(28);
         Memo {
-            slots: vec![MemoEntry { key: 0, count: 0, verify: 0, meta: 0 }; cap],
+            slots: vec![
+                MemoEntry {
+                    key: 0,
+                    count: 0,
+                    verify: 0,
+                    meta: 0
+                };
+                cap
+            ],
             mask: (cap - 1) as u64,
             fills: 0,
             hits: 0,

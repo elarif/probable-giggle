@@ -57,7 +57,9 @@ fn ray_attack_ref(sq: u8, occ: u64, d: Dir) -> u64 {
 }
 
 fn attacks_ref(sq: u8, occ: u64, dirs: [Dir; 4]) -> u64 {
-    dirs.iter().map(|&d| ray_attack_ref(sq, occ, d)).fold(0, |a, b| a | b)
+    dirs.iter()
+        .map(|&d| ray_attack_ref(sq, occ, d))
+        .fold(0, |a, b| a | b)
 }
 
 fn rook_mask(sq: u8) -> u64 {
@@ -196,10 +198,19 @@ fn build_magic(seed: u64, what: &str, dirs: [Dir; 4], mask_of: fn(u8) -> u64) ->
     // Cross-check the mask construction against the naive reference: a rook
     // mask square must never include the square itself, etc.
     for s in 0..64u8 {
-        assert!(masks[s as usize] & (1u64 << s) == 0, "{what} sq {s} mask self-bit");
+        assert!(
+            masks[s as usize] & (1u64 << s) == 0,
+            "{what} sq {s} mask self-bit"
+        );
     }
 
-    MagicTable { masks, magics, off, bits, attacks }
+    MagicTable {
+        masks,
+        magics,
+        off,
+        bits,
+        attacks,
+    }
 }
 
 fn emit_u64s(w: &mut String, name: &str, data: &[u64]) {
@@ -229,10 +240,22 @@ fn main() {
     emit_u64s(&mut src, "GEN_ROOK_MAGIC", &rook.magics);
     emit_u64s(&mut src, "GEN_BISHOP_MASK", &bish.masks);
     emit_u64s(&mut src, "GEN_BISHOP_MAGIC", &bish.magics);
-    src.push_str(&format!("pub static GEN_ROOK_OFF: [u32; 65] = {:?};\n", rook.off));
-    src.push_str(&format!("pub static GEN_BISHOP_OFF: [u32; 65] = {:?};\n", bish.off));
-    src.push_str(&format!("pub static GEN_ROOK_BITS: [u8; 64] = {:?};\n", rook.bits));
-    src.push_str(&format!("pub static GEN_BISHOP_BITS: [u8; 64] = {:?};\n", bish.bits));
+    src.push_str(&format!(
+        "pub static GEN_ROOK_OFF: [u32; 65] = {:?};\n",
+        rook.off
+    ));
+    src.push_str(&format!(
+        "pub static GEN_BISHOP_OFF: [u32; 65] = {:?};\n",
+        bish.off
+    ));
+    src.push_str(&format!(
+        "pub static GEN_ROOK_BITS: [u8; 64] = {:?};\n",
+        rook.bits
+    ));
+    src.push_str(&format!(
+        "pub static GEN_BISHOP_BITS: [u8; 64] = {:?};\n",
+        bish.bits
+    ));
     emit_u64s(&mut src, "GEN_ROOK_ATTACKS", &rook.attacks);
     emit_u64s(&mut src, "GEN_BISHOP_ATTACKS", &bish.attacks);
 

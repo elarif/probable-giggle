@@ -1,7 +1,7 @@
 //! Differential tests: fast legal movegen vs the naive `refgen` oracle, plus
 //! incremental-Zobrist validation, over thousands of self-play positions.
 
-use mychess::movegen::{generate, MoveList};
+use mychess::movegen::{MoveList, generate};
 use mychess::position::Position;
 use mychess::refgen;
 use mychess::types::GenKind;
@@ -28,7 +28,11 @@ fn movegen_matches_refgen_selfplay() {
         let mut pos = Position::startpos();
         for ply in 0..80 {
             // Zobrist incremental integrity.
-            assert_eq!(pos.zobrist, pos.recompute_zobrist(), "game {game} ply {ply} hash");
+            assert_eq!(
+                pos.zobrist,
+                pos.recompute_zobrist(),
+                "game {game} ply {ply} hash"
+            );
 
             let mut fast = MoveList::new();
             generate(&pos, &mut fast, GenKind::All);

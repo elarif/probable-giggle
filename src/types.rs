@@ -80,11 +80,7 @@ impl PieceKind {
             PieceKind::Queen => 'q',
             PieceKind::King => 'k',
         };
-        if upper {
-            c.to_ascii_uppercase()
-        } else {
-            c
-        }
+        if upper { c.to_ascii_uppercase() } else { c }
     }
 }
 
@@ -141,7 +137,12 @@ impl Square {
 
 impl fmt::Debug for Square {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", (b'a' + self.file()) as char, (b'1' + self.rank()) as char)
+        write!(
+            f,
+            "{}{}",
+            (b'a' + self.file()) as char,
+            (b'1' + self.rank()) as char
+        )
     }
 }
 

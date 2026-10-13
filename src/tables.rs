@@ -8,8 +8,16 @@ pub const RANK_6: u64 = 0x0000_FF00_0000_0000;
 pub const RANK_7: u64 = 0x00FF_0000_0000_0000;
 pub const RANK_8: u64 = 0xFF00_0000_0000_0000;
 
-pub const DIRS: [(i32, i32); 8] =
-    [(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)];
+pub const DIRS: [(i32, i32); 8] = [
+    (0, 1),
+    (1, 1),
+    (1, 0),
+    (1, -1),
+    (0, -1),
+    (-1, -1),
+    (-1, 0),
+    (-1, 1),
+];
 /// Whether a direction increases the square index (used to pick the nearest blocker).
 pub const DIR_POS: [bool; 8] = [true, true, true, false, false, false, false, true];
 pub const ROOK_DIRS: [usize; 4] = [0, 2, 4, 6];
@@ -144,10 +152,26 @@ const fn build_between() -> [[u64; 64]; 64] {
 }
 
 pub const RAYS: [[u64; 64]; 8] = build_rays();
-pub const KNIGHT_ATT: [u64; 64] =
-    build_leaper([(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)]);
-pub const KING_ATT: [u64; 64] =
-    build_leaper([(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]);
+pub const KNIGHT_ATT: [u64; 64] = build_leaper([
+    (1, 2),
+    (2, 1),
+    (2, -1),
+    (1, -2),
+    (-1, -2),
+    (-2, -1),
+    (-2, 1),
+    (-1, 2),
+]);
+pub const KING_ATT: [u64; 64] = build_leaper([
+    (1, 0),
+    (1, 1),
+    (0, 1),
+    (-1, 1),
+    (-1, 0),
+    (-1, -1),
+    (0, -1),
+    (1, -1),
+]);
 pub const PAWN_ATTACKS: [[u64; 64]; 2] = build_pawn_attacks();
 pub const PAWN_ATTACKERS: [[u64; 64]; 2] = build_pawn_attackers();
 pub static BETWEEN: [[u64; 64]; 64] = build_between();

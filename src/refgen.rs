@@ -14,10 +14,26 @@ use crate::movegen::MoveList;
 use crate::position::Position;
 use crate::types::*;
 
-const KNIGHT_DELTAS: [(i8, i8); 8] =
-    [(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)];
-const KING_DELTAS: [(i8, i8); 8] =
-    [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)];
+const KNIGHT_DELTAS: [(i8, i8); 8] = [
+    (1, 2),
+    (2, 1),
+    (2, -1),
+    (1, -2),
+    (-1, -2),
+    (-2, -1),
+    (-2, 1),
+    (-1, 2),
+];
+const KING_DELTAS: [(i8, i8); 8] = [
+    (1, 0),
+    (1, 1),
+    (0, 1),
+    (-1, 1),
+    (-1, 0),
+    (-1, -1),
+    (0, -1),
+    (1, -1),
+];
 const BISHOP_DELTAS: [(i8, i8); 4] = [(1, 1), (1, -1), (-1, -1), (-1, 1)];
 const ROOK_DELTAS: [(i8, i8); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
 
@@ -33,7 +49,11 @@ fn step(sq: u8, df: i8, dr: i8) -> Option<u8> {
 }
 
 fn push_promotions(out: &mut MoveList, from: u8, to: u8, is_cap: bool) {
-    let base = if is_cap { FLAG_PROMO_CAP_N } else { FLAG_PROMO_N };
+    let base = if is_cap {
+        FLAG_PROMO_CAP_N
+    } else {
+        FLAG_PROMO_N
+    };
     for i in 0..4 {
         out.push(Move::new(from, to, base + i));
     }
@@ -118,18 +138,20 @@ fn pseudo_pawn(pos: &Position, out: &mut MoveList, sq: u8, us: Color) {
     let promo_rank = if white { 7 } else { 0 };
 
     if let Some(one) = step(sq, 0, dir)
-        && pos.piece_on(one) == 0 {
-            if (one / 8) as i8 == promo_rank {
-                push_promotions(out, sq, one, false);
-            } else {
-                out.push(Move::new(sq, one, FLAG_QUIET));
-                if (sq / 8) as i8 == start_rank
-                    && let Some(two) = step(sq, 0, 2 * dir)
-                        && pos.piece_on(two) == 0 {
-                            out.push(Move::new(sq, two, FLAG_DOUBLE_PUSH));
-                        }
+        && pos.piece_on(one) == 0
+    {
+        if (one / 8) as i8 == promo_rank {
+            push_promotions(out, sq, one, false);
+        } else {
+            out.push(Move::new(sq, one, FLAG_QUIET));
+            if (sq / 8) as i8 == start_rank
+                && let Some(two) = step(sq, 0, 2 * dir)
+                && pos.piece_on(two) == 0
+            {
+                out.push(Move::new(sq, two, FLAG_DOUBLE_PUSH));
             }
         }
+    }
     for df in [-1i8, 1] {
         if let Some(to) = step(sq, df, dir) {
             let m = pos.piece_on(to);

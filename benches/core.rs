@@ -1,5 +1,5 @@
-use criterion::{criterion_group, criterion_main, Criterion, Throughput};
-use mychess::movegen::{count_moves, generate, MoveList};
+use criterion::{Criterion, Throughput, criterion_group, criterion_main};
+use mychess::movegen::{MoveList, count_moves, generate};
 use mychess::perft::perft;
 use mychess::position::{Position, Undo};
 use mychess::types::{GenKind, Move};
@@ -7,10 +7,19 @@ use std::hint::black_box;
 use std::time::Duration;
 
 const FENS: &[(&str, &str)] = &[
-    ("startpos", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
-    ("kiwipete", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
+    (
+        "startpos",
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    ),
+    (
+        "kiwipete",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+    ),
     ("pos3", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"),
-    ("pos6", "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10"),
+    (
+        "pos6",
+        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+    ),
 ];
 
 fn legal_moves(pos: &Position) -> Vec<Move> {
@@ -40,13 +49,24 @@ fn path32() -> [Move; 32] {
     let mut moves = [Move::NONE; 32];
     for (ply, mslot) in moves.iter_mut().enumerate() {
         let moves_list = legal_moves(&pos);
-        assert!(!moves_list.is_empty(), "path32 hit an empty position at ply {ply}");
+        assert!(
+            !moves_list.is_empty(),
+            "path32 hit an empty position at ply {ply}"
+        );
         *mslot = moves_list[(next_rand(&mut state) as usize) % moves_list.len()];
         let mv = *mslot;
         let u = pos.make(mv);
-        assert_eq!(pos.zobrist, pos.recompute_zobrist(), "path32 make invariant, ply {ply}");
+        assert_eq!(
+            pos.zobrist,
+            pos.recompute_zobrist(),
+            "path32 make invariant, ply {ply}"
+        );
         pos.unmake(mv, u);
-        assert_eq!(pos.zobrist, pos.recompute_zobrist(), "path32 unmake invariant, ply {ply}");
+        assert_eq!(
+            pos.zobrist,
+            pos.recompute_zobrist(),
+            "path32 unmake invariant, ply {ply}"
+        );
         pos.make(mv);
     }
     moves
@@ -164,7 +184,13 @@ fn bench_mcts_descend(c: &mut Criterion) {
 }
 
 fn undo_zero() -> Undo {
-    Undo { captured: 0, castle: 0, ep: 64, halfmove: 0, zobrist: 0 }
+    Undo {
+        captured: 0,
+        castle: 0,
+        ep: 64,
+        halfmove: 0,
+        zobrist: 0,
+    }
 }
 
 /// GATE close-out bench 2 (MCTS baseline): the repetition-detection walkback
@@ -270,9 +296,9 @@ fn bench_mcts_pst(c: &mut Criterion) {
 /// the future A1 layer will multiply this shape; the cost pattern is the
 /// same mailbox walk + mirror + sum.
 const PST_STAND_IN: [i16; 64] = [
-    0, 50, 10, 5, 5, 10, 50, 0, 20, 30, 10, 0, 0, 10, 30, 20, 10, 20, 20, 20, 20, 20, 20, 10, 0,
-    0, 0, 20, 20, 0, 0, 0, 5, -5, 0, 0, 0, 0, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 50, 10, 5, 5, 10, 50, 0, 20, 30, 10, 0, 0, 10, 30, 20, 10, 20, 20, 20, 20, 20, 20, 10, 0, 0,
+    0, 20, 20, 0, 0, 0, 5, -5, 0, 0, 0, 0, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
 fn bench_perft(c: &mut Criterion) {
