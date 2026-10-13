@@ -119,7 +119,53 @@ the MCTS baselines (`mcts_descend30`, `mcts_rep_walkback16` zero/hit,
 M2 gate metric `perft1t/startpos_d6`. `benches/slider.rs` A/Bs the dispatch
 paths (`MYCHESS_SLIDER=pext|fallback`).
 
+## Phase MCTS (v1 — tag `vmcts-v1`)
+
+Le core (`vcore-1.0`) est **FROZEN** : la recherche le consomme via son
+contrat API (`Position`, `generate`, `make`/`unmake`, Zobrist incrémental,
+`is_square_attacked`) — aucun refactoring core hors bug prouvé.
+
+### Modules
+
+| module | rôle |
+|---|---|
+| `eval` | matériel (100/300/300/500/900) + PST symétriques (Michniewski) ; `eval_white` (blanc+) / `eval_for_mover` (trait+) — **hook A1** (v1 ne l'utilise PAS encore : playouts aléatoires) |
+| `mcts` | UCT v1 : un nœud étendu par playout, sélection UCT (`C=1.414`), playout aléatoire → résultat {-1,0,1} ; terminalité complète : mat, pat, 50 coups, **triple répétition** (hash-history : UCI replay + chemin + playout), matériel insuffisant ; RNG xorshift64* seedé (déterminisme par seed) |
+| `uci` | UCI minimal (uci/isready/ucinewgame/setoption/position/go/stop/quit) ; `go nodes N` = contrôle fixe-nœuds des SPRT ; recherche threadée (stop = AtomicBool sondé toutes les 64 playouts) |
+
+### Structure de nœud (et hooks NN plus tard)
+
+```
+Node { visits: u64, sum: f32 (valeur au trait du nœud), term: Option<f32>,
+       children: Vec<Child>, expanded: bool }    Child { mv: Move, node: u32 }
+```
+
+* **sélection** : v1 = UCT `-(child.avg) + C·sqrt(ln N / n)` ; **A2** le
+  remplace par PUCT (le `Child::prior` + hook `prior(pos, mv)` apparaissent là) ;
+* **feuille** : v1 = playout aléatoire ; **A1** le remplace par
+  `eval_for_mover` (même signature `f32`, perspective trait+) ;
+* **D1** (NN): policy remplace le hook prior, value remplace le hook eval —
+  mêmes surfaces d'appel, zéro refactoring MCTS.
+
+### Mesure Elo (chaque amélioration = un SPRT)
+
+`./test.sh <cand_bin> <base_bin> [nodes] [rounds]` lance fastchess
+(SPTRT elo0=0/elo1=5 α=β=0.05 ; tc=nodes=N ; openings EPD déséquilibrées
+chaque position deux fois ; concurrency 5). Une ligne par test dans
+ELO_LOG.md (modèle Rustic/Sirius). Garde-fou : le script refuse de tourner
+tant que M4-d9 (`slaml/d9_detailed.log`) n'est pas réconcilié vers
+`slaml/cpw_d9_reference.md` (BENCH-FREEZE), sauf `MYCHESS_ELO_ALLOW=1`.
+Openings officielles : placer `openings/uho_lichess_4852_v1.epd`
+(voir openings/README.md ; `builtin_min.epd` = smoke seulement).
+
+### Ladder (une étape à la fois, SPRT seul verdict)
+
+A1 eval-leaf → A2 PUCT+priors → A3 FPU → A4 cpuct → B1 virtual loss+parallel →
+B2 tree reuse → B3 transpositions → C1 dirichlet → C2 priors SEE/history →
+C3 tapered eval. Interdits : RAVE, ordre Sirius copié, multi-améliorations.
+
 ## Documented deviations from the spec
+
 
 1. **PEXT tables are built once with `OnceLock`, not `const`.** With correct
    masks the ~2 MB rook table trips rustc's hard `long_running_const_eval`

@@ -4,7 +4,7 @@ use std::time::Instant;
 
 fn usage() -> ! {
     eprintln!(
-        "usage:\n  mychess perft <fen> <depth> [--detailed]\n  mychess divide <fen> <depth> [--depth2]\n  mychess sweep <fen> <depth> <threads_csv> [--reps N]\n  mychess bench"
+        "usage:\n  mychess uci                              # UCI engine (fastchess driver)\n  mychess perft <fen> <depth> [--detailed]\n  mychess divide <fen> <depth> [--depth2]\n  mychess sweep <fen> <depth> <threads_csv> [--reps N]\n  mychess bench"
     );
     std::process::exit(2);
 }
@@ -17,6 +17,7 @@ fn main() {
     // M0: record which slider dispatch path is active on this hardware.
     eprintln!("[{}]", mychess::slider::describe());
     match args[1].as_str() {
+        "uci" => mychess::uci::run(),
         "perft" => {
             if args.len() < 4 {
                 usage();

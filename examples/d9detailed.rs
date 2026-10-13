@@ -12,8 +12,8 @@
 //! Usage: `mychess-d9detailed <fen> <depth> <threads> [split]`
 //! Prints the same table shape as `mychess perft <fen> <depth> --detailed`.
 
-use mychess::movegen::{generate, MoveList};
-use mychess::perft::{perft_detailed, PerftCounts};
+use mychess::movegen::{MoveList, generate};
+use mychess::perft::{PerftCounts, perft_detailed};
 use mychess::position::Position;
 use mychess::types::{GenKind, Move};
 use rayon::prelude::*;
@@ -34,7 +34,10 @@ fn merge_counts(mut a: PerftCounts, b: PerftCounts) -> PerftCounts {
 
 fn counts_par(pos: &Position, depth: u32, split: u32) -> PerftCounts {
     if depth == 0 {
-        return PerftCounts { nodes: 1, ..PerftCounts::default() };
+        return PerftCounts {
+            nodes: 1,
+            ..PerftCounts::default()
+        };
     }
     if depth == 1 || split == 0 {
         let mut p = *pos;
@@ -55,7 +58,6 @@ fn counts_par(pos: &Position, depth: u32, split: u32) -> PerftCounts {
         .reduce(PerftCounts::default, merge_counts)
 }
 
-
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 4 {
@@ -67,7 +69,10 @@ fn main() {
     let threads: usize = args[3].parse().expect("threads");
     let split: u32 = args.get(4).and_then(|s| s.parse().ok()).unwrap_or(2);
     eprintln!("[{}]", mychess::slider::describe());
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(threads.max(1)).build().unwrap();
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(threads.max(1))
+        .build()
+        .unwrap();
     pool.install(|| {
         let pos = Position::from_fen(&fen).unwrap();
         let t = Instant::now();

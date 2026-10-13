@@ -47,3 +47,32 @@ robustesse), **L1c GAIN ×1.19** (fusion checkers/pins/danger, adopté),
 p<0.05). M1 : les deux micro-benchs « incohérents » étaient des artefacts de
 batch (aucun fix d'impl nécessaire). M3 : contrat position illégale
 (non-émission du roi-capture, assert debug, test dédié).
+# Journal Elo — phase MCTS (ladder : un commit = une amélioration = un SPRT)
+
+## Baseline par bench (dénominateur du budget sims/s — consigné en tête)
+
+`mcts_descend30/startpos` (criterion, baseline-A, session final25, pré-v1) :
+**638.9→667.3 ns / 30 plies ≈ 21.3–22.2 ns/ply** (make+unmake round-trip,
+hash incrémental inclus — sous le contrat core <25 ns/ply). C'est le
+DÉNOMINATEUR du budget sims/s : un playout MCTS ajoutera make/unmake par ply
+de desc/asc (~22 ns/ply round-trip) + sélection + priors/eval à la feuille.
+⚠️ Valeur à RELEVER et reconsigner après réconciliation M4-d9 (bench-freeze :
+aucune mesure tant que la ligne d9 n'est pas réconciliée contre la table
+CPW) — mention "post-M4" obligatoire sur toute mesure de la phase.
+
+`mcts_rep_walkback16` : 8.6 ns miss / 1.3 ns hit-at-4 → la triple répétition
+via hash-history du stack de recherche est quasi-gratuite : intégrée dès la
+v1 (ne pas différer).
+`mcts_pst_eval/startpos` : 32.7–39.9 ns → le pattern eval A1 est bon marché
+vs playout aléatoire (~40-50 µs).
+
+## Table Elo (source : Rustic/Sirius — une ligne par amélioration testée)
+
+Règles : SPRT elo0=0 elo1=5 alpha=0.05 beta=0.05 ; contrôle par NŒUDS
+(2k/10k/40k) puis TC 8+0.08 si passe ; openings UHO_Lichess_4852 (chaque
+position deux fois, random). Mises en garde anti-biais self-play (~60 %
+stickie Rustic — à documenter par mesure ; contrôle tiers = gauntlet).
+
+| date | commit | description | TC | Elo ± err | jeux | verdict |
+|---|---|---|---|---|---|---|
+| 2026-10-13 | vmcts-v1 | v1: baseline MCTS UCT/playouts aléatoires; terminalité (mat/pat/50coups/triple rép via hash-history + matériel insuffisant); PRIOR hook prêt (A2), eval hook prêt (A1) | — | **— (baseline, mesure du saut A1 s'y réfère)** | — | baseline |
