@@ -402,3 +402,42 @@ comportement inchangé (filet binaire vert). Marqué no-gain.
 
 Règle des deux no-gain consécutifs non déclenchée (L1c GAIN entre les
 deux). Aucun lot de secours. **M2 clôturé.**
+
+## GATE 2.5 — clôture du core (checklist de gel, session 2026-10-13)
+
+1. **README** : ligne hardware mise à jour (« AMD EPYC 7763 family 0x19,
+   chemin pext actif, d9 = 2,439,530,234,167 @ 1002 Mnps 8T »), table
+   « Measured performance » remplacée par les valeurs frozen (post-M2) +
+   historiques conservés ; note de gel.
+2. **ELO_LOG.md** : baseline par bench pré-M2 (`base25`) vs frozen
+   (`final25`) consignée (tableau complet ci-dessus/section dédiée).
+3. **Tag `vcore-1.0`** posé sur le commit validé : T1 (d≤5 nodes, colonnes
+   d≤4) + differentiels (60×80, refgen d≤3, count_moves diff) + double
+   chemin slider + contrat M3 + clippy `-D warnings` + fmt — tout vert.
+4. **3 benchs criterion orientés MCTS ajoutés** (benches/core.rs) pour la
+   baseline de la phase suivante : `mcts_descend30/startpos` (coût d'une
+   descente : make/unmake ×30 plies, ~22 ns/ply), `mcts_rep_walkback16`
+   ( répétition : miss 8.6 ns vs hit-at-4 1.3 ns), `mcts_pst_eval/startpos`
+   (pattern eval PST complet, ~39 ns — base du futur A1).
+
+**Perft final revalidé après M2/M3** (release, sweep, valeurs dorées
+inchangées) : perft(6) = 119,060,324 ; perft(7) = 3,195,901,860.
+
+### Nps frozen (post-GATE-2.5, même machine)
+
+| workload | 1T | 8T |
+|---|---|---|
+| perft(7) startpos | 268–273 Mnps (méd 272.0) | 1089–1113 (méd 1096.6) ×~1.13 vs pré-M2 |
+| perft(6) criterion | 257 Mnps (463 ms) — ×1.17 vs pré-M2 | — |
+
+M4 lancé en fond (NON-BLOQUANT, post-tag) : `slaml/run_d9_detailed.sh`
+(nohup, logs `slaml/d9_detailed.log`, preuve du chemin actif dedans) —
+la ligne CPW réclamée sera la table détaillée d9 comparée colonne par
+colonne à la publication ; NE BLOQUE PAS le gel. Table détaillée estimée :
+1T ~270 Mnps brut mais colonnes = compteurs par make → attente 2–6 h ;
+récolte à l'arrivée (nodes DOIT = 2,439,530,234,167 exactement).
+
+**LE CORE EST FROZEN** : la phase MCTS consomme le contrat API existant
+(`Position`, `generate`/`count_moves`, `perft`, make/unmake + Zobrist
+incrémental) ; pas de refactoring core sauf bug PROUVÉ (perft revalidé
+alors, filet complet).

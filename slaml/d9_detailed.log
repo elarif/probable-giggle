@@ -1,0 +1,3 @@
+=== GATE 2.5 M4: startpos d9 --detailed (memo off, T1 table columns) ===
+start: 2026-10-13T08:03:01+00:00, host: codespaces-f31cc3, cores: 8
+[slider path: pext (AuthenticAMD family 0x19 + bmi2+popcnt+movbe)]
