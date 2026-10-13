@@ -76,3 +76,16 @@ stickie Rustic — à documenter par mesure ; contrôle tiers = gauntlet).
 | date | commit | description | TC | Elo ± err | jeux | verdict |
 |---|---|---|---|---|---|---|
 | 2026-10-13 | vmcts-v1 | v1: baseline MCTS UCT/playouts aléatoires; terminalité (mat/pat/50coups/triple rép via hash-history + matériel insuffisant); PRIOR hook prêt (A2), eval hook prêt (A1) | — | **— (baseline, mesure du saut A1 s'y réfère)** | — | baseline |
+
+## Table Elo — suite (mises à jour par entrée, mesures gelées jusqu'à M4)
+
+| date | commit | description | TC | Elo ± err | jeux | verdict |
+|---|---|---|---|---|---|---|
+| 2026-10-13 (post-M4: PENDING) | A1-uncommitted→ see commit | A1: playouts aléatoires remplacés par eval statique aux feuilles (eval_normalized = eval_for_mover/1000 clamp[-1,1]; terminalité exacte {-1,0,1} conservée AVANT l'eval; hooks PUCT/NN inchangés) | nœuds-fixes 10k (planifié) | PENDING | PENDING | SPRT planifié en premier après réconciliation M4 |
+
+Notes A1 : la valeur feuille = éval statique = le saut attendu le plus gros
+(Ramanujan 2010 shallow traps ; Monte-Carlo Chess 2012 ; lc0 par réseau).
+Budget sims/s : le playout aléatoire (~76 µs) disparaît ; une feuille =
+make/unmake de descente (~22 ns/ply) + eval (~40-90 ns/position) → le
+dénominateur attendu de sims/s augmente d'un ordre de grandeur ; valeur
+exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).

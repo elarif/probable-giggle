@@ -209,8 +209,20 @@ fn search_once(search: &Search, arena: &mut Vec<Node>, rng: &mut Rng) {
         }
         if !expanded {
             if visits == 0 {
-                // First visit: random playout from this position (v1 leaf).
-                let r = playout(&p, &mut hist, rng, search.limits.max_playout_ply);
+                // A1 leaf: exact terminality first, else the static eval.
+                let mut list0 = MoveList::new();
+                generate(&p, &mut list0, GenKind::All);
+                let r = if list0.is_empty() {
+                    // mate / stalemate (exact, mover value)
+                    if p.in_check(p.side) { -1.0 } else { 0.0 }
+                } else if p.halfmove >= 100
+                    || repetition_draw(&p, &hist)
+                    || eval::insufficient_material(&p)
+                {
+                    0.0
+                } else {
+                    eval_normalized(&p)
+                };
                 backprop(arena, &path, r);
                 return;
             }
@@ -344,25 +356,12 @@ fn repetition_draw(pos: &Position, hist: &[u64]) -> bool {
     false
 }
 
-/// Random playout until terminal or ply limit (v1). `hist` carries the game +
-/// descent path hashes and is freely extended (the search ends the iteration
-/// right after backprop, the buffer is rebuilt next playout).
-fn playout(pos: &Position, hist: &mut Vec<u64>, rng: &mut Rng, max_ply: u32) -> f32 {
-    let mut p = *pos;
-    for _ in 0..max_ply {
-        let mut list = MoveList::new();
-        generate(&p, &mut list, GenKind::All);
-        if list.is_empty() {
-            return if p.in_check(p.side) { -1.0 } else { 0.0 };
-        }
-        if p.halfmove >= 100 || repetition_draw(&p, hist) || eval::insufficient_material(&p) {
-            return 0.0;
-        }
-        let mv = list.get((rng.next_u64() % list.len() as u64) as usize);
-        p.make(mv);
-        hist.push(p.zobrist);
-    }
-    0.0 // playout cap: v1 treats it as a draw
+/// A1 leaf value: static eval normalised to the Q space [-1, 1] used by
+/// MCTS/PUCT/NN (D1 tanh convention): cp is mapped by /1000 clamped. Terminal
+/// positions keep their exact {-1, 0, 1} values (checked by the caller).
+#[inline]
+pub fn eval_normalized(pos: &Position) -> f32 {
+    (eval::eval_for_mover(pos) as f32 / 1000.0).clamp(-1.0, 1.0)
 }
 
 /// Terminality of `pos` given the history of positions BEFORE it — the

@@ -142,8 +142,10 @@ Node { visits: u64, sum: f32 (valeur au trait du nœud), term: Option<f32>,
 
 * **sélection** : v1 = UCT `-(child.avg) + C·sqrt(ln N / n)` ; **A2** le
   remplace par PUCT (le `Child::prior` + hook `prior(pos, mv)` apparaissent là) ;
-* **feuille** : v1 = playout aléatoire ; **A1** le remplace par
-  `eval_for_mover` (même signature `f32`, perspective trait+) ;
+* **feuille** : depuis A1 = `eval::eval_for_mover` normalisé
+  (`eval_normalized`, cp/1000 clamp [-1,1] — convention Q compatible PUCT/NN) ;
+  la terminalité exacte {-1,0,1} reste prioritaire à la feuille. (Dans le
+  tag `vmcts-v1` la feuille = playout aléatoire — point zéro du ladder.)
 * **D1** (NN): policy remplace le hook prior, value remplace le hook eval —
   mêmes surfaces d'appel, zéro refactoring MCTS.
 
