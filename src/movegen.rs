@@ -160,6 +160,34 @@ fn push_promotions(out: &mut MoveList, from: u8, to: u8, is_cap: bool) {
     out.push(Move::new(from, to, base + 3));
 }
 
+/// L1b: en-passant legality WITHOUT make/unmake. After the EP capture (our
+/// pawn leaves `from`, lands on `ep`, the enemy pawn disappears from
+/// `cap_sq`), only sliders can *newly* hit our king, exclusively through the
+/// two vacated squares — leaper attacks are invariant under the move, removed
+/// pieces can only remove attacks. The slider test is run on the post-move
+/// occupancy (our pawn reinstated on `ep`), which also covers: pinnned-pawn
+/// EPs (diagonal/orthogonal exposure) and, when in check, a slider checker
+/// blocked by the landing pawn. Degenerate entries (no pawn at `cap_sq`)
+/// stay defined: this test needs no mailbox and no make (the make/unmake
+/// version would unconditionally clear `cap_sq`).
+///
+/// Contract note: on illegal entries (enemy king capturable, adjacent kings)
+/// the leaper part of the old make-based test is no longer re-run, so counts
+/// may differ from the oracle — illegal input is out of contract (GATE 2.5
+/// M3), not a crash.
+#[inline(always)]
+fn ep_legal_ray(pos: &Position, them: Color, from: u8, ep: u8, ksq: u8, occ: u64) -> bool {
+    let cap_sq = if pos.side == Color::White { ep - 8 } else { ep + 8 };
+    let occ2 = occ ^ (1u64 << from) ^ (1u64 << ep) ^ (1u64 << cap_sq);
+    let b = pos.bb_color[them.idx()];
+    // The vacated pair lies on the ep-rank: a horizontal rook/queen ray
+    // through the now-open rank between king and captured pawn is the classic
+    // discovered check; the diagonal/second vacated square needs the full
+    // slider scans anyway (the landing pawn can re-block through `ep`).
+    rook_attacks(ksq, occ2) & (pos.bb_piece[ROOK] | pos.bb_piece[QUEEN]) & b == 0
+        && bishop_attacks(ksq, occ2) & (pos.bb_piece[BISHOP] | pos.bb_piece[QUEEN]) & b == 0
+}
+
 /// Generate all legal moves (or noisy moves for `CapturesOnly`).
 pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     let us = pos.side;
@@ -208,18 +236,26 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
         gen_pawn_pinned(pos, out, us, them_bb, from, allowed & pin_line(ksq, from), empty, captures_only);
     }
 
-    // En passant. Validated with a local make/unmake: capturing en passant can
-    // remove two pawns from a rank and expose the king to a rook/queen.
+    // En passant (L1b): legality by ray trick — no make/unmake per candidate.
+    // In check: an EP capture is legal only if it removes the checking pawn
+    // (the double-pusher standing on `cap_sq`) or blocks a slider ray by
+    // landing on `ep`; otherwise post-move king safety is decided by the
+    // slider scan on the modified occupancy (see `ep_legal_ray`).
     if let Some(ep) = pos.ep_square() {
-        let mut m = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
-        while m != 0 {
-            let from = m.trailing_zeros() as u8;
-            m &= m - 1;
-            let mv = Move::new(from, ep, FLAG_EP_CAPTURE);
-            let mut b = *pos;
-            b.make(mv);
-            if !b.is_square_attacked(b.king_sq(us), them) {
-                out.push(mv);
+        let cap_sq = if us == Color::White { ep - 8 } else { ep + 8 };
+        let evades_check = if ncheck == 1 {
+            ((checkers & (1u64 << cap_sq)) | (allowed & (1u64 << ep))) != 0
+        } else {
+            true
+        };
+        if evades_check {
+            let mut m = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
+            while m != 0 {
+                let from = m.trailing_zeros() as u8;
+                m &= m - 1;
+                if ep_legal_ray(pos, them, from, ep, ksq, occ) {
+                    out.push(Move::new(from, ep, FLAG_EP_CAPTURE));
+                }
             }
         }
     }
@@ -547,17 +583,22 @@ pub fn count_moves(pos: &Position) -> u64 {
         n += count_pawn_pinned(pos, us, them_bb, from, allowed & pin_line(ksq, from), empty);
     }
 
-    // ---- En passant: same make/unmake validation as in generate ----
+    // ---- En passant (L1b): same ray-trick validation as in generate ----
     if let Some(ep) = pos.ep_square() {
-        let mut m = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
-        while m != 0 {
-            let from = m.trailing_zeros() as u8;
-            m &= m - 1;
-            let mv = Move::new(from, ep, FLAG_EP_CAPTURE);
-            let mut b = *pos;
-            b.make(mv);
-            if !b.is_square_attacked(b.king_sq(us), them) {
-                n += 1;
+        let cap_sq = if us == Color::White { ep - 8 } else { ep + 8 };
+        let evades_check = if ncheck == 1 {
+            ((checkers & (1u64 << cap_sq)) | (allowed & (1u64 << ep))) != 0
+        } else {
+            true
+        };
+        if evades_check {
+            let mut m = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
+            while m != 0 {
+                let from = m.trailing_zeros() as u8;
+                m &= m - 1;
+                if ep_legal_ray(pos, them, from, ep, ksq, occ) {
+                    n += 1;
+                }
             }
         }
     }

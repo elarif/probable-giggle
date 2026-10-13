@@ -282,3 +282,41 @@ Baselines criterion supplémentaires (phase MCTS, pré-créées ici) :
 `hit_at4` 1.32 ns (early-exit) ; `mcts_pst_eval/startpos` 32.7 ns (pattern
 PST complet : mailbox 64 + miroir couleur + somme) ; `perft1t/startpos_d6`
 544.3 ms (médiane criterion) / `sweep 1` 0.54–0.56 s (~219 Mnps).
+
+## GATE 2.5 — M2/L1b : EP legality par ray-trick (session 2026-10-13)
+
+Remplace la validation EP par make/unmake (copie Position + make +
+`is_square_attacked` ≈ 45–70 ns par candidat) dans `generate` ET
+`count_moves` par `ep_legal_ray` : occupation résultat
+`occ ^ from ^ ep ^ cap_sq`, puis scan slider-depuis-le-roi (rook + bishop sur
+l'occupation résultat — le pion qui atterrit re-bloque ses rayons). En échec :
+évasion = capture du pion double-poussé (`checkers & cap_sq`) OU blocage d'un
+rayon slider en atterrissant sur `ep` (`allowed & ep_bit`) ; les échecs par
+sauter/roi/pion non capturé restent correctement interdits. Sous-cas couverts
+par construction : épinglé EP (diagonale/orthogonale), découverte par les deux
+cases libérées, bloquant-pion. Robustesse de plus : les FEN dégénérés
+(ep posé sans pion à capturer) restent DÉFINIS (le old make aurait fait
+`mailbox-1=255` → index OOB) — contrat M3.
+
+Filet : suite complète release (T1 d≤5 nodes + colonnes d≤4, differentiels
+vs refgen 60×80 selfplays, count_moves diff 40×100, deux chemins force) OK
++ 14 pièges publiés EP/castle/promo (3 EP-discovery = valeurs publiées
+exactes : 1134888 / 1015133 / 1440467 ; les 11 autres A==B — le filet
+anti-régression est binaire, pas vs mémoire).
+
+### A/B/A/B intercalé (perft 1T, 3 legs alternés, même session)
+
+| workload | A (M1) Mnps | B (L1b) Mnps | Δ | règle +5% |
+|---|---|---|---|---|
+| startpos perft(6) 1T | 209.2 (208.7/209.2/214.4) | 209.4 (210.1/209.4/214.5) | **+0.1 %** | no-gain |
+| pos3 perft(7) 1T (EP-heavy) | 209.0 (212.0/208.0/209.0) | 216.0 (216.0/218.6/206.6) | **+3.3 %** | no-gain |
+
+Corroboration criterion `count_moves` (vs base25, même session) : startpos
++4.4 % / kiwipete −4.9 % / pos3 −0.4 % / pos6 +0.05 % — TOUT dans la bande
+de bruit hyperviseur (±4–5 % établi au M1 sur paire A/A identique).
+
+**Décision L1b : no-gain au seuil précommité** (jamais ≥ +5 %) — code
+CONSERVÉ : performance neutre dans la bande de bruit, structure
+strictement plus simple au leaf (zéro copie de Position, zéro make par
+candidat EP), crash latent supprimé. Marqué no-gain, conformément au
+protocole (ne compte pas comme gain pour le tableau final).
