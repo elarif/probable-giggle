@@ -1,1 +1,8 @@
 /target
+openings/uho_lichess_4852_v1.epd
+prt/
+lichessbot/config.yml
+lichessbot/venv/
+lichessbot/lichess-bot/
+lichessbot/bridge.log
+lichessbot/game_records/
