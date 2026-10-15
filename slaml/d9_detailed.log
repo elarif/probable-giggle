@@ -1,3 +1,17 @@
-=== GATE 2.5 M4-par: startpos d9 --detailed (root-split, memo off) ===
-start: 2026-10-13T18:12:42+00:00, host: codespaces-f31cc3, cores: 8
+=== GATE 2.5 M4-par: startpos d9 --detailed (root-split, memo off, checkpointed) ===
+start: 2026-10-14T11:25:01+00:00, host: codespaces-f31cc3, cores: 8
 [slider path: pext (AuthenticAMD family 0x19 + bmi2+popcnt+movbe)]
+# resume: 392/400 tasks loaded from ckpt (slaml/d9_shards.ckpt)
+# progress 400/400 elapsed 957.0s
+depth 9
+nodes                 2439530234167
+captures               125208536153
+ep                        319496827
+castles                  1784356000
+promotions                 17334376
+checks                  36095901903
+discovery_checks           37103750
+double_checks               6315946
+mates                     400191963
+[956.95s, 2549.3 Mnodes/s, tasks 400/400 (392 ckpt-resumed)]
+end: 2026-10-14T11:40:58+00:00, exit=0

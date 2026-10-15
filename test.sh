@@ -57,12 +57,17 @@ TS=$(date -u +%Y%m%dT%H%M%SZ)
 OUT="prt/sprt-${TS}.log"
 
 # Node-fixed SPRT; concurrency 5 (4 physical cores, SMT margin per ELO_LOG).
-# fastchess node control: `tc=nodes=N` (fixed nodes/move, deterministic TC);
-# if the build rejects tc=nodes=, use -each proto=uci nodes="$NODES" instead.
+# fastchess 1.8.2: fixed nodes control is the top-level `nodes=` option
+# (the old doc fallback "if the build rejects tc=nodes=, use -each
+# proto=uci nodes=N instead" — this build rejects tc=nodes=, so the
+# fallback is the operative form). `args="uci"`: mychess is a
+# multi-subcommand binary; fastchess spawns it bare, so the UCI driver
+# subcommand must be passed explicitly (caught by the harness smoke test:
+# "Engine didn't respond to uciok after startup").
 fastchess \
-    -engine name=cand cmd="$CAND" \
-    -engine name=base cmd="$BASE" \
-    -each proto=uci tc="nodes=${NODES}" \
+    -engine name=cand cmd="$CAND" args="uci" \
+    -engine name=base cmd="$BASE" args="uci" \
+    -each proto=uci nodes="${NODES}" \
     -sprt elo0=0 elo1=5 alpha=0.05 beta=0.05 \
     -openings file="$OPENINGS" format=epd order=random \
     -rounds "$ROUNDS" -games 2 -concurrency 5 -repeat \

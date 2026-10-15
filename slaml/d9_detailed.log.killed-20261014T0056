@@ -1,0 +1,8 @@
+=== GATE 2.5 M4-par: startpos d9 --detailed (root-split, memo off, checkpointed) ===
+start: 2026-10-14T00:20:49+00:00, host: codespaces-f31cc3, cores: 8
+[slider path: pext (AuthenticAMD family 0x19 + bmi2+popcnt+movbe)]
+# resume: 171/400 tasks loaded from ckpt (slaml/d9_shards.ckpt)
+# progress 176/400 elapsed 478.4s
+# progress 184/400 elapsed 1075.9s
+# progress 192/400 elapsed 1413.4s
+# progress 200/400 elapsed 1876.0s

@@ -166,6 +166,12 @@ A1 eval-leaf → A2 PUCT+priors → A3 FPU → A4 cpuct → B1 virtual loss+para
 B2 tree reuse → B3 transpositions → C1 dirichlet → C2 priors SEE/history →
 C3 tapered eval. Interdits : RAVE, ordre Sirius copié, multi-améliorations.
 
+La suite du ladder côté entraînement est planifiée dans SELFPLAY.md
+(**v2** — plan corrigé, canonique) : chiffrage CPU/NPS en P-1, décision
+écrite self-play vs distillation (SP-4), labels par provenance+confiance,
+exploration racine S17, gates en pente S16 v2. Diff v1→v2 tracé dans le
+plan.
+
 ## Documented deviations from the spec
 
 

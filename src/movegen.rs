@@ -237,7 +237,7 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
 }
 
 #[inline(always)]
-pub(crate) fn attackers_to(pos: &Position, sq: u8, by: Color) -> u64 {
+pub fn attackers_to(pos: &Position, sq: u8, by: Color) -> u64 {
     let bi = by.idx();
     let b = pos.bb_color[bi];
     let occ = pos.occ();
