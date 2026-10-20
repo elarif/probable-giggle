@@ -6,3 +6,4 @@ lichessbot/venv/
 lichessbot/lichess-bot/
 lichessbot/bridge.log
 lichessbot/game_records/
+.worktrees/
