@@ -2,6 +2,11 @@
 name = "mychess"
 version = "0.1.0"
 edition = "2024"
+# Minimum supported Rust version. `u64::isolate_lowest_one` (used by the
+# movegen and the magic-table builder) was stabilised in 1.97.0; the crate
+# does not compile on anything older. `rust-toolchain.toml` pins the same
+# version for the toolchain itself.
+rust-version = "1.97"
 
 [lib]
 name = "mychess"

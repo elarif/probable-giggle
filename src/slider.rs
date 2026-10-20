@@ -79,13 +79,12 @@ const fn build_masks(bishop: bool) -> [u64; 64] {
 pub const ROOK_MASKS: [u64; 64] = build_masks(false);
 pub const BISHOP_MASKS: [u64; 64] = build_masks(true);
 
-// const-context: keep the bit loop obvious (`u64::isolate_lowest_one` is
-// not stable yet, so the loop cannot use it).
+// const-context: keep the bit loop obvious.
 fn pext_const(x: u64, mut mask: u64) -> u64 {
     let mut res = 0u64;
     let mut k = 0u32;
     while mask != 0 {
-        let b = mask & mask.wrapping_neg();
+        let b = mask.isolate_lowest_one();
         if x & b != 0 {
             res |= 1u64 << k;
         }

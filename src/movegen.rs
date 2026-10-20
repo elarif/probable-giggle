@@ -111,15 +111,10 @@ impl Legality {
 }
 
 /// Isolate the lowest set bit of a non-zero bitboard.
-///
-/// `u64::isolate_lowest_one` is still unstable on this toolchain, so the
-/// stable equivalent `bb & bb.wrapping_neg()` is used instead — it compiles
-/// to the same single instruction (the negation is free next to the `blsr`
-/// it would become).
 #[inline(always)]
 fn lowest_bit(bb: u64) -> u64 {
     debug_assert!(bb != 0, "lowest_bit requires a non-zero bitboard");
-    bb & bb.wrapping_neg()
+    bb.isolate_lowest_one()
 }
 
 #[inline(always)]

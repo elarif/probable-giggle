@@ -1,0 +1,12 @@
+[toolchain]
+# `u64::isolate_lowest_one` (used by the movegen and the magic-table
+# builder) was stabilised in Rust 1.97.0 — before that the crate does not
+# compile. Pinning the channel keeps `cargo build` reproducible and stops
+# the CI (`dtolnay/rust-toolchain@stable`) from silently picking a
+# toolchain that cannot build the crate.
+#
+# `channel` is the *minimum* required version: anyone with a newer stable
+# toolchain can override it with `cargo +stable build` or by setting
+# `RUSTUP_TOOLCHAIN`.
+channel = "1.97.0"
+components = ["rustfmt", "clippy"]
