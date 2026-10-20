@@ -2,13 +2,18 @@
 //!
 //! Newtypes over `u8`/`u16` (no `transmute` integer -> enum). `Square` is
 //! debug-asserted `< 64`.
+//!
+//! Board indexing is type-checked: a square is always a `Square`, never a
+//! bare `usize` that happens to be in range. `Square::new` is the only
+//! constructor and it debug-asserts the bound; `Square::from_index` is the
+//! checked fallback used by the parsers.
 
 use std::fmt;
 
 pub const WHITE: usize = 0;
 pub const BLACK: usize = 1;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Color {
     White,
     Black,
@@ -84,54 +89,69 @@ impl PieceKind {
     }
 }
 
-/// A colored piece encoded as `color*6 + kind` (0..=11).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Piece(pub u8);
-
-impl Piece {
-    #[inline(always)]
-    pub const fn new(color: Color, kind: PieceKind) -> Piece {
-        Piece(color.idx() as u8 * 6 + kind.idx() as u8)
-    }
-    #[inline(always)]
-    pub const fn color(self) -> Color {
-        if self.0 < 6 {
-            Color::White
-        } else {
-            Color::Black
-        }
-    }
-    #[inline(always)]
-    pub const fn kind(self) -> PieceKind {
-        PieceKind::from_idx((self.0 % 6) as usize)
-    }
-}
-
 /// A board square, `0 = a1 .. 63 = h8`.
+///
+/// The inner value is private: the only way to build a `Square` is through
+/// [`Square::new`] (debug-asserted) or [`Square::from_index`] (checked), so
+/// an out-of-range square can never reach the bitboards or the mailbox.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Square(pub u8);
+pub struct Square(u8);
 
 impl Square {
+    /// Build a square from a raw index, debug-asserting the `< 64` bound.
     #[inline(always)]
     pub const fn new(i: u8) -> Square {
         debug_assert!(i < 64);
         Square(i)
     }
+
+    /// Checked constructor: returns `None` for an out-of-range index.
+    #[inline]
+    pub const fn from_index(i: u8) -> Option<Square> {
+        if i < 64 { Some(Square(i)) } else { None }
+    }
+
+    /// The raw index (`0 = a1 .. 63 = h8`).
+    #[inline(always)]
+    pub const fn index(self) -> u8 {
+        self.0
+    }
+
+    /// The index as a `usize`, for array indexing.
     #[inline(always)]
     pub const fn idx(self) -> usize {
         self.0 as usize
     }
+
+    /// File index, `0 = a .. 7 = h`.
     #[inline(always)]
     pub const fn file(self) -> u8 {
         self.0 & 7
     }
+
+    /// Rank index, `0 = rank 1 .. 7 = rank 8`.
     #[inline(always)]
     pub const fn rank(self) -> u8 {
         self.0 >> 3
     }
+
+    /// The single-bit board representation of this square.
     #[inline(always)]
     pub const fn bb(self) -> u64 {
         1u64 << self.0
+    }
+
+    /// Build a square from a file (`0 = a`) and a rank (`0 = rank 1`).
+    ///
+    /// Returns `None` when the coordinates are off the board — the only
+    /// way to build a `Square` that is guaranteed in range.
+    #[inline]
+    pub const fn from_file_rank(file: u8, rank: u8) -> Option<Square> {
+        if file < 8 && rank < 8 {
+            Some(Square(rank * 8 + file))
+        } else {
+            None
+        }
     }
 }
 
@@ -146,6 +166,13 @@ impl fmt::Debug for Square {
     }
 }
 
+impl fmt::Display for Square {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+/// Parse a UCI square like `"e4"`.
 pub fn square_from_uci(s: &[u8]) -> Option<Square> {
     if s.len() < 2 {
         return None;
@@ -153,7 +180,7 @@ pub fn square_from_uci(s: &[u8]) -> Option<Square> {
     let f = s[0].wrapping_sub(b'a');
     let r = s[1].wrapping_sub(b'1');
     if f < 8 && r < 8 {
-        Some(Square(r * 8 + f))
+        Square::from_index(r * 8 + f)
     } else {
         None
     }
@@ -182,10 +209,23 @@ pub struct Move(pub u16);
 impl Move {
     pub const NONE: Move = Move(0);
 
+    /// Pack a move from raw square indices.
+    ///
+    /// The squares are 6-bit fields, so only `0..64` is representable; the
+    /// bound is debug-asserted here and the type-safe
+    /// [`Move::between`] is preferred in new code.
     #[inline(always)]
     pub const fn new(from: u8, to: u8, flags: u8) -> Move {
+        debug_assert!(from < 64 && to < 64);
         Move((from as u16) | ((to as u16) << 6) | ((flags as u16) << 12))
     }
+
+    /// Type-safe constructor: takes two validated [`Square`]s.
+    #[inline(always)]
+    pub const fn between(from: Square, to: Square, flags: u8) -> Move {
+        Move((from.index() as u16) | ((to.index() as u16) << 6) | ((flags as u16) << 12))
+    }
+
     #[inline(always)]
     pub const fn from(self) -> u8 {
         (self.0 & 0x3F) as u8
@@ -261,4 +301,14 @@ pub const CASTLE_WQ: u8 = 2;
 pub const CASTLE_BK: u8 = 4;
 pub const CASTLE_BQ: u8 = 8;
 
+/// Sentinel for "no en-passant square" (the ep field is a `u8`, so 64 —
+/// one past the last square — is used rather than an `Option`).
 pub const NO_EP: u8 = 64;
+
+/// Sentinel for "no square" — one past the last board square.
+///
+/// 64 is the natural choice: `u64::trailing_zeros()` of an empty bitboard
+/// is already 64, so a kingless position needs no extra arithmetic to
+/// produce it, and 64 is exactly the bound every 64-entry attack table
+/// rejects.
+pub const NO_SQUARE: u8 = 64;

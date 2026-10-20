@@ -117,7 +117,14 @@ pub struct Limits {
     pub nodes: u64,
     /// Wall-clock cap in milliseconds (`None` = node budget only).
     pub movetime_ms: Option<u128>,
-    /// Playout ply cap (draw at limit in v1 playouts).
+    /// Maximum descent depth, in plies.
+    ///
+    /// In v1 this capped the *random playout* walk (a playout that hit the
+    /// cap was scored as a draw). Since A1 replaced the random playout by
+    /// the static evaluation at the leaf, the descent itself is the
+    /// playout: a node at this depth is **not expanded** and is scored like
+    /// any other leaf (terminality first, then the static eval). The knob
+    /// is therefore a search-depth limit, and it is live again.
     pub max_playout_ply: u32,
     /// UCT exploration constant.
     pub c_uct: f32,
@@ -156,6 +163,12 @@ impl Search {
         let start = std::time::Instant::now();
         let mut rng = Rng::new(self.seed);
         let mut arena = vec![Node::new()];
+        // The descent buffers are allocated once and reused by every
+        // playout (the hash history and the path both grow per ply).
+        let mut scratch = Scratch {
+            hist: Vec::with_capacity(self.game_hist.len() + 64),
+            path: Vec::with_capacity(64),
+        };
         // Root terminality (position delivered over by the UCI history).
         let root_term = terminal_value(&self.root_pos, &self.game_hist);
         arena[0].term = root_term;
@@ -166,7 +179,7 @@ impl Search {
         let mut nodes: u64 = 0;
         let mut deadline_reached = false;
         while nodes < self.limits.nodes && !deadline_reached && !stop.load(Ordering::Relaxed) {
-            search_once(self, &mut arena, &mut rng);
+            search_once(self, &mut arena, &mut rng, &mut scratch);
             nodes += 1;
             if nodes.is_multiple_of(BUDGET_POLL_EVERY)
                 && let Some(ms) = self.limits.movetime_ms
@@ -204,28 +217,37 @@ impl Search {
 
 /// One playout = one descent (select/expand/playout/backprop). `arena`
 /// local to `run` so no self-borrow conflicts.
-fn search_once(search: &Search, arena: &mut Vec<Node>, rng: &mut Rng) {
+fn search_once(search: &Search, arena: &mut Vec<Node>, rng: &mut Rng, scratch: &mut Scratch) {
     let mut p = search.root_pos;
-    let mut hist: Vec<u64> = search.game_hist.clone();
-    let mut path: Vec<u32> = vec![0];
+    // The hash history is *reused* across playouts: it is truncated back to
+    // the game history and re-grown during the descent. Cloning it per
+    // playout was an allocation on the hottest path of the search.
+    scratch.hist.clear();
+    scratch.hist.extend_from_slice(&search.game_hist);
+    scratch.path.clear();
+    scratch.path.push(0);
 
     loop {
-        let idx = *path.last().unwrap();
+        let idx = *scratch.path.last().expect("path is never empty");
         let (term, expanded, visits) = {
             let n = &arena[idx as usize];
             (n.term, n.expanded, n.visits)
         };
         if let Some(tv) = term {
-            backprop(arena, &path, tv);
+            backprop(arena, &scratch.path, tv);
             return;
         }
+        // Depth cap: the descent itself is the playout since A1 (the leaf
+        // is scored by the static eval, not by a random walk). Reaching the
+        // cap makes the node a leaf.
+        let at_depth_cap = scratch.path.len() as u32 >= search.limits.max_playout_ply;
         if !expanded {
-            if visits == 0 {
+            if visits == 0 || at_depth_cap {
                 // A1 leaf: exact terminality first, else the static eval.
                 // Single source of truth (`mcts::leaf_value`) so the unit
                 // tests exercise the EXACT path the search takes.
-                let r = leaf_value(&p, &hist);
-                backprop(arena, &path, r);
+                let r = leaf_value(&p, &scratch.hist);
+                backprop(arena, &scratch.path, r);
                 return;
             }
             // EXPAND (one node at a time): terminality first, then children.
@@ -234,7 +256,7 @@ fn search_once(search: &Search, arena: &mut Vec<Node>, rng: &mut Rng) {
             let tv = if list.is_empty() {
                 Some(if p.in_check(p.side) { -1.0 } else { 0.0 }) // mate / stalemate
             } else if p.halfmove >= 100
-                || repetition_draw(&p, &hist)
+                || repetition_draw(&p, &scratch.hist)
                 || eval::insufficient_material(&p)
             {
                 Some(0.0)
@@ -243,7 +265,7 @@ fn search_once(search: &Search, arena: &mut Vec<Node>, rng: &mut Rng) {
             };
             if let Some(tv) = tv {
                 arena[idx as usize].term = Some(tv);
-                backprop(arena, &path, tv);
+                backprop(arena, &scratch.path, tv);
                 return;
             }
             let mut children = Vec::with_capacity(list.len());
@@ -260,42 +282,42 @@ fn search_once(search: &Search, arena: &mut Vec<Node>, rng: &mut Rng) {
             let mv = arena[idx as usize].children[pick].mv;
             let child_node = arena[idx as usize].children[pick].node;
             p.make(mv);
-            hist.push(p.zobrist);
-            path.push(child_node);
+            scratch.hist.push(p.zobrist);
+            scratch.path.push(child_node);
             continue;
         }
 
         // Selection among expanded children.
-        let mut first_unvisited: Option<(Move, u32)> = None;
-        let mut unv_count = 0u64;
-        {
+        //
+        // The unvisited children are counted in a single pass; the chosen
+        // one is then located with a second pass over the *unvisited*
+        // children only (the counter `k` advances on unvisited entries
+        // alone, so the two passes agree by construction).
+        let unv_count = {
             let children = &arena[idx as usize].children;
-            for c in children.iter() {
-                if arena[c.node as usize].visits == 0 {
-                    unv_count += 1;
-                    if first_unvisited.is_none() {
-                        first_unvisited = Some((c.mv, c.node));
-                    }
-                }
-            }
-        }
+            children
+                .iter()
+                .filter(|c| arena[c.node as usize].visits == 0)
+                .count() as u64
+        };
         let (mv, child_node) = if unv_count > 0 {
             // v1: uniform over unvisited.
             let pick = (rng.next_u64() % unv_count) as usize;
             let mut k = 0usize;
+            let mut chosen = None;
             {
                 let children = &arena[idx as usize].children;
                 for c in children.iter() {
                     if arena[c.node as usize].visits == 0 {
                         if k == pick {
-                            first_unvisited = Some((c.mv, c.node));
+                            chosen = Some((c.mv, c.node));
                             break;
                         }
                         k += 1;
                     }
                 }
             }
-            first_unvisited.unwrap()
+            chosen.expect("the unvisited count and the unvisited scan agree")
         } else {
             // UCT argmax: q(child for parent's mover) + C*sqrt(ln N / n).
             let pv = arena[idx as usize].visits as f32;
@@ -318,9 +340,15 @@ fn search_once(search: &Search, arena: &mut Vec<Node>, rng: &mut Rng) {
             }
         };
         p.make(mv);
-        hist.push(p.zobrist);
-        path.push(child_node);
+        scratch.hist.push(p.zobrist);
+        scratch.path.push(child_node);
     }
+}
+
+/// Reusable buffers for the descent (no allocation per playout).
+struct Scratch {
+    hist: Vec<u64>,
+    path: Vec<u32>,
 }
 
 fn backprop(arena: &mut [Node], path: &[u32], mut v: f32) {

@@ -188,6 +188,7 @@ fn undo_zero() -> Undo {
         captured: 0,
         castle: 0,
         ep: 64,
+        cap_sq: 255,
         halfmove: 0,
         zobrist: 0,
     }

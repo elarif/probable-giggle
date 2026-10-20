@@ -13,7 +13,7 @@
 //! MCTS value convention needs (`mcts::Node::sum` is mover-perspective).
 
 use crate::position::Position;
-use crate::types::{Color, PAWN};
+use crate::types::{BISHOP, BLACK, Color, KNIGHT, PAWN, QUEEN, ROOK, WHITE};
 
 pub const MAT_PAWN: i32 = 100;
 pub const MAT_KNIGHT: i32 = 300;
@@ -21,16 +21,14 @@ pub const MAT_BISHOP: i32 = 300;
 pub const MAT_ROOK: i32 = 500;
 pub const MAT_QUEEN: i32 = 900;
 
+/// Material value per piece kind (indexed by the bitboard slot order).
+const MATERIAL: [i32; 6] = [
+    MAT_PAWN, MAT_KNIGHT, MAT_BISHOP, MAT_ROOK, MAT_QUEEN, 0, // KING
+];
+
 #[inline(always)]
 pub fn material(kind: usize) -> i32 {
-    match kind {
-        0 => MAT_PAWN,   // PAWN
-        1 => MAT_KNIGHT, // KNIGHT
-        2 => MAT_BISHOP, // BISHOP
-        3 => MAT_ROOK,   // ROOK
-        4 => MAT_QUEEN,  // QUEEN
-        _ => 0,          // KING
-    }
+    MATERIAL[kind]
 }
 
 // Symmetric piece-square tables, written VISUALLY (rank 8 row first). A White
@@ -69,14 +67,15 @@ const PST_KING: [i16; 64] = [
     10, 30, 20,
 ];
 
+/// The piece-square table for a piece kind.
 #[inline(always)]
 fn pst(kind: usize) -> &'static [i16; 64] {
     match kind {
-        0 => &PST_PAWN,
-        1 => &PST_KNIGHT,
-        2 => &PST_BISHOP,
-        3 => &PST_ROOK,
-        4 => &PST_QUEEN,
+        PAWN => &PST_PAWN,
+        KNIGHT => &PST_KNIGHT,
+        BISHOP => &PST_BISHOP,
+        ROOK => &PST_ROOK,
+        QUEEN => &PST_QUEEN,
         _ => &PST_KING,
     }
 }
@@ -124,12 +123,12 @@ pub fn insufficient_material(pos: &Position) -> bool {
     if pos.bb_piece[PAWN] != 0 {
         return false;
     }
-    if pos.bb_piece[3] != 0 || pos.bb_piece[4] != 0 {
+    if pos.bb_piece[ROOK] != 0 || pos.bb_piece[QUEEN] != 0 {
         return false; // rook or queen
     }
-    let w = (pos.bb_piece[1] & pos.bb_color[0]).count_ones()
-        + (pos.bb_piece[2] & pos.bb_color[0]).count_ones();
-    let b = (pos.bb_piece[1] & pos.bb_color[1]).count_ones()
-        + (pos.bb_piece[2] & pos.bb_color[1]).count_ones();
+    let w = (pos.bb_piece[KNIGHT] & pos.bb_color[WHITE]).count_ones()
+        + (pos.bb_piece[BISHOP] & pos.bb_color[WHITE]).count_ones();
+    let b = (pos.bb_piece[KNIGHT] & pos.bb_color[BLACK]).count_ones()
+        + (pos.bb_piece[BISHOP] & pos.bb_color[BLACK]).count_ones();
     w <= 1 && b <= 1
 }

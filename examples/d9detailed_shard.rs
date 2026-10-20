@@ -44,7 +44,7 @@ const NAMES: [&str; 9] = [
 /// Deterministic task list: `split` levels of move enumeration, each task =
 /// (position, perft_detailed depth = depth - split).
 fn enumerate(pos: &Position, depth_left: u32, split: u32, out: &mut Vec<(Position, u32)>) {
-    assert!(depth_left >= split + 1, "split must leave leaf depth >= 1");
+    assert!(depth_left > split, "split must leave leaf depth >= 1");
     if split == 0 {
         out.push((*pos, depth_left));
         return;
@@ -64,7 +64,10 @@ fn enumerate(pos: &Position, depth_left: u32, split: u32, out: &mut Vec<(Positio
 fn load_ckpt(path: &str) -> BTreeMap<usize, [u64; NCOUNT]> {
     let mut map = BTreeMap::new();
     let mut s = String::new();
-    if File::open(path).and_then(|mut f| f.read_to_string(&mut s)).is_err() {
+    if File::open(path)
+        .and_then(|mut f| f.read_to_string(&mut s))
+        .is_err()
+    {
         return map;
     }
     for line in s.lines() {
@@ -131,8 +134,13 @@ fn main() {
     // Completion ledger: loaded entries ∪ every freshly computed task.
     let ledger = std::sync::Mutex::new(loaded);
     let done = AtomicUsize::new(preloaded);
-    let ckpt_file =
-        std::sync::Mutex::new(OpenOptions::new().create(true).append(true).open(&ckpt).unwrap());
+    let ckpt_file = std::sync::Mutex::new(
+        OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&ckpt)
+            .unwrap(),
+    );
 
     pool.install(|| {
         (0..total).into_par_iter().for_each(|idx| {
@@ -143,24 +151,35 @@ fn main() {
             let mut p = sub;
             let c = perft_detailed(&mut p, dleft);
             let vals: [u64; NCOUNT] = [
-                c.nodes, c.captures, c.ep, c.castles, c.promotions, c.checks,
-                c.discovery_checks, c.double_checks, c.mates,
+                c.nodes,
+                c.captures,
+                c.ep,
+                c.castles,
+                c.promotions,
+                c.checks,
+                c.discovery_checks,
+                c.double_checks,
+                c.mates,
             ];
             // checkpoint line FIRST, ledger insertion AFTER: a crash between
             // the two only costs an idempotent recompute of the task.
             let line = format!(
                 "task {} {}\n",
                 idx,
-                vals.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(" ")
+                vals.iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<_>>()
+                    .join(" ")
             );
             {
                 let mut g = ckpt_file.lock().unwrap();
-                g.write_all(line.as_bytes()).expect("checkpoint append failed");
+                g.write_all(line.as_bytes())
+                    .expect("checkpoint append failed");
                 g.sync_data().expect("checkpoint sync failed");
             }
             ledger.lock().unwrap().insert(idx, vals);
             let n = done.fetch_add(1, Ordering::Relaxed) + 1;
-            if n % 8 == 0 || n == total {
+            if n.is_multiple_of(8) || n == total {
                 eprintln!(
                     "# progress {n}/{total} elapsed {:.1}s",
                     t0.elapsed().as_secs_f64()

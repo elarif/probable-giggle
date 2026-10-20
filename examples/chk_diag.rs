@@ -25,30 +25,30 @@ struct Cats {
     dbl3: u64,
     dbln: u64,
     // ep : dernier coup = capture ep
-    ep_s: u64,      // singles ep (n==1, checker != pion)
-    ep_s_origin: u64,  // rayon passe par l'origine seulement
-    ep_s_capt: u64,    // rayon passe par le carre du pion capture
-    ep_s_both: u64,    // les deux
-    ep_s_other: u64,   // aucun des deux (doit rester ~0)
-    ep_d: u64,      // doubles+ ep (n>=2)
-    ep_d_capt: u64,    // un des attaquants passe par le carre capture
+    ep_s: u64,            // singles ep (n==1, checker != pion)
+    ep_s_origin: u64,     // rayon passe par l'origine seulement
+    ep_s_capt: u64,       // rayon passe par le carre du pion capture
+    ep_s_both: u64,       // les deux
+    ep_s_other: u64,      // aucun des deux (doit rester ~0)
+    ep_d: u64,            // doubles+ ep (n>=2)
+    ep_d_capt: u64,       // un des attaquants passe par le carre capture
     ep_d_onlyorigin: u64, // doubles ep sans checker thru-capt
-    ep_d_other: u64,   // ep doubles sans aucun checker thru (knight? doive ~0)
-    ep_direct: u64, // ep singles d'echec direct (pion attaque le roi)
+    ep_d_other: u64,      // ep doubles sans aucun checker thru (knight? doive ~0)
+    ep_direct: u64,       // ep singles d'echec direct (pion attaque le roi)
     // non-ep, pour reference
     np_dbl: u64,
     np_disc: u64,
     // roque / promotion (d8 : promos = 0 ; le « 4 » pourrait etre du roque)
-    cs_s: u64,          // singles roque (n==1, checker != pieces deplacees)
-    cs_s_origin: u64,   // rayon par l'origine du ROI seulement
+    cs_s: u64,            // singles roque (n==1, checker != pieces deplacees)
+    cs_s_origin: u64,     // rayon par l'origine du ROI seulement
     cs_s_rookdirect: u64, // n==1 && att == {tour arrivee} : suspect du delta disc
     cs_s_other: u64,
-    cs_d: u64,          // doubles+ roque
-    cs_rook_direct: u64, // n>=2, la tour arrivee figure dans att
-    pr_dbl: u64,        // promos n>=2
-    pr_direct: u64,     // promos n==1, piece promue attaque le roi
-    pr_disc: u64,       // promos n==1, discovery
-    pr_none: u64,       // promos n==0 avec... (att vide) — doit rester 0
+    cs_d: u64,                 // doubles+ roque
+    cs_rook_direct: u64,       // n>=2, la tour arrivee figure dans att
+    pr_dbl: u64,               // promos n>=2
+    pr_direct: u64,            // promos n==1, piece promue attaque le roi
+    pr_disc: u64,              // promos n==1, discovery
+    pr_none: u64,              // promos n==0 avec... (att vide) — doit rester 0
     np_disc_bucket: [u64; 18], // disc non-ep decomposition: kind*3 + flag(quiet/cap/dpush)
 }
 
@@ -174,13 +174,14 @@ fn sqn(sq: u64) -> String {
 fn sq_names(att: u64) -> String {
     (0..64)
         .filter(|&i| att & (1u64 << i) != 0)
-        .map(|i| sqn(i))
+        .map(sqn)
         .collect::<Vec<_>>()
         .join(",")
 }
 
-fn dump_ep(
-    pos: &Position,
+/// The en-passant context dumped by [`dump_ep`], bundled to keep the
+/// argument list readable.
+struct EpDiag {
     att: u64,
     n: usize,
     us: Color,
@@ -188,24 +189,27 @@ fn dump_ep(
     origin_c: u64,
     capt_c: u64,
     singles: bool,
-) {
+}
+
+fn dump_ep(pos: &Position, d: EpDiag) {
     // dumps limites : 12 pour les singles thru-capt, 8 pour les doubles.
     static SEEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let cap = if singles { 12 } else { 8 };
+    let cap = if d.singles { 12 } else { 8 };
     if SEEN.fetch_add(1, std::sync::atomic::Ordering::Relaxed) >= cap {
         return;
     }
-    let ksq = pos.king_sq(us.opp()) as u64;
+    let ksq = pos.king_sq(d.us.opp()) as u64;
     eprintln!(
-        "DIAG (n={n}) att=[{}] move {}x{} ep(origin={},capt={}) king={}, thru_origin(first)={}, thru_capt(first)={}, fen=[{}]",
-        sq_names(att),
-        sqn(mv.from() as u64),
-        sqn(mv.to() as u64),
-        sqn(origin_c),
-        sqn(capt_c),
+        "DIAG (n={}) att=[{}] move {}x{} ep(origin={},capt={}) king={}, thru_origin(first)={}, thru_capt(first)={}, fen=[{}]",
+        d.n,
+        sq_names(d.att),
+        sqn(d.mv.from() as u64),
+        sqn(d.mv.to() as u64),
+        sqn(d.origin_c),
+        sqn(d.capt_c),
         sqn(ksq),
-        ray_between_hits(first_bit(att), ksq, 1u64 << origin_c),
-        ray_between_hits(first_bit(att), ksq, 1u64 << capt_c),
+        ray_between_hits(first_bit(d.att), ksq, 1u64 << d.origin_c),
+        ray_between_hits(first_bit(d.att), ksq, 1u64 << d.capt_c),
         fen_of(pos)
     );
 }
@@ -237,9 +241,18 @@ fn dump_castle(
         n,
         sq_names(att),
         sqn(rook_from as u64),
-        if pos.piece_on(rook_from as u8) == 0 { "!" } else { "" },
+        if pos.piece_on(rook_from as u8) == 0 {
+            "!"
+        } else {
+            ""
+        },
         sqn(rook_dst as u64),
-        if rook_dst != 0 && att & (1u64 << rook_dst) != 0 { "" } else { "" },
+        // Marker: the rook's destination is attacked.
+        if rook_dst != 0 && att & (1u64 << rook_dst) != 0 {
+            "*"
+        } else {
+            ""
+        },
         sqn(ksq),
         att & (1u64 << rook_dst) != 0,
         fen_of(pos)
@@ -270,7 +283,11 @@ static DUMP_BITS_B: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64:
 
 #[inline]
 fn grab_dump_slot(bucket: usize) -> bool {
-    let atomic = if bucket < 9 { &DUMP_BITS_A } else { &DUMP_BITS_B };
+    let atomic = if bucket < 9 {
+        &DUMP_BITS_A
+    } else {
+        &DUMP_BITS_B
+    };
     let bit = 1u64 << ((bucket % 9) * 2);
     let prev = atomic.fetch_or(bit, std::sync::atomic::Ordering::Relaxed);
     prev & bit == 0
@@ -309,8 +326,8 @@ fn walk(pos: &mut Position, depth: u32, cats: &mut Cats, path: &mut Vec<(u8, u8,
                         if is_ep {
                             cats.ep_s += 1;
                             let origin = 1u64 << mv.from();
-                            let capt = 1u64
-                                << (mv.to() as i64 - if us == Color::White { 8 } else { -8 });
+                            let capt =
+                                1u64 << (mv.to() as i64 - if us == Color::White { 8 } else { -8 });
                             let (t_o, t_c) = (
                                 ray_between_hits(first_bit(att), ks, origin),
                                 ray_between_hits(first_bit(att), ks, capt),
@@ -328,7 +345,18 @@ fn walk(pos: &mut Position, depth: u32, cats: &mut Cats, path: &mut Vec<(u8, u8,
                                 cats.ep_s_other += 1;
                             }
                             if t_c {
-                                dump_ep(pos, att, n, us, mv, mv.from() as u64, capt.trailing_zeros() as u64, true);
+                                dump_ep(
+                                    pos,
+                                    EpDiag {
+                                        att,
+                                        n,
+                                        us,
+                                        mv,
+                                        origin_c: mv.from() as u64,
+                                        capt_c: capt.trailing_zeros() as u64,
+                                        singles: true,
+                                    },
+                                );
                             }
                         } else {
                             // decouverte non-ep : bucket par piece/flag du coup
@@ -408,13 +436,15 @@ fn walk(pos: &mut Position, depth: u32, cats: &mut Cats, path: &mut Vec<(u8, u8,
                         }
                         dump_ep(
                             pos,
-                            att,
-                            n,
-                            us,
-                            mv,
-                            mv.from() as u64,
-                            capt.trailing_zeros() as u64,
-                            false,
+                            EpDiag {
+                                att,
+                                n,
+                                us,
+                                mv,
+                                origin_c: mv.from() as u64,
+                                capt_c: capt.trailing_zeros() as u64,
+                                singles: false,
+                            },
                         );
                     }
                 }
@@ -471,7 +501,7 @@ fn walk(pos: &mut Position, depth: u32, cats: &mut Cats, path: &mut Vec<(u8, u8,
 }
 
 fn enumerate(pos: &Position, depth_left: u32, split: u32, out: &mut Vec<(Position, u32)>) {
-    assert!(depth_left >= split + 1, "split must leave leaf depth >= 1");
+    assert!(depth_left > split, "split must leave leaf depth >= 1");
     if split == 0 {
         out.push((*pos, depth_left));
         return;
@@ -513,7 +543,10 @@ fn main() {
     let split: u32 = args.get(4).map(|s| s.parse().unwrap()).unwrap_or(2);
 
     eprintln!("[{}]", mychess::slider::describe());
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(threads.max(1)).build().unwrap();
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(threads.max(1))
+        .build()
+        .unwrap();
 
     let pos = Position::from_fen(&fen).unwrap();
     let mut tasks: Vec<(Position, u32)> = Vec::new();

@@ -9,6 +9,21 @@ fn usage() -> ! {
     std::process::exit(2);
 }
 
+/// Report a bad argument on stderr and exit with the usage code, instead of
+/// panicking with a backtrace.
+fn fail(msg: impl std::fmt::Display) -> ! {
+    eprintln!("error: {msg}");
+    usage();
+}
+
+/// Parse a FEN argument, reporting the parse error instead of panicking.
+fn parse_fen(fen: &str) -> Position {
+    match Position::from_fen(fen) {
+        Ok(p) => p,
+        Err(e) => fail(format!("invalid FEN {fen:?}: {e:?}")),
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
@@ -23,17 +38,23 @@ fn main() {
                 usage();
             }
             let fen = &args[2];
-            let depth: u32 = args[3].parse().expect("depth");
+            let depth: u32 = match args[3].parse() {
+                Ok(d) => d,
+                Err(e) => fail(format!("invalid depth {:?}: {e}", args[3])),
+            };
             let detailed = args.iter().any(|a| a == "--detailed");
             let memo_on = args.iter().any(|a| a == "--memo");
-            let mut pos = Position::from_fen(fen).expect("bad fen");
+            let mut pos = parse_fen(fen);
             let t = Instant::now();
             if memo_on {
                 let log2: u32 = args
                     .iter()
                     .position(|a| a == "--memo-log2")
                     .and_then(|i| args.get(i + 1))
-                    .map(|s| s.parse().expect("memo-log2"))
+                    .map(|s| match s.parse() {
+                        Ok(v) => v,
+                        Err(e) => fail(format!("invalid --memo-log2 {s:?}: {e}")),
+                    })
                     .unwrap_or(28);
                 eprintln!(
                     "memo: {} entries x 24B = {:.2} GiB, min_depth=3",
@@ -81,9 +102,12 @@ fn main() {
                 usage();
             }
             let fen = &args[2];
-            let depth: u32 = args[3].parse().expect("depth");
+            let depth: u32 = match args[3].parse() {
+                Ok(d) => d,
+                Err(e) => fail(format!("invalid depth {:?}: {e}", args[3])),
+            };
             let depth2 = args.iter().any(|a| a == "--depth2");
-            let mut pos = Position::from_fen(fen).expect("bad fen");
+            let mut pos = parse_fen(fen);
             let t = Instant::now();
             let n = if depth2 {
                 divide2(&mut pos, depth)
@@ -103,18 +127,27 @@ fn main() {
                 usage();
             }
             let fen = &args[2];
-            let depth: u32 = args[3].parse().expect("depth");
+            let depth: u32 = match args[3].parse() {
+                Ok(d) => d,
+                Err(e) => fail(format!("invalid depth {:?}: {e}", args[3])),
+            };
             let threads: Vec<usize> = args[4]
                 .split(',')
-                .map(|t| t.trim().parse().expect("threads"))
+                .map(|t| match t.trim().parse() {
+                    Ok(v) => v,
+                    Err(e) => fail(format!("invalid thread count {t:?}: {e}")),
+                })
                 .collect();
             let reps: usize = args
                 .iter()
                 .position(|a| a == "--reps")
                 .and_then(|i| args.get(i + 1))
-                .map(|s| s.parse().expect("reps"))
+                .map(|s| match s.parse() {
+                    Ok(v) => v,
+                    Err(e) => fail(format!("invalid --reps {s:?}: {e}")),
+                })
                 .unwrap_or(1);
-            let pos = Position::from_fen(fen).expect("bad fen");
+            let pos = parse_fen(fen);
             for rep in 0..reps {
                 for t in &threads {
                     let (n, el) = if *t == 1 {

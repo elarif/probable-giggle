@@ -79,7 +79,8 @@ const fn build_masks(bishop: bool) -> [u64; 64] {
 pub const ROOK_MASKS: [u64; 64] = build_masks(false);
 pub const BISHOP_MASKS: [u64; 64] = build_masks(true);
 
-#[allow(clippy::manual_isolate_lowest_one)] // const-context: keep the bit loop obvious
+// const-context: keep the bit loop obvious (`u64::isolate_lowest_one` is
+// not stable yet, so the loop cannot use it).
 fn pext_const(x: u64, mut mask: u64) -> u64 {
     let mut res = 0u64;
     let mut k = 0u32;

@@ -3,8 +3,7 @@
 use crate::position::Position;
 use crate::slider::{between, bishop_attacks, rook_attacks};
 use crate::tables::{
-    DIR_POS, FILE_A, FILE_H, KING_ATT, KNIGHT_ATT, PAWN_ATTACKERS, PAWN_ATTACKS, RANK_3, RANK_6,
-    RANK_8, RAYS,
+    DIR_POS, FILE_A, FILE_H, KING_ATT, KNIGHT_ATT, PAWN_ATTACKERS, RANK_3, RANK_6, RANK_8, RAYS,
 };
 use crate::types::*;
 
@@ -111,6 +110,18 @@ impl Legality {
     }
 }
 
+/// Isolate the lowest set bit of a non-zero bitboard.
+///
+/// `u64::isolate_lowest_one` is still unstable on this toolchain, so the
+/// stable equivalent `bb & bb.wrapping_neg()` is used instead — it compiles
+/// to the same single instruction (the negation is free next to the `blsr`
+/// it would become).
+#[inline(always)]
+fn lowest_bit(bb: u64) -> u64 {
+    debug_assert!(bb != 0, "lowest_bit requires a non-zero bitboard");
+    bb & bb.wrapping_neg()
+}
+
 #[inline(always)]
 fn ortho_aligned(sq: u8, ksq: u8) -> bool {
     (sq ^ ksq) & 7 == 0 || (sq >> 3) == (ksq >> 3)
@@ -139,8 +150,6 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
     let them = us.opp();
     let occ = pos.occ();
     let ksq = pos.king_sq(us);
-    let ks_bit = 1u64 << ksq;
-    let occ2 = occ ^ ks_bit;
     let us_bb = pos.color_bb(us);
     let them_all = pos.bb_color[them.idx()];
 
@@ -158,6 +167,20 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
         them_king == 0 || !pos.is_square_attacked(them_king.trailing_zeros() as u8, us),
         "enemy king capturable ⇒ position illégale entrée (comptes inexactes = contrat)"
     );
+
+    // No king for the side to move (illegal entry, out of contract): the
+    // position has no legal move at all. The shift below is masked so that
+    // `ksq == NO_SQUARE` (64) yields a zero bit instead of an out-of-range
+    // shift, and the caller sees an empty `danger` set — the kingless
+    // entry is defined, silent and crash-free, with no extra branch on the
+    // hot path.
+    let ks_bit = 1u64 << (ksq & 63);
+    let occ2 = occ ^ ks_bit;
+    // Table index for the king square: masked so a kingless position
+    // (ksq == NO_SQUARE == 64) reads a valid (but meaningless) entry
+    // instead of indexing out of bounds. The `danger = u64::MAX` write at
+    // the end makes the result "no legal move" regardless.
+    let ksq_i = (ksq & 63) as usize;
 
     let mut ctx = Legality {
         ksq,
@@ -180,10 +203,10 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
             // !W: 'them' are White, attacking upwards
             ((pw & !FILE_H) << 9) | ((pw & !FILE_A) << 7)
         };
-        ctx.checkers |= PAWN_ATTACKERS[them.idx()][ksq as usize] & pw;
+        ctx.checkers |= PAWN_ATTACKERS[them.idx()][ksq_i] & pw;
     }
     let nk = pos.bb_piece[KNIGHT] & them_all;
-    ctx.checkers |= KNIGHT_ATT[ksq as usize] & nk;
+    ctx.checkers |= KNIGHT_ATT[ksq_i] & nk;
     let mut n = nk;
     while n != 0 {
         ctx.danger |= KNIGHT_ATT[n.trailing_zeros() as usize];
@@ -204,15 +227,15 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
     let mut s = (pos.bb_piece[ROOK] | pos.bb_piece[QUEEN]) & them_all;
     while s != 0 {
         let sq = s.trailing_zeros() as u8;
-        let bit = s.isolate_lowest_one();
+        let bit = lowest_bit(s);
         s ^= bit;
         let att = rook_attacks(sq, occ2);
         if att & ks_bit != 0 {
             ctx.checkers |= bit;
         } else {
-            let bl = between(ksq, sq) & occ;
+            let bl = between(ksq_i as u8, sq) & occ;
             if bl != 0 && (bl & (bl - 1)) == 0 && bl & us_bb != 0 && ortho_aligned(sq, ksq) {
-                ctx.record_pin(bl, between(ksq, sq) | bit);
+                ctx.record_pin(bl, between(ksq_i as u8, sq) | bit);
             }
         }
         ctx.danger |= att;
@@ -220,18 +243,28 @@ fn build_legality_impl<const W: bool>(pos: &Position) -> Legality {
     let mut s = (pos.bb_piece[BISHOP] | pos.bb_piece[QUEEN]) & them_all;
     while s != 0 {
         let sq = s.trailing_zeros() as u8;
-        let bit = s.isolate_lowest_one();
+        let bit = lowest_bit(s);
         s ^= bit;
         let att = bishop_attacks(sq, occ2);
         if att & ks_bit != 0 {
             ctx.checkers |= bit;
         } else {
-            let bl = between(ksq, sq) & occ;
+            let bl = between(ksq_i as u8, sq) & occ;
             if bl != 0 && (bl & (bl - 1)) == 0 && bl & us_bb != 0 && diag_aligned(sq, ksq) {
-                ctx.record_pin(bl, between(ksq, sq) | bit);
+                ctx.record_pin(bl, between(ksq_i as u8, sq) | bit);
             }
         }
         ctx.danger |= att;
+    }
+
+    // Kingless position (illegal entry, out of contract): there is no
+    // legal move at all. `danger` is set to "everything is forbidden", so
+    // the king-move mask comes out empty and no other piece may move
+    // either (the caller's `allowed` mask derives from `them_king` and
+    // `checkers`, both zero here — so only the king moves were at risk).
+    // The whole thing is one mask write, no branch.
+    if ksq == NO_SQUARE {
+        ctx.danger = u64::MAX;
     }
     ctx
 }
@@ -383,11 +416,18 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     let empty = !occ;
     let ctx = build_legality(pos, us);
     let ksq = ctx.ksq;
+
+    // No king for the side to move (illegal entry, out of contract): there
+    // is no legal move at all. Defined and silent — see the contract above.
+    if ksq == NO_SQUARE {
+        return;
+    }
+
     let ncheck = ctx.checkers.count_ones();
 
     // King moves. The king is removed from occupancy so sliders x-ray through it.
     // M3: enemy king square never a target (no-op on legal input).
-    let mut kt = KING_ATT[ksq as usize] & !us_bb & !ctx.danger & !ctx.them_king;
+    let mut kt = KING_ATT[(ksq & 63) as usize] & !us_bb & !ctx.danger & !ctx.them_king;
     while kt != 0 {
         let to = kt.trailing_zeros() as u8;
         kt &= kt - 1;
@@ -441,8 +481,19 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     // (the double-pusher standing on `cap_sq`) or blocks a slider ray by
     // landing on `ep`; otherwise post-move king safety is decided by the
     // slider scan on the modified occupancy (see `ep_legal_ray`).
-    if let Some(ep) = pos.ep_square() {
-        let cap_sq = if us == Color::White { ep - 8 } else { ep + 8 };
+    //
+    // `ep_capture_square` returns `None` when the FEN names an en-passant
+    // square with no enemy pawn behind it: there is nothing to capture, so
+    // no ep move is offered (a malformed entry stays consistent — the
+    // twin `count_moves` path applies the same rule).
+    //
+    // The two conditions are nested rather than combined in a tuple: a
+    // tuple pattern evaluates both elements eagerly, which would call
+    // `ep_capture_square` on every node even though an en-passant square
+    // is rare.
+    if let Some(ep) = pos.ep_square()
+        && let Some(cap_sq) = pos.ep_capture_square(us)
+    {
         let evades_check = if ncheck == 1 {
             ((ctx.checkers & (1u64 << cap_sq)) | (allowed & (1u64 << ep))) != 0
         } else {
@@ -699,14 +750,28 @@ fn gen_pawn_pinned(
     }
 }
 
+/// Generate the legal castling moves for `us`.
+///
+/// Besides the usual square-emptiness and attack checks, the king and the
+/// castling rook must **actually stand on their home squares**. A FEN may
+/// claim castling rights the board does not support (no rook on h1/a1, king
+/// not on e1); emitting the move then would move a piece that is not there
+/// and corrupt the mailbox. Such an entry is out of contract, but it must
+/// stay defined and crash-free.
 fn gen_castle(pos: &Position, out: &mut MoveList, us: Color, occ: u64) {
     let them = us.opp();
-    let back = if us.idx() == WHITE { 0 } else { 56 };
+    let back: u8 = if us.idx() == WHITE { 0 } else { 56 };
     let (ks_bit, qs_bit) = if us.idx() == WHITE {
         (CASTLE_WK, CASTLE_WQ)
     } else {
         (CASTLE_BK, CASTLE_BQ)
     };
+    // Fast exit: no castling right for this side at all. Most positions
+    // have none, and this keeps every check below off the hot path.
+    if pos.castle & (ks_bit | qs_bit) == 0 {
+        return;
+    }
+    let king_sq = back + 4;
     if pos.castle & ks_bit != 0 {
         let f = back + 5;
         let g = back + 6;
@@ -715,7 +780,7 @@ fn gen_castle(pos: &Position, out: &mut MoveList, us: Color, occ: u64) {
             && !pos.is_square_attacked(f, them)
             && !pos.is_square_attacked(g, them)
         {
-            out.push(Move::new(back + 4, back + 6, FLAG_KING_CASTLE));
+            out.push(Move::new(king_sq, back + 6, FLAG_KING_CASTLE));
         }
     }
     if pos.castle & qs_bit != 0 {
@@ -728,7 +793,7 @@ fn gen_castle(pos: &Position, out: &mut MoveList, us: Color, occ: u64) {
             && !pos.is_square_attacked(d, them)
             && !pos.is_square_attacked(c, them)
         {
-            out.push(Move::new(back + 4, back + 2, FLAG_QUEEN_CASTLE));
+            out.push(Move::new(king_sq, back + 2, FLAG_QUEEN_CASTLE));
         }
     }
 }
@@ -786,12 +851,19 @@ fn count_moves_impl<const W: bool>(pos: &Position) -> u64 {
     let empty = !occ;
     let ctx = build_legality_impl::<W>(pos);
     let ksq = ctx.ksq;
+
+    // No king for the side to move (illegal entry, out of contract): no
+    // legal move at all. Mirrors `generate` exactly (twin property).
+    if ksq == NO_SQUARE {
+        return 0;
+    }
+
     let ncheck = ctx.checkers.count_ones();
 
     // King moves (always legal here: `!us_bb & !danger`; M3: enemy king
     // square masked out — no-op on legal input).
     let mut n =
-        (KING_ATT[ksq as usize] & !us_bb & !ctx.danger & !ctx.them_king).count_ones() as u64;
+        (KING_ATT[(ksq & 63) as usize] & !us_bb & !ctx.danger & !ctx.them_king).count_ones() as u64;
     if ncheck >= 2 {
         return n; // double check: only king moves
     }
@@ -818,8 +890,13 @@ fn count_moves_impl<const W: bool>(pos: &Position) -> u64 {
     }
 
     // ---- En passant (L1b): same ray-trick validation as in generate ----
-    if let Some(ep) = pos.ep_square() {
-        let cap_sq = if W { ep - 8 } else { ep + 8 };
+    // Same rule as `generate`: an ep square with no enemy pawn behind it
+    // offers no ep capture (malformed FEN stays consistent between the
+    // two twin paths). The conditions are nested so that
+    // `ep_capture_square` is only called when an ep square exists.
+    if let Some(ep) = pos.ep_square()
+        && let Some(cap_sq) = pos.ep_capture_square(if W { Color::White } else { Color::Black })
+    {
         let evades_check = if ncheck == 1 {
             ((ctx.checkers & (1u64 << cap_sq)) | (allowed & (1u64 << ep))) != 0
         } else {
@@ -978,15 +1055,29 @@ fn count_pawn_pinned<const W: bool>(
 /// Popcount twin of `gen_castle` (counts 1 per legal side; L1d: colour folded).
 #[inline]
 fn count_castles<const W: bool>(pos: &Position, occ: u64) -> u64 {
-    let back = if W { 0 } else { 56 };
+    let back: u8 = if W { 0 } else { 56 };
     let (ks_bit, qs_bit) = if W {
         (CASTLE_WK, CASTLE_WQ)
     } else {
         (CASTLE_BK, CASTLE_BQ)
     };
     let them = if W { Color::Black } else { Color::White };
+    // Fast exit: no castling right for this side (mirrors `gen_castle`).
+    if pos.castle & (ks_bit | qs_bit) == 0 {
+        return 0;
+    }
+    let king_sq = back + 4;
+    let king_code = (if W { 0 } else { 6 }) + KING;
+    let rook_code = (if W { 0 } else { 6 }) + ROOK;
     let mut n = 0;
-    if pos.castle & ks_bit != 0 {
+    // The king must be on its home square, and the castling rook on its own
+    // home square (same rule as `gen_castle` — the twin property must hold
+    // on any entry). The king check is folded into the per-side branches so
+    // that a side without a castling right pays nothing for it.
+    if pos.castle & ks_bit != 0
+        && pos.mailbox[king_sq as usize] as usize == king_code + 1
+        && pos.mailbox[back as usize + 7] as usize == rook_code + 1
+    {
         let f = back + 5;
         let g = back + 6;
         if occ & (1 << f) == 0
@@ -997,7 +1088,10 @@ fn count_castles<const W: bool>(pos: &Position, occ: u64) -> u64 {
             n += 1;
         }
     }
-    if pos.castle & qs_bit != 0 {
+    if pos.castle & qs_bit != 0
+        && pos.mailbox[king_sq as usize] as usize == king_code + 1
+        && pos.mailbox[back as usize] as usize == rook_code + 1
+    {
         let b = back + 1;
         let c = back + 2;
         let d = back + 3;
@@ -1012,7 +1106,3 @@ fn count_castles<const W: bool>(pos: &Position, occ: u64) -> u64 {
     }
     n
 }
-
-// Keep PAWN_ATTACKS referenced (used by refgen / tests for documentation).
-#[allow(dead_code)]
-pub(crate) const _PAWN_ATTACKS: [[u64; 64]; 2] = PAWN_ATTACKS;
