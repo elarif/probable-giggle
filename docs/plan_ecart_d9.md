@@ -1,6 +1,18 @@
 # Plan de localisation de l'écart d9 — `discovery_checks` / `double_checks`
 
-> **Statut** : plan d'exécution, écrit le 2026-10-21.
+> **Statut** : **EXÉCUTÉ — verdict rendu le 2026-10-21.**
+> Le plan ci-dessous a été écrit avant le verdict ; il est conservé pour la
+> traçabilité de la démarche. **Le verdict et sa preuve sont dans
+> `docs/ecart_d9_convention.md`** : l'écart est une différence de
+> **convention** (les mats sont classés comme les checks chez mychess, et
+> ventilés à part chez la référence), pas un bug de movegen.
+> La table de référence qui a permis de trancher est
+> <https://grandchesstree.com/startpos#results> — même source que CPW, mais
+> avec les conventions décomposées en 4 classes de checks et 4 classes de
+> mats.
+> État du gate : `reconcile.sh` amendé, d9 réconcilié à **8/8, exit 0**,
+> **BENCH-FREEZE levable**.
+
 > **Verrou** : gate M4-d9 (BENCH-FREEZE) — aucune mesure Elo tant que l'écart
 > n'est pas tranché (`slaml/d9_checkcols_report_20261014.md`, §Conséquence).
 > **Porte** : la réconciliation est à 7/9 ; les deux colonnes divergentes

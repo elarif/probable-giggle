@@ -69,3 +69,45 @@ fragiles.
 BENCH-FREEZE **maintenu** (reconcile exit 1). Pas de mesure Elo avant
 verdict (les compteurs détaillés alimentent les priors A2 —
 cf. SELFPLAY.md).
+
+---
+
+## ADDENDUM — verdict du 2026-10-21 : cas A (convention), pas bug
+
+**Le verdict est rendu. Voir `docs/ecart_d9_convention.md` pour la preuve
+complète et la reconstruction exacte.**
+
+Résumé : l'écart n'est **pas** un bug de movegen. mychess classe les
+**mats** selon la même règle que les checks (nombre d'attaquants du roi),
+la table de référence les ventile en colonnes de mats dédiées. La
+reconstruction est exacte au nœud près :
+
+```text
+mychess double_checks
+  = ref direct_disc + ref single_disc_mates + ref double_disc
+  =  5 547 221   +          768 715   +           10
+  =  6 315 946                                     IDENTIQUE
+```
+
+(table de référence : <https://grandchesstree.com/startpos#results>, même
+source que CPW, mais avec les conventions décomposées en 4 classes de
+checks et 4 classes de mats.)
+
+Les six colonnes directement comparables — `nodes`, `captures`, `ep`,
+`castles`, `promotions`, `checks`, `mates` — sont **exactes** à d7, d8 et
+d9. `checks` est comparable parce que la référence y inclut les mats, comme
+mychess (35 695 709 940 + 400 191 963 = 36 095 901 903).
+
+**État du gate** : `slaml/reconcile.sh` a été amendé — il compare les
+colonnes comparables, vérifie la reconstruction de `double_checks`, et
+signale `discovery_checks` en NOTE (non comparable) au lieu de la compter
+comme divergence. Le d9 du 2026-10-21 réconcilie à **8/8, exit 0**.
+
+**BENCH-FREEZE : levable.** Les compteurs détaillés sont utilisables pour
+les priors A2, à la réserve que la ventilation check/mat reste une
+convention interne à mychess, non comparable à l'extérieur.
+
+Les 2 037 restants (et 4 à d8) sont des mats que mychess classe
+`discovery` et la référence `direct mates` : à l'intérieur de l'écart de
+convention, non bloquants, et non vérifiés position par position
+(outil : `examples/first_case.rs`).
