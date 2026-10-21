@@ -1,8 +1,8 @@
 //! Part 7 du post : génération des coups **légaux**.
 //!
 //! Ordre du post, conservé : coups de roi d'abord, retour immédiat sur double
-//! échec, calcul du `check_mask`, puis pions / cavaliers / glissantes, et le
-//! roque en dernier (tâche 5).
+//! échec, calcul du `check_mask`, puis pions / cavaliers / glissantes,
+//! l'en-passant et le roque en dernier.
 //!
 //! Corrections et simplifications assumées :
 //!   - pas de `delegate AttackFn` : les appels `bishop_attacks` / `rook_attacks`
@@ -23,7 +23,7 @@ use crate::gct::legality::{compute_checkers, compute_pins, king_danger};
 use crate::movegen::MoveList;
 use crate::position::Position;
 use crate::slider::{bishop_attacks, rook_attacks};
-use crate::tables::{KING_ATT, KNIGHT_ATT, RANK_1, RANK_3, RANK_6, RANK_8};
+use crate::tables::{KING_ATT, KNIGHT_ATT, PAWN_ATTACKERS, RANK_1, RANK_3, RANK_6, RANK_8};
 use crate::types::*;
 
 /// Génère tous les coups légaux de la position et renvoie le nouvel indice du
@@ -83,7 +83,16 @@ pub fn generate(pos: &Position, out: &mut MoveList) -> usize {
     gen_knights(pos, out, blocked, check_mask, &pin_lines, enemy);
     gen_sliders(pos, out, blocked, check_mask, &pin_lines, occ, enemy);
 
-    // 10. Roque — ajouté à la tâche 5.
+    // 10. En-passant, puis roque.
+    gen_en_passant(pos, out, us, ksq);
+
+    // Le roque n'est legal que hors échec, et seulement si les cases de
+    // passage ne sont pas attaquées (`danger` est calculé sans notre roi,
+    // donc il contient déjà les attaques des glissantes qui le traversent).
+    if ncheck == 0 {
+        gen_castling::<true>(pos, out, occ, danger);
+        gen_castling::<false>(pos, out, occ, danger);
+    }
     out.len()
 }
 
@@ -346,5 +355,100 @@ fn emit_pawn_capture(
         } else {
             out.push(Move::new(from, to, FLAG_CAPTURE));
         }
+    }
+}
+
+/// `GenCastlingLegal` : cases vides + cases de passage non attaquées.
+///
+/// Le post code les cases en dur (4→6, 4→2, 60→62, 60→58) et ignore son
+/// paramètre `kingSq` ; ici `back` dérive de la couleur, et **le roi et la
+/// tour doivent réellement être sur leurs cases d'origine** — ce que la
+/// normalisation des droits de `Position::from_fen` garantit déjà, mais que
+/// le test rend explicite (entrée illégale = pas de roque, pas de panique).
+fn gen_castling<const W: bool>(pos: &Position, out: &mut MoveList, occ: u64, danger: u64) {
+    let (back, ks, qs) = if W {
+        (0u8, CASTLE_WK, CASTLE_WQ)
+    } else {
+        (56u8, CASTLE_BK, CASTLE_BQ)
+    };
+    if pos.castle & (ks | qs) == 0 {
+        return;
+    }
+    let us = if W { Color::White } else { Color::Black };
+    let rook = pos.bb_piece[ROOK] & pos.color_bb(us);
+    let king = pos.bb_piece[KING] & pos.color_bb(us);
+    if king & (1u64 << (back + 4)) == 0 {
+        return;
+    }
+
+    if pos.castle & ks != 0 {
+        let f = back + 5;
+        let g = back + 6;
+        let path = (1u64 << f) | (1u64 << g);
+        if rook & (1u64 << (back + 7)) != 0 && occ & path == 0 && danger & path == 0 {
+            out.push(Move::new(back + 4, g, FLAG_KING_CASTLE));
+        }
+    }
+    if pos.castle & qs != 0 {
+        let b = back + 1;
+        let c = back + 2;
+        let d = back + 3;
+        let empty_path = (1u64 << b) | (1u64 << c) | (1u64 << d);
+        // b1 peut être attaquée : le roi ne la traverse pas.
+        let transit = (1u64 << c) | (1u64 << d);
+        if rook & (1u64 << back) != 0 && occ & empty_path == 0 && danger & transit == 0 {
+            out.push(Move::new(back + 4, c, FLAG_QUEEN_CASTLE));
+        }
+    }
+}
+
+/// `GenEnPassant` / `TryEpMove` : un candidat, puis **test d'occupation
+/// modifiée**.
+///
+/// Le post passe `kingSq` et `checkers` à `TryEpMove` pour décider de la
+/// légalité ; ce test ne couvre pas le clouage horizontal (le cas classique
+/// `...d5 exd6` qui découvre une tour sur la 5e rangée). Le portage remplace
+/// ce raisonnement par la vérification complète sur l'occupation d'après
+/// capture — équivalente, plus courte, et strictement plus forte :
+///   - les pièces sautantes (pion, cavalier, roi) ennemies sont testées avec
+///     le pion capturé retiré ;
+///   - les glissantes sont testées sur `occ_after` (deux pions retirés, le
+///     nôtre posé sur la case d'arrivée).
+fn gen_en_passant(pos: &Position, out: &mut MoveList, us: Color, ksq: u8) {
+    let Some(ep) = pos.ep_square() else { return };
+    // Un FEN peut nommer une case ep sans pion à capturer : contrat inchangé.
+    let Some(cap_sq) = pos.ep_capture_square(us) else {
+        return;
+    };
+    let them = us.opp();
+    let occ = pos.occ();
+    let pawns = pos.bb_piece[PAWN] & pos.color_bb(us);
+    let mut candidates = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
+    if candidates == 0 {
+        return;
+    }
+
+    let them_bb = pos.color_bb(them);
+    let enemy_pawns_after = (pos.bb_piece[PAWN] & them_bb) & !(1u64 << cap_sq);
+    let leapers = PAWN_ATTACKERS[them.idx()][ksq as usize] & enemy_pawns_after
+        | KNIGHT_ATT[ksq as usize] & pos.bb_piece[KNIGHT] & them_bb
+        | KING_ATT[ksq as usize] & pos.bb_piece[KING] & them_bb;
+    if leapers != 0 {
+        return;
+    }
+    let enemy_rq = (pos.bb_piece[ROOK] | pos.bb_piece[QUEEN]) & them_bb;
+    let enemy_bq = (pos.bb_piece[BISHOP] | pos.bb_piece[QUEEN]) & them_bb;
+
+    while candidates != 0 {
+        let from = candidates.trailing_zeros() as u8;
+        candidates &= candidates - 1;
+        let occ_after = (occ ^ (1u64 << from) ^ (1u64 << cap_sq)) | (1u64 << ep);
+        if rook_attacks(ksq, occ_after) & enemy_rq != 0 {
+            continue;
+        }
+        if bishop_attacks(ksq, occ_after) & enemy_bq != 0 {
+            continue;
+        }
+        out.push(Move::new(from, ep, FLAG_EP_CAPTURE));
     }
 }
