@@ -3,7 +3,7 @@
 //! Criterion, pas de seuil absolu : on lit des ratios dans une même session.
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use mychess::movegen::{MoveList, count_moves, generate};
+use mychess::movegen::{MoveList, count_moves, generate, has_legal_move};
 use mychess::position::Position;
 use mychess::types::GenKind;
 
@@ -49,5 +49,27 @@ fn bench_generate(c: &mut Criterion) {
     g.finish();
 }
 
-criterion_group!(benches, bench_generate);
+/// Terminaison : le verdict « au moins un coup légal » sans liste.
+///
+/// `mat` est le pire cas assumé : aucune sortie anticipée n'y est possible
+/// (toutes les classes sont épuisées avant de répondre `false`), donc son
+/// coût est du même ordre que `generate/all/*`. Ce n'est pas une régression,
+/// c'est la borne haute de la fonction.
+fn bench_terminaison(c: &mut Criterion) {
+    let mut g = c.benchmark_group("terminaison");
+    for (name, fen) in FENS {
+        let pos = Position::from_fen(fen).unwrap();
+        g.bench_function(format!("has_legal_move/{name}"), |b| {
+            b.iter(|| std::hint::black_box(has_legal_move(&pos)))
+        });
+    }
+    let mat = Position::from_fen("rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3")
+        .unwrap();
+    g.bench_function("has_legal_move/mat", |b| {
+        b.iter(|| std::hint::black_box(has_legal_move(&mat)))
+    });
+    g.finish();
+}
+
+criterion_group!(benches, bench_generate, bench_terminaison);
 criterion_main!(benches);

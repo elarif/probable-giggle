@@ -17,9 +17,10 @@ const CAPACITY: usize = 256;
 /// Fixed-capacity move list on the stack: no allocation in the hot path.
 ///
 /// The buffer is `MaybeUninit`, so `new()` writes only `len` and never touches
-/// the 512 bytes behind it. That zeroing cost ~4.5 % of `generate`'s
-/// instructions and 0–7 % of its wall time here; it is a net win below roughly
-/// twelve emitted moves per call and neutral above.
+/// the 512 bytes behind it. Dropping that zeroing is a win on every position,
+/// not just short lists: −61.2 instructions and −10.8 branches per call on
+/// every position, 12–24 ns per call, −17.3 % wall on the opening position and
+/// −8.0 % on kiwipete.
 ///
 /// # Behaviour at the edges
 ///
@@ -1131,6 +1132,253 @@ fn count_castles<const W: bool>(pos: &Position, occ: u64) -> u64 {
         }
     }
     n
+}
+
+/// Pseudo-legal targets of the piece standing on `from`, ignoring own
+/// occupancy and every legality mask. A king yields 0, since king moves come
+/// from `KING_ATT` and are answered before this helper is reached.
+#[inline(always)]
+fn piece_targets(pos: &Position, from: u8, occ: u64) -> u64 {
+    let bit = 1u64 << from;
+    if bit & pos.bb_piece[KNIGHT] != 0 {
+        return KNIGHT_ATT[from as usize];
+    }
+    let mut t = 0u64;
+    if bit & (pos.bb_piece[BISHOP] | pos.bb_piece[QUEEN]) != 0 {
+        t |= bishop_attacks(from, occ);
+    }
+    if bit & (pos.bb_piece[ROOK] | pos.bb_piece[QUEEN]) != 0 {
+        t |= rook_attacks(from, occ);
+    }
+    t
+}
+
+/// Do the **unpinned** pawns of `us` have at least one legal move? Answers by
+/// non-vacuity of target bitboards; nothing is emitted. `allowed` is the usual
+/// legality mask (any empty square, or the block/checker squares when in
+/// check). En passant is not handled here: it applies to pinned pawns too and
+/// keeps its own ray test.
+fn pawns_have_legal(
+    pos: &Position,
+    us: Color,
+    pawns: u64,
+    allowed: u64,
+    ctx: &Legality,
+    ncheck: u32,
+) -> bool {
+    if pawns == 0 {
+        return false;
+    }
+    let empty = !pos.occ();
+    let them = pos.color_bb(us.opp());
+    let (push1, push2_rank, cap_r, cap_l) = if us == Color::White {
+        let push = (pawns << 8) & empty;
+        (
+            push,
+            RANK_3,
+            ((pawns & !FILE_H) << 9) & them,
+            ((pawns & !FILE_A) << 7) & them,
+        )
+    } else {
+        let push = (pawns >> 8) & empty;
+        (
+            push,
+            RANK_6,
+            ((pawns & !FILE_H) >> 7) & them,
+            ((pawns & !FILE_A) >> 9) & them,
+        )
+    };
+    // Single pushes and promotions (a promotion push is still a push target).
+    if push1 & allowed != 0 {
+        return true;
+    }
+    // Double pushes: the intermediate square is already known empty by
+    // construction of `push1`, and the target must be empty as well.
+    let push2 = if us == Color::White {
+        ((push1 & push2_rank) << 8) & empty
+    } else {
+        ((push1 & push2_rank) >> 8) & empty
+    };
+    if push2 & allowed != 0 {
+        return true;
+    }
+    if (cap_r | cap_l) & allowed != 0 {
+        return true;
+    }
+    // En passant: same gate as `generate` (outside check, or the capture
+    // removes the checking pawn, or it blocks on `ep`), then the ray test
+    // decides king safety for pinned and unpinned pawns alike.
+    if let Some(ep) = pos.ep_square()
+        && let Some(cap_sq) = pos.ep_capture_square(us)
+    {
+        let evades_check =
+            ncheck == 0 || (ctx.checkers & (1u64 << cap_sq)) != 0 || (allowed & (1u64 << ep)) != 0;
+        if evades_check {
+            let mut m = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
+            while m != 0 {
+                let from = m.trailing_zeros() as u8;
+                m &= m - 1;
+                if ep_legal_ray(pos, us.opp(), from, ep, ctx.ksq, pos.occ()) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Does the pawn on `from`, pinned on `line` (already intersected with
+/// `allowed`), have a legal move? A pinned pawn may push one square, push two
+/// from its home rank when both squares stay empty and on the line, or capture
+/// on the line. En passant is handled by `pawns_have_legal` for every pawn.
+fn pawn_pinned_has_legal(pos: &Position, us: Color, from: u8, line: u64) -> bool {
+    let empty = !pos.occ();
+    let up: i32 = if us == Color::White { 8 } else { -8 };
+    let one = from as i32 + up;
+    if (0..64).contains(&one) {
+        let one = one as u8;
+        if empty & line & (1u64 << one) != 0 {
+            return true;
+        }
+        let home = if us == Color::White {
+            (8..16).contains(&from)
+        } else {
+            (48..56).contains(&from)
+        };
+        if home && empty & (1u64 << one) != 0 {
+            let two = from as i32 + 2 * up;
+            if empty & line & (1u64 << two) != 0 {
+                return true;
+            }
+        }
+    }
+    let them = pos.color_bb(us.opp());
+    let mut caps = 0u64;
+    let file = (from % 8) as i32;
+    for df in [-1i32, 1] {
+        let tf = file + df;
+        if !(0..8).contains(&tf) {
+            continue;
+        }
+        let to = from as i32 + up + df;
+        if (0..64).contains(&to) {
+            caps |= 1u64 << to;
+        }
+    }
+    caps & them & line != 0
+}
+
+/// Castling answer, called only when not in check.
+///
+/// This is the one case where `has_legal_move` materialises a move list: it
+/// delegates to `gen_castle` on a throwaway `MoveList`, which is nearly free
+/// now that `MoveList::new()` no longer zeroes its buffer. `gen_castle` is
+/// already written and verified, and it owns three non-obvious rules (rights,
+/// king and rook actually on their home squares, every crossed square empty
+/// and unattacked); duplicating them as a bitboard test here would create a
+/// second source of truth for the same legality. The cost is bounded: the
+/// early return below means positions without rights pay one comparison.
+fn has_castle(pos: &Position, us: Color) -> bool {
+    if pos.castle == 0 {
+        return false;
+    }
+    let mut l = MoveList::new();
+    gen_castle(pos, &mut l, us, pos.occ());
+    !l.is_empty()
+}
+
+/// True as soon as at least one legal move exists. Fills no move list, with a
+/// single documented exception: castling is answered by `gen_castle` on a
+/// scratch `MoveList` (see `has_castle`), because the move is rare and its
+/// three conditions already live there. Every other piece class is decided by
+/// bitboard non-vacuity, never by enumeration.
+///
+/// # Contract
+///
+/// A **legal** position is required, exactly as for [`generate`]. On illegal
+/// entry (no king for the side to move) the answer is `false` — defined and
+/// silent, with no panic.
+///
+/// # Why it can answer without enumerating
+///
+/// 1. A non-pinned, non-king piece is legal wherever it is pseudo-legal, so
+///    `targets & !us & allowed != 0` decides its whole class in one test.
+/// 2. A pinned piece must stay on its pin line, so its targets are
+///    intersected with that line; when in check the intersection with
+///    `allowed` is redundant only once both masks are applied together.
+/// 3. A double check leaves king moves alone: if the king has no escape the
+///    answer is `false` immediately.
+/// 4. En passant and castling keep exact gates rather than approximate ones,
+///    so the verdict matches `generate` move for move, not just count for
+///    count.
+pub fn has_legal_move(pos: &Position) -> bool {
+    let us = pos.side;
+    let occ = pos.occ();
+    let us_bb = pos.color_bb(us);
+    let ctx = build_legality(pos, us);
+    let ksq = ctx.ksq;
+
+    // No king for the side to move (illegal entry): no legal move, and
+    // `king_sq` must not be trusted past this point.
+    if ksq == NO_SQUARE {
+        return false;
+    }
+
+    // King moves first: one valid destination settles the position, and in
+    // double check it is the only class that can.
+    if KING_ATT[(ksq & 63) as usize] & !us_bb & !ctx.danger & !ctx.them_king != 0 {
+        return true;
+    }
+    let ncheck = ctx.checkers.count_ones();
+    if ncheck >= 2 {
+        return false;
+    }
+
+    let allowed = if ncheck == 1 {
+        let c = ctx.checkers.trailing_zeros() as u8;
+        (between(ksq, c) | ctx.checkers) & !ctx.them_king
+    } else {
+        !ctx.them_king
+    };
+    let pinned = ctx.pinned;
+    let pawns = pos.bb_piece[PAWN] & us_bb;
+
+    // Unpinned pawns: pushes, double pushes, captures, promotions, ep.
+    if pawns_have_legal(pos, us, pawns & !pinned, allowed, &ctx, ncheck) {
+        return true;
+    }
+
+    // Unpinned knights, bishops, rooks and queens.
+    let mut free =
+        (pos.bb_piece[KNIGHT] | pos.bb_piece[BISHOP] | pos.bb_piece[ROOK] | pos.bb_piece[QUEEN])
+            & us_bb
+            & !pinned;
+    while free != 0 {
+        let from = free.trailing_zeros() as u8;
+        free &= free - 1;
+        if piece_targets(pos, from, occ) & !us_bb & allowed != 0 {
+            return true;
+        }
+    }
+
+    // Pinned pieces: targets restricted to the pin line. A pinned knight is
+    // recorded as pinned too, and never has a target on its line.
+    for i in 0..ctx.npins as usize {
+        let from = ctx.pin_sq[i];
+        let line = ctx.pin_lines[i];
+        if pawns & (1u64 << from) != 0 {
+            if pawn_pinned_has_legal(pos, us, from, allowed & line) {
+                return true;
+            }
+            continue;
+        }
+        if piece_targets(pos, from, occ) & !us_bb & allowed & line != 0 {
+            return true;
+        }
+    }
+
+    // Castling: legal only out of check.
+    ncheck == 0 && has_castle(pos, us)
 }
 
 #[cfg(test)]
