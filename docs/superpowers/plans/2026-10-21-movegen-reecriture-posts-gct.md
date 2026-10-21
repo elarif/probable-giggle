@@ -2451,23 +2451,17 @@ fn une_fen_avec_case_ep_fantome_est_canonisee() {
 
 #[test]
 fn la_canonisation_ne_change_aucun_compte_de_perft() {
-    // Les deux positions sont identiques pour le movegen : meme arbre.
-    let fens = [
-        "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
-        "4k3/8/8/4P3/8/8/8/4K3 w - d6 0 1",
-        "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
-    ];
-    for fen in fens {
-        let mut a = Position::from_fen(fen).unwrap();
-        let mut b = Position::from_fen(fen).unwrap();
-        for d in 0..=4u32 {
-            assert_eq!(
-                mychess::perft::perft(&mut a, d),
-                mychess::perft::perft(&mut b, d),
-                "{fen} d{d}"
-            );
-        }
-    }
+    // Invariant : la canonicalisation ne touche QUE la cle de hachage, jamais
+    // les coups. On le prouve contre des nombres PUBLIES (les memes que
+    // `tests/perft/gct/*.txt` et `tests/perft/*.txt`), pas en comparant le
+    // moteur a lui-meme : deux positions issues de la meme FEN donnent
+    // trivialement le meme compte, ce qui ne prouverait rien.
+    let mut pos = Position::startpos();
+    assert_eq!(mychess::perft::perft(&mut pos, 4), 197_281, "startpos d4");
+    let mut pos =
+        Position::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+            .unwrap();
+    assert_eq!(mychess::perft::perft(&mut pos, 3), 97_862, "kiwipete d3");
 }
 ```
 
