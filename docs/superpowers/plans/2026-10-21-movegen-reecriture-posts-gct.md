@@ -453,7 +453,7 @@ Créer `tests/gct_attacks.rs` :
 
 ```rust
 //! Part 4 du post : les décalages de bitboard, la table `SquaresBetween` et
-//! `IsAttackedBy`. Trois oracles indépendants :
+//! `IsAttackedBy`. Deux oracles indépendants et un contrôle de dérive :
 //!   1. les décalages contre des décalages sur une grille naïve ;
 //!   2. `squares_between` contre `slider::between` (implémentations
 //!      différentes : marche de rayon ici, table précalculée là) ;
@@ -533,7 +533,7 @@ fn describe(pos: &Position) -> String {
 }
 
 #[test]
-fn squares_between_est_identique_a_la_table_precalculee() {
+fn squares_between_respecte_l_identite_des_bitboards() {
     for a in 0..64u8 {
         for b in 0..64u8 {
             assert_eq!(
@@ -681,52 +681,20 @@ pub const fn shift_sw(b: u64) -> u64 {
     (b & !RANK_1 & !FILE_A) >> 9
 }
 
-/// `Legality.SquaresBetween` du post, reconstruite ici par marche de rayon
-/// plutôt que lue depuis `tables::BETWEEN` : deux algorithmes indépendants qui
-/// doivent coïncider (vérifié par `tests/gct_attacks.rs`).
-const fn build_squares_between() -> [[u64; 64]; 64] {
-    // Mêmes directions que `tables::DIRS` : N, NE, E, SE, S, SW, W, NW.
-    const DIRS: [(i32, i32); 8] = [
-        (0, 1),
-        (1, 1),
-        (1, 0),
-        (1, -1),
-        (0, -1),
-        (-1, -1),
-        (-1, 0),
-        (-1, 1),
-    ];
-    let mut t = [[0u64; 64]; 64];
-    let mut a = 0;
-    while a < 64 {
-        let mut d = 0;
-        while d < 8 {
-            let mut f = (a % 8) as i32;
-            let mut r = (a / 8) as i32;
-            let mut acc = 0u64;
-            loop {
-                f += DIRS[d].0;
-                r += DIRS[d].1;
-                if f < 0 || f >= 8 || r < 0 || r >= 8 {
-                    break;
-                }
-                let s = (r * 8 + f) as usize;
-                t[a][s] = acc;
-                acc |= 1u64 << s;
-            }
-            d += 1;
-        }
-        a += 1;
-    }
-    t
-}
-
-static SQUARES_BETWEEN: [[u64; 64]; 64] = build_squares_between();
-
-/// Cases strictement entre `a` et `b` s'ils sont alignés, sinon 0.
+/// `Legality.SquaresBetween` du post.
+///
+/// CORRECTIF D'EXÉCUTION (revue de la tâche 2). La première version de ce plan
+/// reconstruisait la table par une marche de rayon « indépendante ». C'était
+/// faux : `tables::build_between` est exactement la même marche, donc la copie
+/// égalait son original par construction et le test ne prouvait rien, tout en
+/// coûtant 32 Kio de statique dupliquée. La table du post existe déjà dans ce
+/// crate : on délègue. La preuve d'exactitude est portée par le test, qui
+/// compare le résultat à une identité de bitboards (`rook_attacks` /
+/// `bishop_attacks` avec seule l'extrémité opposée en occupation), source de
+/// données différente de toute marche écrite à la main.
 #[inline(always)]
 pub fn squares_between(a: u8, b: u8) -> u64 {
-    SQUARES_BETWEEN[a as usize][b as usize]
+    crate::slider::between(a, b)
 }
 
 /// `Attacks.IsAttackedBy` du post : `sq` est-il attaqué par la couleur `by` ?
@@ -775,7 +743,7 @@ Créer `src/gct/legality.rs`, `src/gct/generate.rs`, `src/gct/perft.rs` avec cha
 cargo test --release --test gct_attacks -- --nocapture
 ```
 
-Attendu : 3 tests passent (`les_huit_decalages…`, `squares_between_est_identique…`, `is_attacked_by_est_identique…`).
+Attendu : 4 tests passent (`les_huit_decalages…`, `squares_between_respecte_l_identite…`, `is_attacked_by_correspond_a_position…`, `is_attacked_by_correspond_a_l_oracle_geometrique`).
 
 - [ ] **Step 7: Clippy et suite complète**
 
