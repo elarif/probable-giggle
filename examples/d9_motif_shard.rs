@@ -31,9 +31,9 @@ use std::io::{Read, Write};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
-// 10 compteurs : checks, direct, discovery, double, disc_ep, disc_castle,
-// dbl_ep, dbl_castle, mates, ep_taken.
-const NCOUNT: usize = 10;
+// 12 compteurs : checks, direct, discovery, double, disc_ep, disc_castle,
+// dbl_ep, dbl_castle, mates, ep_taken, promo_double, promo_discovery.
+const NCOUNT: usize = 12;
 const NAMES: [&str; NCOUNT] = [
     "checks",
     "direct",
@@ -45,6 +45,8 @@ const NAMES: [&str; NCOUNT] = [
     "double_castle",
     "mates",
     "ep",
+    "promo_double",
+    "promo_discovery",
 ];
 
 /// Compteurs d'un sous-arbre.
@@ -75,6 +77,7 @@ fn perft_motif(pos: &mut Position, depth: u32, c: &mut Counts) {
         let m = mv;
         let is_ep = m.is_ep();
         let is_castle = m.is_castle();
+        let is_promo = m.is_promotion();
         let u = pos.make(m);
         if depth == 1 {
             if is_ep {
@@ -92,6 +95,9 @@ fn perft_motif(pos: &mut Position, depth: u32, c: &mut Counts) {
                     if is_castle {
                         c.v[7] += 1;
                     }
+                    if is_promo {
+                        c.v[10] += 1;
+                    }
                 } else if att != (1u64 << m.to()) {
                     c.v[2] += 1;
                     if is_ep {
@@ -99,6 +105,9 @@ fn perft_motif(pos: &mut Position, depth: u32, c: &mut Counts) {
                     }
                     if is_castle {
                         c.v[5] += 1;
+                    }
+                    if is_promo {
+                        c.v[11] += 1;
                     }
                 } else {
                     c.v[1] += 1;
