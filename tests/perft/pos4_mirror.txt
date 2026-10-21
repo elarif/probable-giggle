@@ -1,0 +1,10 @@
+# position 4 (mirrored variant, black to move — page says same perft results)
+# source: https://www.chessprogramming.org/Perft_Results#Position_4
+r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1
+# depth nodes captures ep castles promotions checks discovery double mates
+# (disc/double not published for this position -> "-")
+1 6 0 0 0 0 0 - - 0
+2 264 87 0 6 48 10 - - 0
+3 9467 1021 4 0 120 38 - - 22
+4 422333 131393 0 7795 60032 15492 - - 5
+5 15833292 2046173 6512 0 329464 200568 - - 50562

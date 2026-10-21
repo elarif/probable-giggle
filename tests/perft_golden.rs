@@ -55,6 +55,7 @@ fn all() -> Vec<Golden> {
         "tests/perft/kiwipete.txt",
         "tests/perft/pos3.txt",
         "tests/perft/pos4.txt",
+        "tests/perft/pos4_mirror.txt",
         "tests/perft/pos5.txt",
         "tests/perft/pos6.txt",
     ]

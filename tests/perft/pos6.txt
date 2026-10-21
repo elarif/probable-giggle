@@ -1,6 +1,6 @@
 # position 6  r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
 # source: https://www.chessprogramming.org/Perft_Results#Position_6
-# (only node counts published -> "-"; d8/d9 out of scope)
+# (only node counts published -> "-"; d8/d9 out of scope: d7=287 Md leaves/d8 infeasible)
 r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
 # depth nodes captures ep castles promotions checks discovery double mates
 0 1 - - - - - - - -
