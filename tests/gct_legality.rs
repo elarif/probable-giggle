@@ -1,9 +1,12 @@
 //! Part 7 : les trois bitboards de légalité, vérifiés contre des oracles
-//! **indépendants** — marches de rayons et deltas explicites, jamais les
-//! tables ni les magics du moteur. Si l'oracle réutilisait `tables::RAYS` ou
-//! `slider::bishop_attacks`, il ne prouverait rien.
+//! **indépendants** : tout est dérivé des champs du plateau, avec deux sources
+//! d'attaque seulement — la marche de coordonnées (`walk`) pour les glissantes
+//! et les deltas explicites (`leaper`) pour les sauteurs, les pions et le roi.
+//! L'oracle ne lit donc ni `tables::RAYS`, ni `tables::BETWEEN`, ni les magics
+//! du moteur. Les attaques comparées, elles, viennent des magics sous test
+//! (`bishop_attacks`, `rook_attacks`) : si l'oracle les réutilisait, il ne
+//! prouverait rien.
 
-use mychess::gct::attacks::squares_between;
 use mychess::gct::legality::{compute_checkers, compute_pins, king_danger};
 use mychess::position::Position;
 use mychess::types::*;
@@ -71,8 +74,9 @@ fn king_deltas() -> Vec<(i8, i8)> {
 fn walk_piece(kind: usize, sq: u8, occ: u64) -> u64 {
     match kind {
         PAWN => {
-            // Le test ne couvre que les pions blancs : le sens est passé par
-            // l'appelant via `pawns_attacks`.
+            // Les pions ne se marchent pas : leur attaque dépend de la couleur
+            // et `pawn_attacks_of` la fournit. Cet arm n'existe que pour rendre
+            // le `match` exhaustif ; il n'est jamais atteint par l'oracle.
             0
         }
         KNIGHT => leaper(sq, &KNIGHT_D),
@@ -93,6 +97,28 @@ fn walk_piece(kind: usize, sq: u8, occ: u64) -> u64 {
 fn pawn_attacks_of(c: Color, sq: u8) -> u64 {
     let dr: i8 = if c == Color::White { 1 } else { -1 };
     leaper(sq, &[(-1, dr), (1, dr)])
+}
+
+/// Cases strictement entre `king` et `pinner`, par pas de coordonnées, plus la
+/// case du pinner. Aucune table.
+///
+/// Précondition : `pinner` est aligné avec `king` (c'est le cas par
+/// construction : c'est le premier bloqueur d'un rayon depuis le roi).
+fn pin_line_walk(king: u8, pinner: u8) -> u64 {
+    let (mut f, mut r) = ((king % 8) as i8, (king / 8) as i8);
+    let (tf, tr) = ((pinner % 8) as i8, (pinner / 8) as i8);
+    let df = (tf - f).signum();
+    let dr = (tr - r).signum();
+    let mut line = 0u64;
+    loop {
+        f += df;
+        r += dr;
+        let s = (r * 8 + f) as u8;
+        line |= 1u64 << s;
+        if s == pinner {
+            return line;
+        }
+    }
 }
 
 /// `(danger, checkers, pinned, pin_lines_oracle)`.
@@ -124,7 +150,11 @@ fn oracles(pos: &Position) -> (u64, u64, u64, [u64; 64]) {
             walk_piece(kind, sq, occ_no_king)
         };
         danger |= att;
-        if att & ks_bit != 0 {
+        // Le roi ennemi ne donne pas échec dans `compute_checkers` : ses
+        // attaques comptent pour `danger` mais pas pour `checkers`. Inatteignable
+        // sur un corpus légal (rois adjacents interdits), mais l'oracle ne doit
+        // pas encoder une sémantique que l'implémentation rejette.
+        if kind != KING && att & ks_bit != 0 {
             checkers |= 1u64 << sq;
         }
     }
@@ -201,14 +231,21 @@ fn oracles(pos: &Position) -> (u64, u64, u64, [u64; 64]) {
         }
         pinned |= 1u64 << from;
         let pinner = new_attackers.trailing_zeros() as u8;
-        lines[from as usize] = squares_between(ksq, pinner) | (1u64 << pinner);
+        lines[from as usize] = pin_line_walk(ksq, pinner);
     }
 
     (danger, checkers, pinned, lines)
 }
 
+/// FEN hors corpus : roi blanc absent (entrée hors contrat). Les trois
+/// fonctions doivent y rester totales ; `positions()` ne la contient pas car
+/// les oracles exigent un roi.
+const FEN_SANS_ROI: &str = "4k3/8/8/8/8/8/8/8 w - - 0 1";
+
 /// Positions de travail : les trois goldens GCT + Kiwipete et la position
-/// initiale, plus les positions issues d'un auto-jeu déterministe.
+/// initiale, des positions fixes qui exercent les chemins rares (clouage par
+/// dame sur rangée et diagonale, direction d'index négatif, échec double,
+/// échec par pion), puis les positions issues d'un auto-jeu déterministe.
 fn positions() -> Vec<Position> {
     let fens = [
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -217,6 +254,19 @@ fn positions() -> Vec<Position> {
         "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
         "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
         "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+        // Clouage par une DAME sur une rangée (famille tour) : le fou c1 est
+        // cloué par la dame a1 sur la ligne a1-g1.
+        "4k3/8/8/8/8/8/8/q1B3K1 w - - 0 1",
+        // Clouage par une DAME sur une diagonale (famille fou) : le pion f2
+        // est cloué par la dame h4 sur la diagonale h4-e1.
+        "4k3/8/8/8/7q/8/5P2/4K3 w - - 0 1",
+        // Clouage dans une direction d'index NÉGATIF (ouest, DIR_POS = false) :
+        // la tour b4 est clouée par la dame a4 sur la rangée 4.
+        "4k3/8/8/8/qR1K4/8/8/8 w - - 0 1",
+        // Échec double fixe (tour e8 sur la colonne, fou b4 sur la diagonale).
+        "4r1k1/8/8/8/1b6/8/8/4K3 w - - 0 1",
+        // Échec par un pion noir fixe : le pion d5 attaque e4.
+        "4k3/8/8/3p4/4K3/8/8/8 w - - 0 1",
     ];
     let mut v: Vec<Position> = fens
         .iter()
@@ -320,4 +370,40 @@ fn la_position_initiale_n_a_ni_echec_ni_clouage() {
     let (pinned, lines) = compute_pins(&pos, ksq, Color::Black, Color::White);
     assert_eq!(pinned, 0);
     assert!(lines.iter().all(|&l| l == u64::MAX));
+}
+
+#[test]
+fn les_trois_passes_restent_totales_sans_roi() {
+    // Entrée hors contrat (roi absent) : contrat du projet = défini, silencieux,
+    // sans panique (GATE 2.5 M3). `king_sq` porte lui-même un `debug_assert!`
+    // (roi exigé), donc on lui préfère `has_king` + la sentinelle `NO_SQUARE` :
+    // le test reste valide en profil debug comme en release.
+    let pos = Position::from_fen(FEN_SANS_ROI).unwrap();
+    assert!(!pos.has_king(Color::White));
+    let ksq = NO_SQUARE;
+    assert_eq!(king_danger(&pos, ksq, Color::Black), 0);
+    assert_eq!(compute_checkers(&pos, ksq, Color::Black), 0);
+    let (pinned, lines) = compute_pins(&pos, ksq, Color::Black, Color::White);
+    assert_eq!(pinned, 0);
+    assert!(lines.iter().all(|&l| l == u64::MAX));
+}
+
+#[test]
+fn l_oracle_ne_compte_pas_le_roi_ennemi_comme_donneur_d_echec() {
+    // Position illégale (rois adjacents), hors corpus : elle fige la sémantique
+    // de l'oracle. Le roi ennemi contribue à `danger`, jamais à `checkers`.
+    let pos = Position::from_fen("8/8/8/4k3/4K3/8/8/8 w - - 0 1").unwrap();
+    let ksq = pos.king_sq(Color::White);
+    let (want_danger, want_checkers, _, _) = oracles(&pos);
+    assert_eq!(compute_checkers(&pos, ksq, Color::Black), 0);
+    assert_eq!(
+        want_checkers, 0,
+        "le roi ennemi n'est pas un donneur d'échec"
+    );
+    assert_ne!(
+        want_danger & (1u64 << ksq),
+        0,
+        "le roi ennemi doit rester une source de danger"
+    );
+    assert_eq!(king_danger(&pos, ksq, Color::Black), want_danger);
 }

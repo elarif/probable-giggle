@@ -109,7 +109,7 @@ pub fn compute_pins(pos: &Position, ksq: u8, them: Color, us: Color) -> (u64, [u
 /// de la bonne famille.
 fn scan_pinners(
     ksq: u8,
-    us: u64,
+    us_bb: u64,
     occ: u64,
     enemy_sliders: u64,
     dirs: [usize; 4],
@@ -124,7 +124,7 @@ fn scan_pinners(
         }
         let first = nearest(blockers, d);
         let first_bit = 1u64 << first;
-        if us & first_bit == 0 {
+        if us_bb & first_bit == 0 {
             continue;
         }
         // `RAYS[d][first]` est exactement l'ensemble des cases situées
