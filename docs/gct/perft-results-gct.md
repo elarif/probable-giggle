@@ -45,8 +45,10 @@ dans les goldens de `tests/perft/gct/`.
 ## FEN des goldens
 
 La table GCT publie pour Kiwipete une FEN sans champs de demi-coup ni de
-compteur. `Position::from_fen` les exige : les goldens complètent ces champs
-(`0 1`), sans aucun effet sur le perft.
+compteur. `Position::from_fen` exige le champ demi-coup (`parts[4]`) mais pas
+le compteur de coups (`parts[5]`, optionnel et seulement validé s'il est
+présent) : les goldens complètent ces champs (`0 1`), sans aucun effet sur le
+perft.
 
 ## Portée retenue
 

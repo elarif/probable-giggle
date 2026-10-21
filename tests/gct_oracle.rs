@@ -26,6 +26,12 @@ struct Golden {
     rows: Vec<Row>,
 }
 
+// Duplication VOLONTAIRE avec `tests/perft_golden.rs` : la contrainte globale
+// du plan (`docs/superpowers/plans/2026-10-21-movegen-reecriture-posts-gct.md`,
+// « Convention de la colonne `checks` de la table Grand Chess Tree ») impose
+// des goldens GCT verbatim (`discovery`/`double` à `-`), convention
+// incompatible avec celle du Chess Programming Wiki : un chargeur partagé les
+// mélangerait. Ne pas factoriser.
 fn load(path: &str) -> Golden {
     let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{path}: {e}"));
     let mut fen = String::new();
@@ -72,7 +78,7 @@ fn gct_checks_to_mychess(gct_checks: u64, gct_mates: u64) -> u64 {
 }
 
 /// La conversion doit « mordre » : si l'oracle appliquait l'identité, les
-/// valeurs publiées ne tomberaient pas juste. On le prouve avec les deux
+/// valeurs publiées ne tomberaient pas juste. On le prouve avec les quatre
 /// points de contrôle cités dans `docs/gct/perft-results-gct.md`.
 #[test]
 fn la_conversion_des_checks_est_celle_du_document() {
@@ -87,41 +93,30 @@ fn check_row(g: &Golden, row: &Row) {
     let c = perft_detailed(&mut pos, row.depth);
     assert_eq!(c.nodes, row.nodes, "{} d{} nodes", g.fen, row.depth);
 
-    let got = [
-        Some(c.captures),
-        Some(c.ep),
-        Some(c.castles),
-        Some(c.promotions),
-        row.cols[4].map(|chk| gct_checks_to_mychess(chk, row.cols[7].unwrap_or(0))),
-        None, // discovery : non comparable
-        None, // double : non comparable
-        Some(c.mates),
+    // Colonnes du golden, dans l'ordre du fichier :
+    // captures, ep, castles, promotions, checks, discovery, double, mates.
+    let mates = row.cols[7].expect("le golden doit publier la colonne mates");
+    let checks = gct_checks_to_mychess(
+        row.cols[4].expect("le golden doit publier la colonne checks"),
+        mates,
+    );
+    let golden: [Option<u64>; 6] = [
+        row.cols[0],
+        row.cols[1],
+        row.cols[2],
+        row.cols[3],
+        Some(checks),
+        Some(mates),
     ];
-    let names = [
-        "captures",
-        "ep",
-        "castles",
-        "promotions",
-        "checks",
-        "discovery",
-        "double",
-        "mates",
-    ];
-    for i in 0..8 {
-        if let Some(want) = got[i] {
-            let mine = [
-                c.captures,
-                c.ep,
-                c.castles,
-                c.promotions,
-                c.checks,
-                0,
-                0,
-                c.mates,
-            ][i];
-            assert_eq!(mine, want, "{} d{} {}", g.fen, row.depth, names[i]);
+    let engine = [c.captures, c.ep, c.castles, c.promotions, c.checks, c.mates];
+    let names = ["captures", "ep", "castles", "promotions", "checks", "mates"];
+    for i in 0..6 {
+        if let Some(want) = golden[i] {
+            assert_eq!(engine[i], want, "{} d{} {}", g.fen, row.depth, names[i]);
         }
     }
+    // `discovery` et `double` ne sont pas comparables entre les deux
+    // conventions (`docs/ecart_d9_convention.md`) : jamais assertés.
 }
 
 #[test]
@@ -159,5 +154,13 @@ fn t3_gct_depth7() {
             }
             check_row(&g, row);
         }
+    }
+}
+
+#[test]
+fn les_goldens_couvrent_d0_a_d7_sans_trou() {
+    for g in all() {
+        let depths: Vec<u32> = g.rows.iter().map(|r| r.depth).collect();
+        assert_eq!(depths, (0..=7).collect::<Vec<u32>>(), "{}", g.fen);
     }
 }
