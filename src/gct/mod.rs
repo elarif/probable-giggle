@@ -27,8 +27,18 @@
 //!   - les tables d'attaque sous-jacentes sont celles de `mychess`
 //!     (`crate::slider`, `crate::tables`) : les deux chemins slider restent
 //!     bit-identiques à `movegen`.
-
+//!
+//! Ré-exports de la surface publique, pour que la phase 2 puisse écrire
+//! `use crate::gct::{generate, perft};` sans traverser les sous-modules. Le
+//! module `generate` garde son nom : la fonction `generate` est dans le
+//! namespace des valeurs, le module dans celui des types, donc les deux
+//! coexistent (`crate::gct::generate::generate` reste valide).
 pub mod attacks;
 pub mod generate;
 pub mod legality;
 pub mod perft;
+
+pub use attacks::{is_attacked_by, squares_between};
+pub use generate::generate;
+pub use legality::{compute_checkers, compute_pins, king_danger};
+pub use perft::{perft, perft_detailed};

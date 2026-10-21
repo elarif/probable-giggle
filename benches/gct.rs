@@ -52,16 +52,19 @@ fn bench_generate(c: &mut Criterion) {
     g.finish();
 }
 
+/// `gct` n'a **pas** d'equivalent de `count_moves` : son `generate` construit
+/// une `MoveList` et renvoie l'indice d'append, il ne compte pas. Les bras
+/// `gct` de ce groupe etaient donc byte-identiques a ceux de `generate` : huit
+/// mesures dupliquees, sans information. L'asymetrie elle-meme est le fait a
+/// retenir — au bord d'un perft, `movegen` appelle `count_moves` la ou `gct`
+/// construit une liste — et c'est ce que mesure le ratio de perft du rapport
+/// (`docs/movegen/gct-benchmark-2026-10-21.md`, sections « Lecture » et
+/// « Verdict ») : il compare deux strategies de feuille, pas deux couts de
+/// generation.
 fn bench_count(c: &mut Criterion) {
     let mut g = c.benchmark_group("count");
     for (name, fen) in FENS {
         let pos = Position::from_fen(fen).unwrap();
-        g.bench_function(format!("gct/{name}"), |b| {
-            b.iter(|| {
-                let mut l = MoveList::new();
-                gct_generate(&pos, &mut l)
-            });
-        });
         g.bench_function(format!("movegen_count_moves/{name}"), |b| {
             b.iter(|| count_moves(&pos))
         });

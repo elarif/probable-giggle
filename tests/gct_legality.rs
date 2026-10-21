@@ -290,26 +290,6 @@ fn positions() -> Vec<Position> {
     v
 }
 
-/// `Position` n'implémente pas `Debug` : rendu du plateau depuis ses champs
-/// publics (`mailbox`, `side`, `castle`, `ep`).
-fn describe(pos: &Position) -> String {
-    use std::fmt::Write;
-    let mut s = String::new();
-    for r in (0..8).rev() {
-        for f in 0..8 {
-            let m = pos.mailbox[r * 8 + f];
-            s.push(if m == 0 {
-                '.'
-            } else {
-                b"PNBRQKpnbrqk"[(m - 1) as usize] as char
-            });
-        }
-        s.push('\n');
-    }
-    let _ = write!(s, "{:?} castle={} ep={}", pos.side, pos.castle, pos.ep);
-    s
-}
-
 #[test]
 fn king_danger_correspond_a_l_oracle() {
     for pos in positions() {
@@ -318,7 +298,7 @@ fn king_danger_correspond_a_l_oracle() {
         let ksq = pos.king_sq(us);
         let got = king_danger(&pos, ksq, them);
         let (want, _, _, _) = oracles(&pos);
-        assert_eq!(got, want, "danger dans {}", describe(&pos));
+        assert_eq!(got, want, "danger dans {pos:?}");
     }
 }
 
@@ -330,7 +310,7 @@ fn compute_checkers_correspond_a_l_oracle() {
         let ksq = pos.king_sq(us);
         let got = compute_checkers(&pos, ksq, them);
         let (_, want, _, _) = oracles(&pos);
-        assert_eq!(got, want, "checkers dans {}", describe(&pos));
+        assert_eq!(got, want, "checkers dans {pos:?}");
     }
 }
 
@@ -342,15 +322,10 @@ fn compute_pins_correspond_a_l_oracle() {
         let ksq = pos.king_sq(us);
         let (pinned, lines) = compute_pins(&pos, ksq, them, us);
         let (_, _, want_pinned, want_lines) = oracles(&pos);
-        assert_eq!(pinned, want_pinned, "pinned dans {}", describe(&pos));
+        assert_eq!(pinned, want_pinned, "pinned dans {pos:?}");
         for sq in 0..64usize {
             if want_pinned & (1u64 << sq) != 0 {
-                assert_eq!(
-                    lines[sq],
-                    want_lines[sq],
-                    "pin_line[{sq}] dans {}",
-                    describe(&pos)
-                );
+                assert_eq!(lines[sq], want_lines[sq], "pin_line[{sq}] dans {pos:?}");
             } else {
                 assert_eq!(
                     lines[sq],

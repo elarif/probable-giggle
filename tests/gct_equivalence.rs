@@ -52,26 +52,6 @@ fn generate_renvoie_l_indice_d_append() {
     assert_eq!(l.len(), 2 * n1);
 }
 
-/// `Position` n'implémente pas `Debug` : rendu du plateau depuis ses champs
-/// publics (`mailbox`, `side`, `castle`, `ep`).
-fn describe(pos: &Position) -> String {
-    use std::fmt::Write;
-    let mut s = String::new();
-    for r in (0..8).rev() {
-        for f in 0..8 {
-            let m = pos.mailbox[r * 8 + f];
-            s.push(if m == 0 {
-                '.'
-            } else {
-                b"PNBRQKpnbrqk"[(m - 1) as usize] as char
-            });
-        }
-        s.push('\n');
-    }
-    let _ = write!(s, "{:?} castle={} ep={}", pos.side, pos.castle, pos.ep);
-    s
-}
-
 /// Positions **racines** de la marche : aucune ne porte de droit de roque ni
 /// de case en-passant. Les **enfants** de la marche, eux, portent l'en-passant
 /// que `Position::make` pose après une double poussée et les droits de roque
@@ -122,8 +102,7 @@ fn gct_et_movegen_donnent_le_meme_ensemble_sur_deux_demi_coups() {
                 assert_eq!(
                     sorted_gct(&p),
                     sorted_movegen(&p),
-                    "ensembles de coups differents dans {}",
-                    describe(&p)
+                    "ensembles de coups differents dans {p:?}"
                 );
                 // La derniere iteration ne developpe pas : comparer un niveau
                 // qu'on jette ne prouve rien et coute du temps.
@@ -181,8 +160,7 @@ fn gct_et_movegen_donnent_le_meme_ensemble_sur_les_goldens() {
         assert_eq!(
             sorted_gct(&pos),
             sorted_movegen(&pos),
-            "ensembles de coups differents dans {}",
-            describe(&pos)
+            "ensembles de coups differents dans {pos:?}"
         );
     }
 }
@@ -197,8 +175,7 @@ fn gct_et_movegen_donnent_le_meme_ensemble_sur_un_auto_jeu() {
             assert_eq!(
                 sorted_gct(&pos),
                 sorted_movegen(&pos),
-                "ensembles de coups differents dans {}",
-                describe(&pos)
+                "ensembles de coups differents dans {pos:?}"
             );
             let mut l = MoveList::new();
             generate(&pos, &mut l, GenKind::All);

@@ -89,6 +89,9 @@ pub fn generate(pos: &Position, out: &mut MoveList) -> usize {
     // Le roque n'est legal que hors échec, et seulement si les cases de
     // passage ne sont pas attaquées (`danger` est calculé sans notre roi,
     // donc il contient déjà les attaques des glissantes qui le traversent).
+    // Les deux appels sont sûrs : `gen_castling` ne traite que le camp au
+    // trait et sort sinon, donc `danger` (celui du camp au trait) n'est jamais
+    // appliqué aux cases de passage de l'autre camp.
     if ncheck == 0 {
         gen_castling::<true>(pos, out, occ, danger);
         gen_castling::<false>(pos, out, occ, danger);
@@ -366,6 +369,15 @@ fn emit_pawn_capture(
 /// normalisation des droits de `Position::from_fen` garantit déjà, mais que
 /// le test rend explicite (entrée illégale = pas de roque, pas de panique).
 fn gen_castling<const W: bool>(pos: &Position, out: &mut MoveList, occ: u64, danger: u64) {
+    let us = if W { Color::White } else { Color::Black };
+    // `danger` est calculé pour le roi du camp au trait : l'appliquer aux
+    // cases de passage de l'autre camp serait faux (il y manque les attaques
+    // du camp au trait, et il y contient les siennes). Seul le camp au trait
+    // peut roquer ; le garde est ici, et non chez l'appelant, pour que
+    // l'invariant tienne quel que soit le site d'appel.
+    if us != pos.side {
+        return;
+    }
     let (back, ks, qs) = if W {
         (0u8, CASTLE_WK, CASTLE_WQ)
     } else {
@@ -374,7 +386,6 @@ fn gen_castling<const W: bool>(pos: &Position, out: &mut MoveList, occ: u64, dan
     if pos.castle & (ks | qs) == 0 {
         return;
     }
-    let us = if W { Color::White } else { Color::Black };
     let rook = pos.bb_piece[ROOK] & pos.color_bb(us);
     let king = pos.bb_piece[KING] & pos.color_bb(us);
     if king & (1u64 << (back + 4)) == 0 {
@@ -451,5 +462,38 @@ fn gen_en_passant(pos: &Position, out: &mut MoveList, us: Color, ksq: u8) {
             continue;
         }
         out.push(Move::new(from, ep, FLAG_EP_CAPTURE));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `gen_castling` doit refuser le camp qui n'a pas le trait.
+    ///
+    /// Le test appelle délibérément `gen_castling::<false>` sur une position
+    /// où **les Blancs** ont le trait : c'est exactement l'appel que
+    /// `generate` faisait pour les deux camps. Le `danger` est fourni (ici
+    /// vide) par l'appelant : dans le vrai générateur il ne contient que les
+    /// attaques du camp au trait, alors qu'un roque noir légal exige aussi
+    /// que les cases de passage ne soient pas attaquées par les Blancs.
+    ///
+    /// `danger = 0` n'est pas une facilité de test : avec le vrai `danger`,
+    /// la tour noire de h8 attaque g8 (et f8) et la tour de a8 attaque c8/d8
+    /// dès que le chemin est vide, ce qui masque le bug par coïncidence de
+    /// géométrie. Le garde est donc la seule barrière vérifiable ici.
+    #[test]
+    fn gen_castling_refuse_le_camp_sans_le_trait() {
+        // Blancs au trait ; les Noirs gardent le droit de petit roque, les
+        // cases f8 et g8 sont vides et aucune pièce blanche ne les attaque.
+        let pos = Position::from_fen("4k2r/8/8/8/8/8/8/4K3 w k - 0 1").unwrap();
+        let occ = pos.occ();
+        let mut out = MoveList::new();
+        gen_castling::<false>(&pos, &mut out, occ, 0);
+        assert_eq!(
+            out.len(),
+            0,
+            "gen_castling a genere le roque du camp sans le trait (e8g8 attendu absent)"
+        );
     }
 }

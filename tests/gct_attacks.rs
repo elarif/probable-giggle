@@ -68,27 +68,6 @@ fn les_huit_decalages_correspondent_a_la_grille_naive() {
     }
 }
 
-/// `Position` n'implémente pas `Debug`, et ajouter le derive toucherait au
-/// core gelé : on rend le plateau depuis ses champs publics (`mailbox`,
-/// `side`, `castle`, `ep`).
-fn describe(pos: &Position) -> String {
-    use std::fmt::Write;
-    let mut s = String::new();
-    for r in (0..8).rev() {
-        for f in 0..8 {
-            let m = pos.mailbox[r * 8 + f];
-            s.push(if m == 0 {
-                '.'
-            } else {
-                b"PNBRQKpnbrqk"[(m - 1) as usize] as char
-            });
-        }
-        s.push('\n');
-    }
-    let _ = write!(s, "{:?} castle={} ep={}", pos.side, pos.castle, pos.ep);
-    s
-}
-
 /// Identité classique, indépendante de toute marche écrite à la main : avec
 /// seulement les deux extrémités sur l'échiquier, les attaques de `a` et de
 /// `b` se recoupent exactement sur les cases strictement entre elles.
@@ -200,8 +179,7 @@ fn is_attacked_by_correspond_a_position_is_square_attacked() {
                 assert_eq!(
                     is_attacked_by(pos, sq, by),
                     pos.is_square_attacked(sq, by),
-                    "case {sq} attaquee par {by:?} dans {}",
-                    describe(pos)
+                    "case {sq} attaquee par {by:?} dans {pos:?}"
                 );
             }
         }
@@ -217,8 +195,7 @@ fn is_attacked_by_correspond_a_l_oracle_geometrique() {
                 assert_eq!(
                     is_attacked_by(pos, sq, by),
                     attacked_by_geometry(pos, sq, by),
-                    "case {sq} attaquee par {by:?} dans {}",
-                    describe(pos)
+                    "case {sq} attaquee par {by:?} dans {pos:?}"
                 );
             }
         }
