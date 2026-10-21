@@ -9,7 +9,9 @@ Trois positions sont publiées : `startpos`, `kiwipete`, `sje`
 ## Colonnes publiées
 
 `nodes`, `unique`, `captures`, `enpassants`, `castles`, `promotions`,
-`checks`, `mates`.
+`checks`, `discovery`, `double`, `mates` — dix colonnes, dont deux
+décompositions (`discovery`, `double`) que `mychess` ne compte pas de la même
+façon (voir plus bas).
 
 ## Conversions obligatoires avant comparaison avec `mychess`
 

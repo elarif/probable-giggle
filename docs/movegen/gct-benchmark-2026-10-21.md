@@ -126,7 +126,15 @@ Médiane des deux jambes (jambes brutes ci-dessous).
 | count/startpos (vs `count_moves`) | 187.04 ns | 87.03 ns | 2.149 |
 | count/kiwipete (vs `count_moves`) | 210.55 ns | 123.14 ns | 1.710 |
 | count/sje (vs `count_moves`) | 209.62 ns | 95.16 ns | 2.203 |
-| count/pos3 (vs `count_moves`) | 113.90 ns | 46.44 ns | 2.452 |
+| count/pos3 (vs `count_moves`) | 113.90 ns | 46.44 ns | 2.453 |
+
+Les valeurs `gct` de la colonne `count` viennent des bras `count/gct` de
+`benches/gct.rs`, qui étaient **byte-identiques** aux bras `generate/gct` : le
+portage n'a pas d'équivalent de `count_moves` (son `generate` construit une
+`MoveList` et renvoie l'indice d'append). Ces bras ont donc été supprimés ; les
+valeurs restent celles de `generate/gct` mesuré dans le groupe `count`, et
+l'asymétrie qu'ils révèlent est celle qui explique le ratio de perft de la
+section « Lecture ».
 
 Jambes brutes (point estimate criterion, ns sauf mention) :
 
@@ -172,7 +180,7 @@ commune aux trois).
 Bruts : mychess 265 709 600 697 instructions / 104 507 327 409 cycles ;
 gct 379 893 660 141 / 186 701 069 320 ; motors 160 209 170 312 / 86 764 892 297.
 `motors` parallèle (sans `threads 1`) compte le **même** total d'instructions
-(160 208 700 794, à 0.03 % du run mono-thread) en 3.4 s de temps mur pour
+(160 208 700 794, à 0.0003 % du run mono-thread) en 3.4 s de temps mur pour
 38.4 s de temps CPU : le travail par nœud est identique, le surplus de temps
 CPU est de l'attente/spin des threads rayon, et non des instructions utiles.
 Seul le run mono-thread est donc utilisable pour les cycles/nœud.
@@ -185,13 +193,46 @@ des pions, pas la vectorisation seule.
 
 ## Lecture
 
-Trois passes de légalité séparées, une boucle par pièce ennemie dans
-`king_danger`, un `MoveList` réutilisé : le portage `gct` **doit** être plus
-lent que `movegen`, qui a fusionné les passes (+19 %) et bulk-calcule les pions.
-Le chiffre mesuré est donc un écart **en faveur de `movegen`** :
-`gct` = 56.4 % du débit de `movegen` sur le point de comparaison principal
-(kiwipete d5, A/B/A/B), et 1.72–1.92× plus lent par nœud en criterion. Un
-`gct` plus rapide aurait signalé une erreur de mesure ; ce n'est pas le cas.
+### Ce que le chiffre principal mesure
+
+Le perft n'appelle pas le générateur de la même façon dans les deux
+implémentations : `src/perft.rs` compte les coups au bord (`count_moves`, aucune
+liste), alors que `src/gct/perft.rs` construit une `MoveList` à **chaque** nœud,
+y compris au bord. Le rapport `0.564` compare donc deux **stratégies de
+feuille** autant que deux générateurs ; ce n'est pas un rapport de coût de
+génération.
+
+Arithmétique de l'écart, avec les seules valeurs publiées ci-dessus. Kiwipete d5
+compte 193 690 690 nœuds, dont 4 085 603 nœuds de profondeur 1 — la couche où
+les deux perfts génèrent les coups de feuille — et 99 950 nœuds internes :
+
+- couche de feuille côté `movegen` (`count_moves`) : 4 085 603 × 123.14 ns
+  ≈ 0.503 s ;
+- couche de feuille côté `gct` (`generate` + `MoveList`) :
+  4 085 603 × 217.01 ns ≈ 0.887 s ;
+- delta de la seule couche de feuille : **≈ 0.384 s**, soit ≈ 78 % de l'écart
+  total de temps mesuré entre les deux perfts sur ce point
+  (193 690 690 / 170.55 − 193 690 690 / 302.25 = 1.136 s − 0.641 s ≈ 0.495 s).
+
+Le delta des nœuds internes est négligeable (99 950 × (217.01 − 197.54) ≈ 2 ms).
+Le reste (≈ 0.11 s) est le surcoût du perft réel par rapport aux microbenchmarks
+criterion — `make`/`unmake`, récursion, cache — qui frappe les deux
+implémentations dans les mêmes proportions et n'est imputable à aucun des deux
+générateurs.
+
+Le ratio **générateur contre générateur** est celui des lignes `generate`, qui
+comparent bien le même travail des deux côtés (`MoveList::new()` inclus dans les
+deux bras) : **1.10× sur kiwipete** (217.01 / 197.54), **1.72× sur startpos**
+(189.85 / 110.30), 1.37× sur pos3 et 1.27× sur sje.
+
+Autrement dit : les trois passes de légalité séparées, la boucle par pièce
+ennemie de `king_danger` et le `MoveList` du portage pèsent sur le ratio
+générateur-générateur (1.10–1.72× selon la position), **pas** sur le facteur
+1.77. Un `gct` plus rapide que `movegen` aurait signalé une erreur de mesure ;
+ce n'est pas le cas, mais le `1.77×` ne mesure pas la conception en trois
+passes : il mesure un débit de perft, stratégie de feuille incluse.
+
+### L'écart avec `motors`
 
 L'écart avec `motors` est le vrai objectif : `motors` calcule `danger` en bulk
 (Kogge-Stone), sans table d'attaques, et c'est la cible de la phase 2.
@@ -213,10 +254,16 @@ reste à établir.
   trois positions (119 060 324 / 193 690 690 / 164 075 551), validés contre
   la table Grand Chess Tree (nœuds **et** colonnes détaillées, conversion
   `checks = checks + mates`) par les tâches 1–7.
-- Performance : `gct` = 56.4 % de `movegen` (kiwipete d5, A/B/A/B médian) ;
-  `movegen` = 66.0 % de `motors` mono-thread (même position, harnais) ;
-  `gct` = 37.8 % de `motors` mono-thread. En criterion par nœud, `gct` est
-  1.72× (startpos) à 1.92× (perft d4) plus lent que `movegen`.
+- Performance, **débit de perft** (kiwipete d5, A/B/A/B médian) : `gct` =
+  56.4 % de `movegen`. Ce ratio inclut deux stratégies de feuille différentes
+  (`MoveList` au bord contre `count_moves`) : il ne mesure pas le coût du
+  générateur.
+- Performance, **générateur contre générateur** (`generate`, même travail des
+  deux côtés) : `gct` est 1.10× plus lent sur kiwipete et 1.72× sur startpos.
+- Performance contre `motors` (harnais, mono-thread, même position) :
+  `movegen` = 66.0 %, `gct` = 37.8 %. En criterion par nœud, `gct` va de 1.72×
+  (startpos) à 1.92× (perft d4) plus lent que `movegen` ; la ligne `perft`
+  inclut là encore la stratégie de feuille, la ligne `generate` non.
 - Décision : `src/movegen.rs` reste le générateur de production. `src/gct/`
   devient la base de travail de la phase 2 (bulk `danger`, buffer réutilisable,
   `has_legal_move`).
@@ -257,7 +304,8 @@ MYCHESS_CACHE=/tmp/task8-cold-cache tools/compare_movegen.sh
 
 ## Vérifications
 
-- `cargo bench --bench gct -- --quick` : les 20 benchmarks s'exécutent.
+- `cargo bench --bench gct -- --quick` : les 16 benchmarks s'exécutent
+  (20 avant la suppression des huit bras `count/gct` dupliqués).
 - `cargo clippy --release --tests --bins --lib -- -D warnings` : propre.
 - `cargo clippy --release --benches -- -D warnings` : propre, **aucune**
   alerte dans le `benches/slider.rs` préexistant.
