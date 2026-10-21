@@ -19,7 +19,12 @@ fn key(m: Move) -> MoveKey {
 
 fn sorted_gct(pos: &Position) -> Vec<MoveKey> {
     let mut l = MoveList::new();
-    gct_generate(pos, &mut l);
+    let n = gct_generate(pos, &mut l);
+    assert_eq!(
+        n,
+        l.len(),
+        "generate doit renvoyer le nouvel indice du buffer"
+    );
     let mut v: Vec<MoveKey> = l.iter().map(key).collect();
     v.sort_unstable();
     v
@@ -63,6 +68,19 @@ fn positions_sans_roque_ni_ep() -> Vec<Position> {
         "r5k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
         "4k3/pp6/8/2b5/8/6P1/PP6/4K3 w - - 0 1",
         "4k3/8/8/8/8/8/8/R3K2R w - - 0 1",
+        // Armee complete sans droits de roque : cavaliers, dames, fous, tours.
+        // C'est le corpus le plus large possible dans le perimetre de la tache 4.
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
+        // Milieu de partie : cavaliers et dames en prise de contact, clouages
+        // possibles sur plusieurs axes.
+        "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w - - 0 1",
+        // Promotions blanches : poussee c7-c8 et capture c7xb8 (4 coups chacune).
+        "1n2k3/2P5/8/8/8/8/8/4K3 w - - 0 1",
+        // Promotions noires : poussee b2-b1 et captures b2xa1 / b2xc1.
+        "4k3/8/8/8/8/8/1p6/R1B1K3 b - - 0 1",
+        // Double echec (fou b4 + cavalier f3 sur le roi e1) : seuls les coups
+        // de roi sont legaux, le retour anticipe doit s'appliquer.
+        "4k3/8/8/8/1b6/5n2/8/4K1N1 w - - 0 1",
     ];
     fens.iter()
         .map(|f| Position::from_fen(f).unwrap())
@@ -72,10 +90,11 @@ fn positions_sans_roque_ni_ep() -> Vec<Position> {
 #[test]
 fn gct_et_movegen_donnent_le_meme_ensemble_sans_roque_ni_ep() {
     for pos in positions_sans_roque_ni_ep() {
-        // On marche tout l'arbre jusqu'à la profondeur 3 pour multiplier les
-        // configurations de clouages et d'échecs.
+        // On marche tout l'arbre jusqu'à la profondeur 2 et on compare les
+        // niveaux 0, 1 et 2, pour multiplier les configurations de clouages,
+        // d'échecs et de promotions.
         let mut stack: Vec<Position> = vec![pos];
-        for _depth in 0..3 {
+        for depth in 0..3 {
             let mut next = Vec::new();
             for p in stack {
                 assert_eq!(
@@ -84,6 +103,11 @@ fn gct_et_movegen_donnent_le_meme_ensemble_sans_roque_ni_ep() {
                     "ensembles de coups differents dans {}",
                     describe(&p)
                 );
+                // La derniere iteration ne developpe pas : comparer un niveau
+                // qu'on jette ne prouve rien et coute du temps.
+                if depth + 1 == 3 {
+                    continue;
+                }
                 let mut l = MoveList::new();
                 generate(&p, &mut l, GenKind::All);
                 for mv in l.iter() {

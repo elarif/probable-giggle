@@ -72,8 +72,14 @@ pub fn generate(pos: &Position, out: &mut MoveList) -> usize {
     };
 
     // 9. Pièces.
-    gen_pawns::<true>(pos, out, check_mask, pinned, &pin_lines, occ, enemy, us);
-    gen_pawns::<false>(pos, out, check_mask, pinned, &pin_lines, occ, enemy, us);
+    // Le camp des pions est porté par la spécialisation : on n'appelle que
+    // celle du camp au trait (les deux spécialisations lisent leur propre
+    // couleur, sans paramètre d'exécution à faire concorder).
+    if us == Color::White {
+        gen_pawns::<true>(pos, out, check_mask, pinned, &pin_lines, occ, enemy);
+    } else {
+        gen_pawns::<false>(pos, out, check_mask, pinned, &pin_lines, occ, enemy);
+    }
     gen_knights(pos, out, blocked, check_mask, &pin_lines, enemy);
     gen_sliders(pos, out, blocked, check_mask, &pin_lines, occ, enemy);
 
@@ -171,7 +177,6 @@ fn gen_sliders(
 /// puis chaque cible retrouve sa case d'origine par `delta_from`, comme le
 /// post (`EmitPawnLegal(..., deltaFrom, ...)`). C'est ce qui permet d'appliquer
 /// le masque de clouage sans boucler sur les pions.
-#[allow(clippy::too_many_arguments)]
 fn gen_pawns<const W: bool>(
     pos: &Position,
     out: &mut MoveList,
@@ -180,11 +185,8 @@ fn gen_pawns<const W: bool>(
     pin_lines: &[u64; 64],
     occ: u64,
     enemy: u64,
-    us: Color,
 ) {
-    if us != (if W { Color::White } else { Color::Black }) {
-        return;
-    }
+    let us = if W { Color::White } else { Color::Black };
     let pawns = pos.bb_piece[PAWN] & pos.color_bb(us);
     if pawns == 0 {
         return;
