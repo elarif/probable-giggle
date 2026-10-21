@@ -1512,8 +1512,14 @@ pub fn generate(pos: &Position, out: &mut MoveList) -> usize {
     };
 
     // 9. Pièces.
-    gen_pawns::<true>(pos, out, check_mask, pinned, &pin_lines, occ, enemy, us);
-    gen_pawns::<false>(pos, out, check_mask, pinned, &pin_lines, occ, enemy, us);
+    // `gen_pawns` derive la couleur de son parametre const : on ne l'appelle
+    // donc que pour le camp au trait. (Les appeler toutes les deux emettrait
+    // les pions des deux camps — piege attrape par le test d'equivalence.)
+    if us == Color::White {
+        gen_pawns::<true>(pos, out, check_mask, &pin_lines, occ, enemy);
+    } else {
+        gen_pawns::<false>(pos, out, check_mask, &pin_lines, occ, enemy);
+    }
     gen_knights(pos, out, blocked, check_mask, &pin_lines, enemy);
     gen_sliders(pos, out, blocked, check_mask, &pin_lines, occ, enemy);
 
@@ -1617,11 +1623,8 @@ fn gen_pawns<const W: bool>(
     pin_lines: &[u64; 64],
     occ: u64,
     enemy: u64,
-    us: Color,
 ) {
-    if us != (if W { Color::White } else { Color::Black }) {
-        return;
-    }
+    let us = if W { Color::White } else { Color::Black };
     let pawns = pos.bb_piece[PAWN] & pos.color_bb(us);
     if pawns == 0 {
         return;
