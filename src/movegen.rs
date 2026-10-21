@@ -6,26 +6,46 @@ use crate::tables::{
     DIR_POS, FILE_A, FILE_H, KING_ATT, KNIGHT_ATT, PAWN_ATTACKERS, RANK_3, RANK_6, RANK_8, RAYS,
 };
 use crate::types::*;
+use std::mem::MaybeUninit;
 
-/// Fixed-capacity move list on the stack: no allocation in the hot path.
+/// Nombre maximal de coups légaux dans une position : 218.
+pub const MAX_MOVES: usize = 218;
+/// Capacité du tampon. On garde 256 pour rester au-dessus de `MAX_MOVES`
+/// même si l'appelant pousse à la main, comme le font les tests.
+const CAPACITY: usize = 256;
+
+/// Fixed-capacity move list on the stack: no allocation in the hot path, and
+/// no zeroing either — only the first `len` entries are ever read.
+///
+/// The buffer is `MaybeUninit` so that `new()` costs nothing: a real caller
+/// fills the list from scratch every call, and paying 512 bytes of `memset`
+/// per node was ~14 % of `generate`'s latency on the opening position.
 pub struct MoveList {
-    moves: [Move; 256],
-    len: u8,
+    moves: [MaybeUninit<Move>; CAPACITY],
+    // `u16`, not `u8`: `len` must be able to hold 256 (the full buffer), and a
+    // `u8` overflows on the 256th push. Alignment is already 2 because of
+    // `Move`, so the wider counter costs no extra byte.
+    len: u16,
 }
 
 impl MoveList {
     #[inline]
     pub fn new() -> MoveList {
         MoveList {
-            moves: [Move::NONE; 256],
+            // SAFETY: `[MaybeUninit<Move>; CAPACITY]` accepts every bit pattern,
+            // including uninitialised memory, so `assume_init` on the *array of
+            // MaybeUninit* is sound and does not read anything.
+            moves: unsafe { MaybeUninit::<[MaybeUninit<Move>; CAPACITY]>::uninit().assume_init() },
             len: 0,
         }
     }
     #[inline(always)]
     pub fn push(&mut self, m: Move) {
-        debug_assert!((self.len as usize) < 256);
-        self.moves[self.len as usize] = m;
-        self.len += 1;
+        debug_assert!((self.len as usize) < CAPACITY);
+        if (self.len as usize) < CAPACITY {
+            self.moves[self.len as usize].write(m);
+            self.len += 1;
+        }
     }
     #[inline(always)]
     pub fn len(&self) -> usize {
@@ -37,13 +57,17 @@ impl MoveList {
     }
     #[inline(always)]
     pub fn get(&self, i: usize) -> Move {
-        self.moves[i]
+        assert!(i < self.len as usize, "MoveList::get hors bornes");
+        // SAFETY: `i < len`, and the first `len` entries were written by `push`.
+        unsafe { self.moves[i].assume_init() }
     }
     pub fn as_slice(&self) -> &[Move] {
-        &self.moves[..self.len as usize]
+        // SAFETY: the first `len` entries are initialised, contiguous, and
+        // `Move` is `Copy` with no padding, so the slice layout matches.
+        unsafe { std::slice::from_raw_parts(self.moves.as_ptr().cast::<Move>(), self.len as usize) }
     }
     pub fn iter(&self) -> impl Iterator<Item = Move> + '_ {
-        self.moves[..self.len as usize].iter().copied()
+        self.as_slice().iter().copied()
     }
 }
 
@@ -1100,4 +1124,63 @@ fn count_castles<const W: bool>(pos: &Position, occ: u64) -> u64 {
         }
     }
     n
+}
+
+#[cfg(test)]
+mod tests_movelist {
+    use super::*;
+
+    #[test]
+    fn une_liste_neuve_est_vide() {
+        let l = MoveList::new();
+        assert_eq!(l.len(), 0);
+        assert!(l.is_empty());
+        assert_eq!(l.as_slice().len(), 0);
+        assert_eq!(l.iter().count(), 0);
+    }
+
+    #[test]
+    fn default_est_vide() {
+        let l = MoveList::default();
+        assert!(l.is_empty());
+    }
+
+    #[test]
+    fn push_puis_get_rend_les_coups_dans_l_ordre() {
+        let mut l = MoveList::new();
+        let a = Move::new(8, 16, FLAG_QUIET);
+        let b = Move::new(1, 18, FLAG_CAPTURE);
+        let c = Move::new(48, 56, FLAG_PROMO_Q);
+        l.push(a);
+        l.push(b);
+        l.push(c);
+        assert_eq!(l.len(), 3);
+        assert_eq!(l.get(0), a);
+        assert_eq!(l.get(1), b);
+        assert_eq!(l.get(2), c);
+        assert_eq!(l.as_slice(), &[a, b, c]);
+        assert_eq!(l.iter().collect::<Vec<_>>(), vec![a, b, c]);
+    }
+
+    #[test]
+    fn la_capacite_est_de_256_et_le_remplissage_complet_est_lisible() {
+        let mut l = MoveList::new();
+        for i in 0..256u16 {
+            l.push(Move(i));
+        }
+        assert_eq!(l.len(), 256);
+        assert_eq!(l.get(0), Move(0));
+        assert_eq!(l.get(255), Move(255));
+        assert_eq!(l.as_slice().len(), 256);
+    }
+
+    #[test]
+    fn une_liste_reutilisee_repart_de_zero() {
+        let mut l = MoveList::new();
+        l.push(Move::new(0, 8, FLAG_QUIET));
+        let mut l2 = MoveList::new();
+        assert!(l2.is_empty());
+        l2.push(Move::new(1, 9, FLAG_QUIET));
+        assert_eq!(l2.len(), 1);
+    }
 }
