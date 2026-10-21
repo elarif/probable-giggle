@@ -1464,13 +1464,18 @@ use crate::gct::attacks::{shift_n, shift_ne, shift_nw, shift_s, shift_se, shift_
 pub fn generate(pos: &Position, out: &mut MoveList) -> usize {
     let us = pos.side;
     let them = us.opp();
-    let ksq = pos.king_sq(us);
 
     // Contrat d'entrée (GATE 2.5 M3) : position légale exigée. Roi absent =
     // entrée illégale : aucun coup légal, silencieux, sans panique.
-    if ksq == NO_SQUARE {
+    //
+    // CORRECTIF D'EXÉCUTION (tâche 3) : `Position::king_sq` porte un
+    // `debug_assert!` qui panique sur un roi absent — en profil debug
+    // seulement. On teste donc `has_king` AVANT de l'appeler, sinon le
+    // contrat « défini, silencieux, sans panique » n'est vrai qu'en release.
+    if !pos.has_king(us) {
         return out.len();
     }
+    let ksq = pos.king_sq(us);
 
     let occ = pos.occ();
     let us_bb = pos.color_bb(us);
