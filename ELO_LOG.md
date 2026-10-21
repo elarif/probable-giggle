@@ -29,36 +29,51 @@ ce journal accueillera SPRT/fix-ply/Match dès la phase MCTS)*
 |---|---|---|---|---|
 | — | — | — | — | — |
 
-## Réconciliation M4-d9 (2026-10-14) — prérequis de toute mesure Elo
+## Réconciliation M4-d9 — **tranchée le 2026-10-21** (gate 8/8, exit 0)
 
 Le bench-freeze posé par `test.sh` (refus de SPRT tant que M4 n'est pas
-réconcilié) est **toujours actif** : la réconciliation est à **7/9 colonnes**.
+réconcilié) est **LEVABLE** : `slaml/reconcile.sh` sort à **8/8, exit 0**.
 
-| colonne | mychess d9 | CPW d9 | verdict |
+| colonne | mychess d9 | référence d9 | verdict |
 |---|---|---|---|
-| Nodes | 2,439,530,234,167 | idem | OK exact |
-| Captures | 125,208,536,153 | idem | OK exact |
-| E.p. | 319,496,827 | idem | OK exact |
-| Castles | 1,784,356,000 | idem | OK exact |
-| Promotions | 17,334,376 | idem | OK exact |
-| Checks | 36,095,901,903 | idem | OK exact |
-| **Discovery Checks** | **37,103,750** | 37,101,713 | **DIFF +2 037** |
-| **Double Checks** | **6,315,946** | 5,547,231 | **DIFF +768 715** |
-| Mates | 400,191,963 | idem | OK exact |
+| Nodes | 2,439,530,234,167 | idem | **OK exact** |
+| Captures | 125,208,536,153 | idem | **OK exact** |
+| E.p. | 319,496,827 | idem | **OK exact** |
+| Castles | 1,784,356,000 | idem | **OK exact** |
+| Promotions | 17,334,376 | idem | **OK exact** |
+| Checks | 36,095,901,903 | idem | **OK exact** |
+| Mates | 400,191,963 | idem | **OK exact** |
+| Discovery Checks | 37,103,750 | 37,101,713 | écart de **convention** (non comparable) |
+| Double Checks | 6,315,946 | 5,547,221 | écart de **convention** (reconstruction exacte) |
 
-Analyse consignée dans `slaml/d9_checkcols_report_20261014.md` : la somme
-totale des checks est identique des deux côtés (36 095 901 903) — l'ensemble
-« feuilles avec ≥1 échec » est le même ; c'est la **classification** de cet
-ensemble qui diverge, sur deux colonnes rares (0,0055 % et 0,24 % des
-feuilles ep). Hypothèse dominante : divergence de **convention** sur le
-pattern « double échec par prise ep » (et castling-check), pas de movegen.
-Verdict formel **non rendu** à ce jour.
+**Le verdict : ce n'est pas un bug de movegen, c'est une différence de
+convention.** mychess classe les **mats** selon la même règle que les checks
+(nombre d'attaquants du roi, et attaquant == pièce jouée) ; la table de
+référence les ventile en colonnes de mats dédiées. Reconstruction exacte au
+nœud près :
 
-Conséquence : **aucune mesure Elo n'est légale tant que ce point n'est pas
-tranché** (plan de localisation en 4 étapes dans le rapport : micro-FEN
-ep-double-échec, bisect d9 sur les racines, FEN dédiés d5–d6, puis verdict
-bug-fix vs erratum CPW + exemption documentée des 2 colonnes dans
-`reconcile.sh`).
+```text
+mychess double_checks
+  = ref direct_disc + ref single_disc_mates + ref double_disc
+  =  5 547 221   +          768 715   +           10
+  =  6 315 946
+```
+
+La colonne `Checks` est comparable et exacte : la référence y inclut les mats
+comme mychess (35 695 709 940 + 400 191 963 = 36 095 901 903).
+
+Preuve complète : `docs/ecart_d9_convention.md`. Rapport M4 amendé :
+`slaml/d9_checkcols_report_20261014.md` (addendum du 2026-10-21).
+
+**Reproduction de l'écart** : deux runs d9 complets, sur deux hôtes
+différents, deux chemins slider (pext sur EPYC, magic sur Ryzen), avec et
+sans checkpoint → **mêmes chiffres au nœud près**. L'écart n'est donc ni un
+artefact machine, ni de codegen, ni de parallélisme.
+
+Conséquence pour la phase MCTS : les compteurs détaillés sont utilisables
+pour les priors A2 (`nodes`, `captures`, `ep`, `castles`, `promotions`
+exacts), à la réserve que la **ventilation check/mat reste une convention
+interne** à mychess, non comparable à l'extérieur.
 
 > Note d'hygiène : `slaml/reconcile.sh` contient un `cd /workspaces/probable-giggle`
 > codé en dur (ancien chemin du codespace) — il **échoue en exit 2** sur
@@ -228,10 +243,14 @@ Le journal ne peut pas encore être alimenté : deux maillons manquent.
 
 ### Ce qu'il faut avant la première ligne Elo de ce journal
 
-1. Trancher la réconciliation M4-d9 (7/9) — cf. plus haut.
+1. ~~Trancher la réconciliation M4-d9~~ — **FAIT le 2026-10-21** : gate 8/8,
+   exit 0, écart expliqué par convention (cf. plus haut).
 2. Installer `fastchess`, capturer un log réel dans `prt/`, valider
    `tools/pr_sprt.py` dessus (Task 8 du plan d'instrumentation).
-3. Fermer le défaut `alpha`/`beta` de PR-SPRT.
+3. ~~Fermer le défaut `alpha`/`beta` de PR-SPRT~~ — **FAIT**
+   (`c7f88f6`), avec deux correctifs de suite (`4a9698d`, `5a3fe92`) et un
+   troisième sur la lecture des taux (`a64f59b`) ; 108 tests, contrat
+   d'exit-code vérifié. Reste à re-reviewer la vague finale.
 4. Reprendre la re-mesure des benches sur l'hôte EPYC de référence.
 5. Exécuter `slaml/sims_abab.sh` (A1 vs v1) pour chiffrer le saut sims/s.
 6. SPRT A1 vs v1 (`test.sh`, nœuds-fixes 10k), puis PR-SPRT sur le log
