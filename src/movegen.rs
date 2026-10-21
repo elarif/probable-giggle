@@ -1153,19 +1153,12 @@ fn piece_targets(pos: &Position, from: u8, occ: u64) -> u64 {
     t
 }
 
-/// Do the **unpinned** pawns of `us` have at least one legal move? Answers by
+/// Do these **unpinned** pawns of `us` have at least one legal move? Answers by
 /// non-vacuity of target bitboards; nothing is emitted. `allowed` is the usual
 /// legality mask (any empty square, or the block/checker squares when in
-/// check). En passant is not handled here: it applies to pinned pawns too and
-/// keeps its own ray test.
-fn pawns_have_legal(
-    pos: &Position,
-    us: Color,
-    pawns: u64,
-    allowed: u64,
-    ctx: &Legality,
-    ncheck: u32,
-) -> bool {
+/// check). En passant is deliberately absent: it applies to pinned pawns too,
+/// so [`ep_has_legal`] tests it over *all* pawns.
+fn pawns_have_legal(pos: &Position, us: Color, pawns: u64, allowed: u64) -> bool {
     if pawns == 0 {
         return false;
     }
@@ -1202,26 +1195,46 @@ fn pawns_have_legal(
     if push2 & allowed != 0 {
         return true;
     }
-    if (cap_r | cap_l) & allowed != 0 {
-        return true;
+    (cap_r | cap_l) & allowed != 0
+}
+
+/// Is an en-passant capture legal for `us`? `pawns` is the **full** pawn set of
+/// `us`, pinned pawns included: a pinned pawn may play this capture when the
+/// landing square stays on its pin line (`g6`, not `g5`, in the canonical
+/// example), and `ep_legal_ray` is exactly the test that decides it — it
+/// rebuilds the post-move occupancy and looks for a slider hitting the king
+/// through the two vacated squares. Restricting this to unpinned pawns, as an
+/// earlier revision did, loses every pinned-pawn ep and can turn a legal
+/// position into "no legal move".
+fn ep_has_legal(
+    pos: &Position,
+    us: Color,
+    pawns: u64,
+    allowed: u64,
+    ctx: &Legality,
+    ncheck: u32,
+) -> bool {
+    let Some(ep) = pos.ep_square() else {
+        return false;
+    };
+    let Some(cap_sq) = pos.ep_capture_square(us) else {
+        return false;
+    };
+    // Same gate as `generate`: outside check, or the capture removes the
+    // checking pawn, or it blocks on `ep`.
+    let evades_check =
+        ncheck == 0 || (ctx.checkers & (1u64 << cap_sq)) != 0 || (allowed & (1u64 << ep)) != 0;
+    if !evades_check {
+        return false;
     }
-    // En passant: same gate as `generate` (outside check, or the capture
-    // removes the checking pawn, or it blocks on `ep`), then the ray test
-    // decides king safety for pinned and unpinned pawns alike.
-    if let Some(ep) = pos.ep_square()
-        && let Some(cap_sq) = pos.ep_capture_square(us)
-    {
-        let evades_check =
-            ncheck == 0 || (ctx.checkers & (1u64 << cap_sq)) != 0 || (allowed & (1u64 << ep)) != 0;
-        if evades_check {
-            let mut m = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
-            while m != 0 {
-                let from = m.trailing_zeros() as u8;
-                m &= m - 1;
-                if ep_legal_ray(pos, us.opp(), from, ep, ctx.ksq, pos.occ()) {
-                    return true;
-                }
-            }
+    let mut m = PAWN_ATTACKERS[us.idx()][ep as usize] & pawns;
+    while m != 0 {
+        let from = m.trailing_zeros() as u8;
+        m &= m - 1;
+        // `ep_legal_ray` wants the pre-move occupancy: it removes `from`,
+        // `ep` and `cap_sq` itself.
+        if ep_legal_ray(pos, us.opp(), from, ep, ctx.ksq, pos.occ()) {
+            return true;
         }
     }
     false
@@ -1230,7 +1243,8 @@ fn pawns_have_legal(
 /// Does the pawn on `from`, pinned on `line` (already intersected with
 /// `allowed`), have a legal move? A pinned pawn may push one square, push two
 /// from its home rank when both squares stay empty and on the line, or capture
-/// on the line. En passant is handled by `pawns_have_legal` for every pawn.
+/// on the line. En passant is not tested here: [`ep_has_legal`] covers every
+/// pawn, pinned ones included.
 fn pawn_pinned_has_legal(pos: &Position, us: Color, from: u8, line: u64) -> bool {
     let empty = !pos.occ();
     let up: i32 = if us == Color::White { 8 } else { -8 };
@@ -1273,11 +1287,15 @@ fn pawn_pinned_has_legal(pos: &Position, us: Color, from: u8, line: u64) -> bool
 /// This is the one case where `has_legal_move` materialises a move list: it
 /// delegates to `gen_castle` on a throwaway `MoveList`, which is nearly free
 /// now that `MoveList::new()` no longer zeroes its buffer. `gen_castle` is
-/// already written and verified, and it owns three non-obvious rules (rights,
-/// king and rook actually on their home squares, every crossed square empty
-/// and unattacked); duplicating them as a bitboard test here would create a
-/// second source of truth for the same legality. The cost is bounded: the
-/// early return below means positions without rights pay one comparison.
+/// already written and verified, and it owns the non-obvious rules (castling
+/// rights, every crossed square empty, every crossed square unattacked);
+/// duplicating them as a bitboard test here would create a second source of
+/// truth for the same legality. It does not check that the king and rook stand
+/// on their home squares, because it does not have to: `Position::from_fen`
+/// drops rights the board does not support (`supported_castle_rights`), and
+/// `make`/`unmake` clear them on the first king or rook move. The cost is
+/// bounded: the early return below means positions without rights pay one
+/// comparison.
 fn has_castle(pos: &Position, us: Color) -> bool {
     if pos.castle == 0 {
         return false;
@@ -1290,14 +1308,18 @@ fn has_castle(pos: &Position, us: Color) -> bool {
 /// True as soon as at least one legal move exists. Fills no move list, with a
 /// single documented exception: castling is answered by `gen_castle` on a
 /// scratch `MoveList` (see `has_castle`), because the move is rare and its
-/// three conditions already live there. Every other piece class is decided by
+/// conditions already live there. Every other piece class is decided by
 /// bitboard non-vacuity, never by enumeration.
 ///
 /// # Contract
 ///
 /// A **legal** position is required, exactly as for [`generate`]. On illegal
-/// entry (no king for the side to move) the answer is `false` — defined and
-/// silent, with no panic.
+/// entry (no king for the side to move) the behaviour matches `generate`: in
+/// **release** the answer is `false`, defined and silent; in **debug** the
+/// `king_sq` assertion inside `build_legality` fires first and aborts with the
+/// contract message, exactly as it does for `generate`. There is no panic on
+/// the release path, and the kingless check below keeps the release answer
+/// defined rather than merely crash-free.
 ///
 /// # Why it can answer without enumerating
 ///
@@ -1310,7 +1332,9 @@ fn has_castle(pos: &Position, us: Color) -> bool {
 ///    answer is `false` immediately.
 /// 4. En passant and castling keep exact gates rather than approximate ones,
 ///    so the verdict matches `generate` move for move, not just count for
-///    count.
+///    count. En passant is tested over every pawn, pinned ones included,
+///    because a pinned pawn may capture when the landing square stays on its
+///    pin line.
 pub fn has_legal_move(pos: &Position) -> bool {
     let us = pos.side;
     let occ = pos.occ();
@@ -1343,8 +1367,14 @@ pub fn has_legal_move(pos: &Position) -> bool {
     let pinned = ctx.pinned;
     let pawns = pos.bb_piece[PAWN] & us_bb;
 
-    // Unpinned pawns: pushes, double pushes, captures, promotions, ep.
-    if pawns_have_legal(pos, us, pawns & !pinned, allowed, &ctx, ncheck) {
+    // Unpinned pawns: pushes, double pushes, captures, promotions.
+    if pawns_have_legal(pos, us, pawns & !pinned, allowed) {
+        return true;
+    }
+
+    // En passant, over ALL pawns: a pinned pawn may capture when the landing
+    // square stays on its pin line, which `ep_legal_ray` decides.
+    if ep_has_legal(pos, us, pawns, allowed, &ctx, ncheck) {
         return true;
     }
 
