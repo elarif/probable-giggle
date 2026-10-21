@@ -2350,7 +2350,7 @@ Attendu : `t1_gct_perft_shallow` et `gct_perft_egale_le_movegen_existant…` pas
 
 ```bash
 cargo test --release --test gct_perft -- --ignored --nocapture
-cargo run --release --example gctperft -- "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" 4
+cargo run --release --example gctperft -- "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1" 4
 ```
 
 Attendu : `gct perft(4) = 4085603` (valeur GCT Kiwipete d4) et les tests `ignored` passent.
@@ -2795,7 +2795,7 @@ MOTORS="${MOTORS_DIR}/target/release/motors"
 
 POSITIONS=(
   "startpos|rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1|6"
-  "kiwipete|r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -|5"
+  "kiwipete|r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1|5"
   "sje|r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10|5"
 )
 
@@ -2858,17 +2858,17 @@ Attendu : trois lignes, comptes de nœuds **identiques** dans les trois colonnes
 # 4 legs alternes, machine au repos, memes binaires.
 for leg in 1 2 3 4; do
   echo "--- leg $leg ---"
-  ./target/release/mychess perft "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" 5
-  cargo run --release --quiet --example gctperft -- "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" 5
+  ./target/release/mychess perft "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1" 5
+  cargo run --release --quiet --example gctperft -- "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1" 5
 done
 
 # Compteurs materiels (insensibles a la charge) sur le perft gct.
 perf stat -e instructions,cycles,cache-misses,L1-dcache-load-misses \
   cargo run --release --quiet --example gctperft -- \
-  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" 4 2>&1 | tail -20
+  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1" 4 2>&1 | tail -20
 perf stat -e instructions,cycles,cache-misses,L1-dcache-load-misses \
   ./target/release/mychess perft \
-  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" 4 2>&1 | tail -20
+  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1" 4 2>&1 | tail -20
 ```
 
 Attendu : 4 mesures par implémentation, médiane retenue, et les compteurs `instructions`/`cycles` pour les deux. Consigner les chiffres bruts, jamais un seuil.
