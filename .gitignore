@@ -7,3 +7,6 @@ lichessbot/lichess-bot/
 lichessbot/bridge.log
 lichessbot/game_records/
 .worktrees/
+# Checkpoint de run en cours (volatil, reecrit a chaque shard) : le log du
+# run, lui, est versionne comme preuve du gate.
+slaml/d9_shards_*.ckpt
