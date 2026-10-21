@@ -58,7 +58,9 @@ pub struct Position {
     pub halfmove: u8,
     pub side: Color,
     pub castle: u8,
-    pub ep: u8, // NO_EP (64) when none
+    /// En-passant target square, stored **canonical**: kept only when a pawn
+    /// of the side that would capture attacks it. `NO_EP` (64) when none.
+    pub ep: u8,
 }
 
 impl Position {
@@ -180,17 +182,19 @@ impl Position {
         Some(cap_sq)
     }
 
-    /// Un pion adverse peut-il capturer en passant sur `ep` ?
+    /// Can the side that is *not* `pusher` capture on `ep`?
     ///
-    /// Sert à canonicaliser la case ep : une case annoncée sans captureur
-    /// n'a aucun effet légal, mais polluerait le hash Zobrist.
+    /// `pusher` is the colour index of the side that just played the double
+    /// push. Used to canonicalise the stored ep square: a square no opposing
+    /// pawn attacks has no legal effect but would still pollute the Zobrist
+    /// key.
     #[inline(always)]
-    fn has_ep_capturer(&self, ep: u8, us: usize) -> bool {
-        let them = 1 - us;
+    fn has_ep_capturer(&self, ep: u8, pusher: usize) -> bool {
+        let capturer = 1 - pusher;
         if ep >= 64 {
             return false;
         }
-        PAWN_ATTACKERS[them][ep as usize] & self.bb_piece[PAWN] & self.bb_color[them] != 0
+        PAWN_ATTACKERS[capturer][ep as usize] & self.bb_piece[PAWN] & self.bb_color[capturer] != 0
     }
 
     #[inline(always)]
@@ -350,16 +354,13 @@ impl Position {
         if self.ep != NO_EP {
             zob ^= z.ep_file[(self.ep & 7) as usize];
         }
-        // Canonicalisation : la case ep n'est conservee que si un pion adverse
-        // peut effectivement y capturer. Sans cela, un double pas sans
-        // captureur laisse une case « fantome » dans le hash Zobrist, et deux
-        // positions identiques atteintes autrement hashent differemment
-        // (repetition et transposition ratees). Le pion mobile est deja pose
-        // sur `to` a ce stade, donc l'ensemble des captureurs est exact.
-        // `to` est aussi la case du pion capturable (un double pas n'est
-        // genere que pour un pion) : la condition d'attaquant ci-dessus
-        // implique donc la presence du pion derriere la case ep, et
-        // `ep_capture_square` n'a pas besoin d'etre rejoue ici.
+        // Canonicalise: keep ep only when the opposing side can capture there.
+        // The pawn is already on `to`, so the attacker test also implies the
+        // captured pawn exists; `ep_capture_square` is not needed here.
+        debug_assert!(
+            flags != FLAG_DOUBLE_PUSH || kind == PAWN,
+            "FLAG_DOUBLE_PUSH on a non-pawn (synthetic make misuse)"
+        );
         self.ep = if flags == FLAG_DOUBLE_PUSH {
             let candidate = ((from + to) / 2) as u8;
             if self.has_ep_capturer(candidate, us) {
@@ -449,11 +450,12 @@ impl Position {
     /// The parser is strict: a malformed board (wrong number of ranks, a
     /// rank that does not sum to 8, a piece off the board) is rejected
     /// rather than silently accepted. A FEN that is *syntactically* valid
-    /// but *semantically* illegal (no king, two kings, an en-passant
-    /// square with no pawn to capture) is still accepted — the engine
-    /// contract for illegal positions is defined in
+    /// but *semantically* illegal (no king, two kings) is still accepted —
+    /// the engine contract for illegal positions is defined in
     /// [`crate::movegen::generate`], and the movegen layer must stay
-    /// crash-free on such entries.
+    /// crash-free on such entries. An en-passant square is parsed, then
+    /// canonicalised away when no pawn of the side to move could
+    /// pseudo-legally capture on it (see the `ep` field of [`Position`]).
     pub fn from_fen(fen: &str) -> Result<Position, FenError> {
         let parts: Vec<&str> = fen.split_whitespace().collect();
         if parts.len() < 4 {
@@ -549,16 +551,15 @@ impl Position {
         // move that moves a piece which is not there — so the right is
         // dropped here, once, instead of being re-checked at every node.
         pos.castle &= pos.supported_castle_rights();
-        // Meme canonicalisation qu'a la sortie de `make`, mais ici les deux
-        // conditions sont necessaires : une FEN peut annoncer une case ep avec
-        // un pion adverse qui l'attaque sans qu'aucun pion ne soit capturable
-        // dessous (position impossible par le jeu). `ep_capture_square` porte
-        // la condition « pion adverse derriere la case » ; `has_ep_capturer`
-        // porte la condition « un pion du camp au trait attaque la case ».
-        let capturable = pos.ep_capture_square(pos.side).is_some()
-            && pos.has_ep_capturer(pos.ep, pos.side.opp().idx());
-        if pos.ep != NO_EP && !capturable {
-            pos.ep = NO_EP;
+        if pos.ep != NO_EP {
+            // A FEN can name an ep square that no pawn can exploit, or whose
+            // attacker has no captured pawn behind it: both halves of the
+            // generator's condition are required here, unlike in `make`.
+            let capturable = pos.ep_capture_square(pos.side).is_some()
+                && pos.has_ep_capturer(pos.ep, pos.side.opp().idx());
+            if !capturable {
+                pos.ep = NO_EP;
+            }
         }
         pos.zobrist = pos.recompute_zobrist();
         Ok(pos)

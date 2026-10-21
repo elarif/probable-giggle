@@ -136,10 +136,12 @@ fn gct_et_movegen_donnent_le_meme_ensemble_sur_deux_demi_coups() {
                     let mut q = p;
                     q.make(mv);
                     // Tâche 5/7 : plus de filtre sur `ep`. `Position::make` ne
-                    // conserve la case ep que si une capture est réellement
-                    // disponible (canonicalisation) ; les deux générateurs
-                    // lisent le même `pos.ep` et le même `ep_capture_square`,
-                    // donc l'équivalence tient et l'en-passant est comparé.
+                    // conserve la case ep que si un pion adverse peut
+                    // pseudo-légalement y capturer (canonicalisation : un
+                    // captureur cloué suffit à garder la case) ; les deux
+                    // générateurs lisent le même `pos.ep` et le même
+                    // `ep_capture_square`, donc l'équivalence tient et
+                    // l'en-passant est comparé.
                     next.push(q);
                 }
             }

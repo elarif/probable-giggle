@@ -33,6 +33,29 @@ fn double_pas_avec_pion_adjacent_conserve_la_case_ep() {
     assert_eq!(pos.ep, sq("e3"), "un pion noir en d4 peut capturer e3");
     assert_eq!(pos.ep_capture_square(Color::Black), Some(sq("e4")));
     pos.unmake(Move::new(sq("e2"), sq("e4"), FLAG_DOUBLE_PUSH), u);
+
+    // Miroir : un pion noir en f4 attaque e3 par l'est.
+    let mut pos = Position::from_fen("4k3/8/8/8/5p2/8/4P3/4K3 w - - 0 1").unwrap();
+    let u = pos.make(Move::new(sq("e2"), sq("e4"), FLAG_DOUBLE_PUSH));
+    assert_eq!(pos.ep, sq("e3"), "un pion noir en f4 peut capturer e3");
+    assert_eq!(pos.ep_capture_square(Color::Black), Some(sq("e4")));
+    pos.unmake(Move::new(sq("e2"), sq("e4"), FLAG_DOUBLE_PUSH), u);
+}
+
+#[test]
+fn unmake_restaure_une_case_ep_canonique_et_la_cle() {
+    // FEN portant deja une case ep canonique : le pion blanc e5 peut capturer
+    // le pion noir d5 en passant sur d6.
+    let mut pos = Position::from_fen("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1").unwrap();
+    assert_eq!(pos.ep, sq("d6"));
+    let key = pos.zobrist;
+    let mv = Move::new(sq("e5"), sq("d6"), FLAG_EP_CAPTURE);
+    let u = pos.make(mv);
+    assert_eq!(pos.ep, NO_EP, "la capture consomme la case ep");
+    pos.unmake(mv, u);
+    assert_eq!(pos.ep, sq("d6"), "unmake restaure la case canonique");
+    assert_eq!(pos.zobrist, key, "unmake restaure la cle exacte");
+    assert_eq!(pos.recompute_zobrist(), pos.zobrist);
 }
 
 #[test]
