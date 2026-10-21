@@ -409,7 +409,8 @@ fn gen_castling<const W: bool>(pos: &Position, out: &mut MoveList, occ: u64, dan
 /// légalité ; ce test ne couvre pas le clouage horizontal (le cas classique
 /// `...d5 exd6` qui découvre une tour sur la 5e rangée). Le portage remplace
 /// ce raisonnement par la vérification complète sur l'occupation d'après
-/// capture — équivalente, plus courte, et strictement plus forte :
+/// capture — équivalente sur les positions légales (et plus courte),
+/// strictement plus forte seulement hors contrat (entrée illégale) :
 ///   - les pièces sautantes (pion, cavalier, roi) ennemies sont testées avec
 ///     le pion capturé retiré ;
 ///   - les glissantes sont testées sur `occ_after` (deux pions retirés, le

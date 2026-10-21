@@ -72,10 +72,11 @@ fn describe(pos: &Position) -> String {
     s
 }
 
-/// Racines sans droit de roque et sans case en-passant. Les **enfants** de la
-/// marche, eux, portent l'en-passant que `Position::make` pose après une
-/// double poussée : ils sont comparés comme les autres (tâche 5).
-fn positions_sans_roque_ni_ep() -> Vec<Position> {
+/// Positions **racines** de la marche : aucune ne porte de droit de roque ni
+/// de case en-passant. Les **enfants** de la marche, eux, portent l'en-passant
+/// que `Position::make` pose après une double poussée et les droits de roque
+/// restants : ils sont comparés comme les autres (tâche 5).
+fn positions_racines() -> Vec<Position> {
     let fens = [
         "4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1",
         "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
@@ -110,7 +111,7 @@ fn positions_sans_roque_ni_ep() -> Vec<Position> {
 
 #[test]
 fn gct_et_movegen_donnent_le_meme_ensemble_sur_deux_demi_coups() {
-    for pos in positions_sans_roque_ni_ep() {
+    for pos in positions_racines() {
         // On marche tout l'arbre jusqu'à la profondeur 2 et on compare les
         // niveaux 0, 1 et 2, pour multiplier les configurations de clouages,
         // d'échecs et de promotions.
@@ -242,6 +243,43 @@ fn gct_ne_roquepas_a_travers_une_case_attaquee() {
 }
 
 #[test]
+fn gct_ne_roquepas_si_c1_est_attaquee() {
+    // Grand roque : b1/c1/d1 vides, mais la tour c8 attaque c1 — case de
+    // transit du roi. Refus attendu.
+    let pos = Position::from_fen("2r3k1/8/8/8/8/8/8/R3K3 w Q - 0 1").unwrap();
+    let moves = sorted_gct(&pos);
+    assert!(
+        !moves.iter().any(|&(_, _, f)| f == FLAG_QUEEN_CASTLE),
+        "le grand roque ne doit pas traverser une case attaquee"
+    );
+    // Controle : le roi peut toujours bouger, la position n'est pas un mat.
+    assert!(!moves.is_empty());
+}
+
+#[test]
+fn gct_roquepart_quand_seule_b1_est_attaquee() {
+    // La tour b8 attaque b1. Le roi ne traverse que d1 et c1 : b1 n'est qu'une
+    // case de passage de la TOUR (elle finit en d1), donc le grand roque reste
+    // legal.
+    let pos = Position::from_fen("1r4k1/8/8/8/8/8/8/R3K3 w Q - 0 1").unwrap();
+    let moves = sorted_gct(&pos);
+    assert!(
+        moves.iter().any(|&(_, _, f)| f == FLAG_QUEEN_CASTLE),
+        "b1 attaquee n'empeche pas le grand roque"
+    );
+}
+
+#[test]
+fn gct_ne_roquepas_si_seule_g1_est_attaquee() {
+    // Tour g8 : g1 attaquee, f1 non. Le petit roque est refuse, le grand
+    // roque reste legal — les deux cotes sont decides independamment.
+    let pos = Position::from_fen("6rk/8/8/8/8/8/8/R3K2R w KQ - 0 1").unwrap();
+    let moves = sorted_gct(&pos);
+    assert!(!moves.iter().any(|&(_, _, f)| f == FLAG_KING_CASTLE));
+    assert!(moves.iter().any(|&(_, _, f)| f == FLAG_QUEEN_CASTLE));
+}
+
+#[test]
 fn gct_genere_l_en_passant_et_refuse_le_clouage_horizontal() {
     // En-passant legal :
     let pos = Position::from_fen("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1").unwrap();
@@ -333,6 +371,7 @@ fn gct_refuse_le_roque_que_le_plateau_ne_supporte_pas() {
     //
     // (a) droits `KQ` sans aucune tour.
     let mut pos = Position::from_fen("4k3/8/8/8/8/8/8/4K3 w - - 0 1").unwrap();
+    // `pos.zobrist` reste volontairement perime : `generate` ne le lit jamais.
     pos.castle = CASTLE_WK | CASTLE_WQ;
     assert!(
         !sorted_gct(&pos)
@@ -344,6 +383,7 @@ fn gct_refuse_le_roque_que_le_plateau_ne_supporte_pas() {
     // (b) droit `KQ` avec le roi en d1 et non en e1.
     let mut pos = Position::from_fen("4k3/8/8/8/8/8/8/R2K3R w - - 0 1").unwrap();
     assert!(pos.has_king(Color::White));
+    // Idem : `pos.zobrist` perime, sans effet ici (`generate` ne le lit pas).
     pos.castle = CASTLE_WK | CASTLE_WQ;
     assert!(
         !sorted_gct(&pos)
