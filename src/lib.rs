@@ -3,7 +3,6 @@
 //! plus the MCTS phase additions: `eval` (PST hook), `mcts` (UCT v1), `uci`.
 
 pub mod eval;
-pub mod gct;
 pub mod mcts;
 pub mod memo;
 pub mod movegen;

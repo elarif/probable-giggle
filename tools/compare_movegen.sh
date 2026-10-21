@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Comparaison de debit perft : mychess (movegen) / mychess (gct) / motors.
+# Comparaison de debit perft : mychess (movegen) / motors.
 #
-# Les trois mesures sont mono-thread et scalaires du cote mychess : motors
+# Les deux mesures sont mono-thread et scalaires du cote mychess : motors
 # recoit `go perft <depth> threads 1`, car son perft par defaut est parallele
 # (rayon, tous les coeurs) et donnerait un ratio qui ne mesure pas le
 # generateur.
@@ -49,11 +49,8 @@ done
 
 echo "== build mychess =="
 cargo build --release --quiet || die "build mychess echoue"
-cargo build --release --quiet --example gctperft || die "build de l'exemple gctperft echoue"
 MYCHESS="${ROOT}/target/release/mychess"
-GCTPERFT="${ROOT}/target/release/examples/gctperft"
 [[ -x "$MYCHESS" ]] || die "binaire absent : $MYCHESS"
-[[ -x "$GCTPERFT" ]] || die "exemple absent : $GCTPERFT"
 
 # Vrai si le cache est deja sur le commit epingle (SHA court ou long).
 motors_at_pin() {
@@ -96,9 +93,9 @@ POSITIONS=(
     "sje|r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10|5|164075551"
 )
 
-printf '\n%-10s %5s %14s %12s %12s %12s\n' \
-    "position" "depth" "nodes" "mychess" "gct" "motors"
-printf '%.0s-' {1..70}
+printf '\n%-10s %5s %14s %12s %12s\n' \
+    "position" "depth" "nodes" "mychess" "motors"
+printf '%.0s-' {1..57}
 printf '\n'
 
 fail_count=0
@@ -115,15 +112,8 @@ for entry in "${POSITIONS[@]}"; do
     [[ "$my_nodes" =~ ^[0-9]+$ ]] || die "sortie mychess illisible pour $name d$depth : $my_out"
     [[ "$my_mnps" =~ ^[0-9.]+$ ]] || die "debit mychess illisible pour $name d$depth : $my_out"
 
-    gct_out=$("$GCTPERFT" "$fen" "$depth" 2>&1) ||
-        die "gctperft a echoue ($name d$depth) : $gct_out"
-    gct_nodes=$(sed -nE 's/.*= ([0-9]+) +\[.*/\1/p' <<<"$gct_out")
-    gct_mnps=$(sed -nE 's/.*, ([0-9.]+) Mnodes\/s.*/\1/p' <<<"$gct_out")
-    [[ "$gct_nodes" =~ ^[0-9]+$ ]] || die "sortie gct illisible pour $name d$depth : $gct_out"
-    [[ "$gct_mnps" =~ ^[0-9.]+$ ]] || die "debit gct illisible pour $name d$depth : $gct_out"
-
     # `go perft` sans `threads` lance un perft *parallele* (rayon, tous les
-    # coeurs) : nos deux moteurs sont scalaires et mono-thread ici, donc la
+    # coeurs) : notre moteur est scalaire et mono-thread ici, donc la
     # seule cellule comparable est `threads 1`. Le debit parallele de motors
     # est releve separement dans le rapport, jamais dans ce tableau.
     motors_out=$(printf 'ugi\nposition fen %s\ngo perft %s threads 1\nquit\n' "$fen" "$depth" |
@@ -142,14 +132,14 @@ for entry in "${POSITIONS[@]}"; do
         echo "ECHEC: $name d$depth = $my_nodes, table publiee = $expected" >&2
         fail_count=$((fail_count + 1))
     fi
-    if [[ "$my_nodes" != "$gct_nodes" || "$my_nodes" != "$motors_nodes" ]]; then
+    if [[ "$my_nodes" != "$motors_nodes" ]]; then
         echo "ECHEC: comptes de noeuds divergents pour $name d$depth" >&2
-        echo "  attendu=$expected mychess=$my_nodes gct=$gct_nodes motors=$motors_nodes" >&2
+        echo "  attendu=$expected mychess=$my_nodes motors=$motors_nodes" >&2
         fail_count=$((fail_count + 1))
     fi
 
-    printf '%-10s %5s %14s %12s %12s %12s\n' \
-        "$name" "$depth" "$my_nodes" "$my_mnps" "$gct_mnps" "$motors_mnps"
+    printf '%-10s %5s %14s %12s %12s\n' \
+        "$name" "$depth" "$my_nodes" "$my_mnps" "$motors_mnps"
 done
 
 if [[ "$fail_count" -ne 0 ]]; then

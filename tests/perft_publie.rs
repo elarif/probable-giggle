@@ -1,8 +1,13 @@
-//! Validation contre la table de perft détaillée Grand Chess Tree.
+//! Validation du générateur de production contre la table de perft détaillée
+//! Grand Chess Tree — l'ancre externe du dépôt.
 //!
 //! Les goldens de `tests/perft/gct/` stockent les colonnes GCT **verbatim**.
 //! La conversion vers la convention de `mychess` est faite ici, jamais dans
 //! les fichiers — c'est ce qui rend l'oracle indépendant.
+//!
+//! Ce test ne dépend d'aucun autre générateur : il compare `movegen` à des
+//! nombres publiés. `src/gct/` a été supprimé (phase 2) ; `motors` et
+//! `src/refgen.rs` couvrent l'axe inter-implémentations.
 //!
 //! Conventions (voir `docs/gct/perft-results-gct.md`) :
 //!   - `mychess.checks == gct.checks + gct.mates` (GCT compte les échecs
@@ -52,7 +57,7 @@ fn required_column(path: &str, lineno: usize, toks: &[&str], idx: usize, column:
     parse_number(path, lineno, column, raw)
 }
 
-// Duplication VOLONTAIRE avec `tests/perft_golden.rs` et `tests/gct_perft.rs` :
+// Duplication VOLONTAIRE avec `tests/perft_golden.rs` :
 // la contrainte globale du plan
 // (`docs/superpowers/plans/2026-10-21-movegen-reecriture-posts-gct.md`,
 // « Convention de la colonne `checks` de la table Grand Chess Tree ») impose
