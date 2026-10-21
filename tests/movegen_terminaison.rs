@@ -73,7 +73,7 @@ fn double_echec_ne_laisse_que_le_roi() {
 #[test]
 fn corpus_explicite_des_categories_rares() {
     // Attendu de `generate`, vérifié par `divide`, pour chaque position.
-    let attendus: [(&str, bool); 7] = [
+    let attendus: [(&str, bool); 8] = [
         // 1. Ep joué par un pion CLOUÉ : le pion f5 est sur la ligne
         // d'épingle Bd3-h7 (d3-e4-f5-g6-h7) ; capturer vers g6 le laisse sur
         // cette ligne. Unique coup légal.
@@ -96,6 +96,15 @@ fn corpus_explicite_des_categories_rares() {
         ("k7/1b6/8/8/8/8/4n1B1/5n1K w - - 0 1", true),
         // 7. Roque : impossible d'en faire le SEUL coup légal (voir plus bas).
         ("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", true),
+        // 8. Échec double sans issue, AVEC du matériel : même verdict que 4,
+        // mais cette fois le test discrimine la garde `ncheck >= 2`. Sur la
+        // position 4 le roi noir est seul, donc « tous les coups partent du
+        // roi » y est vrai par construction et supprimer la garde ne
+        // changerait rien. Ici le cavalier noir d3 peut prendre la tour e1
+        // (d3e1) ou jouer d3e5 : sans la garde, `has_legal_move` renverrait
+        // `true`. Vérifié en désactivant la garde : le test échoue, et
+        // précisément sur cette position.
+        ("4k3/1N6/8/1B6/8/3n4/8/K3RR2 b - - 0 1", false),
     ];
     for (fen, attendu) in attendus {
         let pos = Position::from_fen(fen).unwrap();
@@ -131,6 +140,14 @@ fn corpus_explicite_des_categories_rares() {
     let l = coups("k7/1b6/8/8/8/8/4n1B1/5n1K w - - 0 1");
     assert_eq!(l.len(), 5);
     assert!(l.iter().all(|m| m.from() == 14));
+
+    // 8. Échec double discriminant : deux attaquants, aucune liste, et du
+    // matériel noir qui pourrait bouger si la garde `ncheck >= 2` sautait.
+    let fen_dbl = "4k3/1N6/8/1B6/8/3n4/8/K3RR2 b - - 0 1";
+    let pos = Position::from_fen(fen_dbl).unwrap();
+    assert_eq!(attackers_to(&pos, 60, Color::White).count_ones(), 2);
+    assert!(coups(fen_dbl).is_empty(), "generate ne doit rien émettre");
+    assert!(!has_legal_move(&pos));
 
     // 7. Roque : aucun cas « roque seul coup légal » n'existe. Le roque
     // exige f1 et g1 vides, donc la tour h1 peut toujours jouer h1-f1 ou
