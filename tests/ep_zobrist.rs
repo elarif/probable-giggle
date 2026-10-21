@@ -67,6 +67,32 @@ fn une_fen_avec_case_ep_fantome_est_canonisee() {
 }
 
 #[test]
+fn une_fen_avec_attaquant_sans_pion_capturable_est_canonisee() {
+    // Pion noir en d4 qui attaque e3, mais aucun pion blanc en e4 : cette
+    // position est impossible par le jeu. Le generateur n'offre aucune
+    // capture ep (`ep_capture_square` est None), donc la case doit disparaitre
+    // et la cle doit egaler celle de la meme position sans case ep.
+    let with_ghost = Position::from_fen("4k3/8/8/8/3p4/8/8/4K3 b - e3 0 1").unwrap();
+    let without = Position::from_fen("4k3/8/8/8/3p4/8/8/4K3 b - - 0 1").unwrap();
+    assert_eq!(
+        with_ghost.ep, NO_EP,
+        "pion capturable absent : la case ep doit etre effacee"
+    );
+    assert_eq!(
+        with_ghost.zobrist, without.zobrist,
+        "meme plateau, meme trait, aucune capture ep : meme cle"
+    );
+    assert_eq!(with_ghost.recompute_zobrist(), with_ghost.zobrist);
+
+    // Controle positif : les deux conditions tiennent (pion noir d4 qui
+    // attaque e3 ET pion blanc capturable en e4) -> la case est conservee.
+    let genuine = Position::from_fen("4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1").unwrap();
+    assert_eq!(genuine.ep, sq("e3"));
+    assert_eq!(genuine.ep_capture_square(Color::Black), Some(sq("e4")));
+    assert_eq!(genuine.recompute_zobrist(), genuine.zobrist);
+}
+
+#[test]
 fn la_canonisation_ne_change_aucun_compte_de_perft() {
     // Constantes publiees dans `tests/perft/startpos.txt` et
     // `tests/perft/kiwipete.txt` (source chessprogramming.org/Perft_Results).

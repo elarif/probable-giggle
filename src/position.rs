@@ -356,6 +356,10 @@ impl Position {
         // positions identiques atteintes autrement hashent differemment
         // (repetition et transposition ratees). Le pion mobile est deja pose
         // sur `to` a ce stade, donc l'ensemble des captureurs est exact.
+        // `to` est aussi la case du pion capturable (un double pas n'est
+        // genere que pour un pion) : la condition d'attaquant ci-dessus
+        // implique donc la presence du pion derriere la case ep, et
+        // `ep_capture_square` n'a pas besoin d'etre rejoue ici.
         self.ep = if flags == FLAG_DOUBLE_PUSH {
             let candidate = ((from + to) / 2) as u8;
             if self.has_ep_capturer(candidate, us) {
@@ -545,10 +549,15 @@ impl Position {
         // move that moves a piece which is not there — so the right is
         // dropped here, once, instead of being re-checked at every node.
         pos.castle &= pos.supported_castle_rights();
-        // Meme canonicalisation qu'a la sortie de `make` : une FEN peut
-        // annoncer une case ep sans pion capable de capturer. Le camp qui a
-        // double-pousse est l'adverse du trait.
-        if pos.ep != NO_EP && !pos.has_ep_capturer(pos.ep, pos.side.opp().idx()) {
+        // Meme canonicalisation qu'a la sortie de `make`, mais ici les deux
+        // conditions sont necessaires : une FEN peut annoncer une case ep avec
+        // un pion adverse qui l'attaque sans qu'aucun pion ne soit capturable
+        // dessous (position impossible par le jeu). `ep_capture_square` porte
+        // la condition « pion adverse derriere la case » ; `has_ep_capturer`
+        // porte la condition « un pion du camp au trait attaque la case ».
+        let capturable = pos.ep_capture_square(pos.side).is_some()
+            && pos.has_ep_capturer(pos.ep, pos.side.opp().idx());
+        if pos.ep != NO_EP && !capturable {
             pos.ep = NO_EP;
         }
         pos.zobrist = pos.recompute_zobrist();
