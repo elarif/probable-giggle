@@ -38,6 +38,20 @@ fn sorted_movegen(pos: &Position) -> Vec<MoveKey> {
     v
 }
 
+#[test]
+fn generate_renvoie_l_indice_d_append() {
+    // Contrat dont depend la tache 6 : `generate` ajoute a la suite du buffer
+    // et renvoie le NOUVEL indice, pas le nombre de coups ajoutes.
+    let pos = Position::startpos();
+    let mut l = MoveList::new();
+    let n1 = gct_generate(&pos, &mut l);
+    assert_eq!(n1, l.len());
+    assert!(n1 > 0);
+    let n2 = gct_generate(&pos, &mut l);
+    assert_eq!(n2, 2 * n1, "generate doit renvoyer l'indice d'append");
+    assert_eq!(l.len(), 2 * n1);
+}
+
 /// `Position` n'implémente pas `Debug` : rendu du plateau depuis ses champs
 /// publics (`mailbox`, `side`, `castle`, `ep`).
 fn describe(pos: &Position) -> String {
@@ -71,13 +85,20 @@ fn positions_sans_roque_ni_ep() -> Vec<Position> {
         // Armee complete sans droits de roque : cavaliers, dames, fous, tours.
         // C'est le corpus le plus large possible dans le perimetre de la tache 4.
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
-        // Milieu de partie : cavaliers et dames en prise de contact, clouages
-        // possibles sur plusieurs axes.
+        // Ouverture des quatre cavaliers, variante italienne : huit demi-coups
+        // (1.e4 e5 2.Nf3 Nc6 3.Nc3 Nf6 4.Bc4 Bc5), sans droit de roque. Les
+        // dames restent passives au noeud racine (Dd1 n'a que d1-e2) et leur
+        // mobilite s'ouvre aux niveaux suivants.
         "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w - - 0 1",
-        // Promotions blanches : poussee c7-c8 et capture c7xb8 (4 coups chacune).
-        "1n2k3/2P5/8/8/8/8/8/4K3 w - - 0 1",
+        // Promotions blanches : poussee c7-c8, capture NW c7xb8 (cavalier) et
+        // capture NE c7xd8 (tour) — les deux bras de capture sont exerces.
+        "1n1rk3/2P5/8/8/8/8/8/4K3 w - - 0 1",
         // Promotions noires : poussee b2-b1 et captures b2xa1 / b2xc1.
         "4k3/8/8/8/8/8/1p6/R1B1K3 b - - 0 1",
+        // Echec par tour sur la colonne e, bloquable UNIQUEMENT par Fe3 :
+        // isole le terme `squares_between` de `check_mask` (aucun autre coup
+        // legal que les coups de roi et d2-e3).
+        "4r1k1/8/8/8/8/8/3B4/4K3 w - - 0 1",
         // Double echec (fou b4 + cavalier f3 sur le roi e1) : seuls les coups
         // de roi sont legaux, le retour anticipe doit s'appliquer.
         "4k3/8/8/8/1b6/5n2/8/4K1N1 w - - 0 1",
