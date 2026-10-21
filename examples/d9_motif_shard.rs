@@ -224,41 +224,58 @@ fn main() {
         .map(|(i, t)| (i, *t))
         .collect::<Vec<_>>();
 
-    let results: Vec<(usize, [u64; NCOUNT])> = pool.install(|| {
-        pending
-            .par_iter()
-            .map(|(idx, (p, d))| {
-                let mut pos = *p;
-                let mut c = Counts::default();
-                perft_motif(&mut pos, *d, &mut c);
-                (*idx, c.v)
-            })
-            .collect()
-    });
+    // Checkpoint par lots : chaque tache terminee est ecrite puis
+    // synchronisee, donc un kill ne perd que le lot en cours (le run
+    // d9 precedent a deja perdu 40 min de cette facon, deux fois).
+    //
+    // L'ecriture se fait sous un mutex, dans l'ordre des index, pour
+    // que le fichier reste relisible meme tronque.
+    let ckpt_mutex = std::sync::Mutex::new(());
+    let mut results: Vec<(usize, [u64; NCOUNT])> = Vec::with_capacity(pending.len());
 
-    // Ecriture du checkpoint, triee par index : l'ordre d'ecriture est
-    // deterministe, donc un log tronque se relit sans trou.
-    let mut lines = String::new();
-    for (idx, v) in &results {
-        lines.push_str("task ");
-        lines.push_str(&idx.to_string());
-        for x in v.iter() {
-            lines.push(' ');
-            lines.push_str(&x.to_string());
+    for chunk in pending.chunks(8) {
+        let batch: Vec<(usize, [u64; NCOUNT])> = pool.install(|| {
+            chunk
+                .par_iter()
+                .map(|(idx, (p, d))| {
+                    let mut pos = *p;
+                    let mut c = Counts::default();
+                    perft_motif(&mut pos, *d, &mut c);
+                    (*idx, c.v)
+                })
+                .collect()
+        });
+
+        let mut lines = String::new();
+        for (idx, v) in &batch {
+            lines.push_str("task ");
+            lines.push_str(&idx.to_string());
+            for x in v.iter() {
+                lines.push(' ');
+                lines.push_str(&x.to_string());
+            }
+            lines.push('\n');
         }
-        lines.push('\n');
+        {
+            let _guard = ckpt_mutex.lock().expect("ckpt lock");
+            file.write_all(lines.as_bytes()).expect("ckpt write");
+            file.sync_data().expect("ckpt sync");
+        }
+        results.extend(batch);
+
+        let n = preloaded + results.len();
+        done.store(n, Ordering::Relaxed);
+        eprintln!(
+            "# progress {n}/{total} elapsed {:.1}s",
+            start.elapsed().as_secs_f64()
+        );
     }
-    file.write_all(lines.as_bytes())
-        .expect("ckpt write");
-    file.sync_data().expect("ckpt sync");
 
     for (_, v) in &results {
         for i in 0..NCOUNT {
             totals[i] += v[i];
         }
     }
-    let n = done.load(Ordering::Relaxed) + results.len();
-    done.store(n, Ordering::Relaxed);
 
     println!("depth {depth}");
     for i in 0..NCOUNT {
@@ -267,7 +284,7 @@ fn main() {
     println!(
         "[{:.2}s, tasks {}/{}]",
         start.elapsed().as_secs_f64(),
-        n,
+        done.load(Ordering::Relaxed),
         total
     );
 }
