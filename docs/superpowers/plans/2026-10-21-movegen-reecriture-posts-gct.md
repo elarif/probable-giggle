@@ -2246,18 +2246,17 @@ pub fn perft_detailed(pos: &mut Position, depth: u32) -> PerftCounts {
     let us = pos.side;
     let moves: Vec<Move> = list.iter().collect();
 
-    if depth == 1 {
-        c.nodes = moves.len() as u64;
-        return c;
-    }
-
+    // Pas de bulk counting ici : les compteurs sont attribués au coup qui
+    // MÈNE à la feuille, donc le niveau de comptage est `depth == 1` (comme
+    // `crate::perft::perft_detailed`). Un retour anticipé en bulk à
+    // `depth == 1` perdrait tous les compteurs de ce niveau.
     for mv in moves {
         let is_cap = mv.is_capture();
         let is_ep = mv.is_ep();
         let is_castle = mv.is_castle();
         let is_promo = mv.is_promotion();
         let u = pos.make(mv);
-        if depth == 2 {
+        if depth == 1 {
             c.nodes += 1;
             if is_cap {
                 c.captures += 1;
@@ -2337,7 +2336,7 @@ fn main() {
 }
 ```
 
-Note : `perft_detailed` utilise `depth == 2` comme niveau de comptage, parce que `depth == 1` est déjà traité en bulk. La convention de comptage reste « à la feuille » : on marque les coups qui *mènent* à une feuille.
+Note : `perft_detailed` compte à `depth == 1` — le coup qu'on vient de jouer mène à une feuille, exactement comme `crate::perft::perft_detailed`. Le bulk counting (`return list.len()`) n'existe que dans `perft`, jamais dans la variante détaillée : une version qui rendrait `nodes = list.len()` à `depth == 1` puis `nodes += 1` par coup à `depth == 2` rapporterait 20 nœuds au lieu de 400 sur la position initiale à profondeur 2, en perdant tous les compteurs.
 
 - [ ] **Step 4: Lancer les tests**
 
