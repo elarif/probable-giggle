@@ -66,6 +66,18 @@ Sans cette décision, P6 « si plafond » consomme tout le pipeline avant d'util
 
 *Note v3* : si la réponse est « moyen », l'arbitrage se fait sur **ΔElo/h-CPU** (canary S14) — la même unité que la règle de plafond (§1.5). Les deux chiffres sont donc directement comparables, ce qui n'était pas le cas avec la v2 (ΔElo/double-corpus vs ΔElo/h-CPU). Si la réponse est « contrainte », la règle de plafond reste applicable mais son seuil n'a pas d'arbitrage concurrent à feed : on plafonne sur le levier interne disponible.
 
+> ✅ **DÉCISION PRISE le 2026-10-21 : la réponse est « MOYEN ».**
+> Le self-play est un moyen d'obtenir de l'Elo, pas une contrainte du projet
+> (le core est gelé et le MCTS générique ; le projet serait cohérent,
+> mesurable et mergable sans la moindre ligne de self-play).
+> Conséquences : l'unité d'arbitrage est **ΔElo/h-CPU**, le **canary S14 est
+> bloquant pour SP-4** (à lancer dès P3), et le raisonnement circulaire
+> (« le self-play est bon parce que c'est du self-play ») est explicitement
+> exclu.
+> Décision complète, argumentée et datée : **`DECISION_SELFPLAY.md`** (fichier
+> racine). Révisable uniquement par un nouveau document daté dans ce fichier,
+> avec les données du canary.
+
 ## 1. P-1 — chiffrage du budget réel (0.25 j, bloquant)
 
 1. **NPS baseline** : benchmark 100 positions fixes × 3 graines → nœuds/s/cœur (eval linéaire + MCTS). Noté dans ELO_LOG.

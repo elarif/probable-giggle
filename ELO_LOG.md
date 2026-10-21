@@ -1,8 +1,18 @@
 # ELO_LOG.md — journal match/SPRT (futur)
 
-hardware: **AMD EPYC 7763** (Milan, Zen3 family `0x19`, 4C/8SMT, ~2.45 GHz,
-BMI2, pas d'AVX-512) — hyperviseur partagé : les mesures nps vivent dans
-MIGRATION.md avec des fourchettes larges, le CI n'exige JAMAIS de seuil nps.
+hardware de référence : **AMD EPYC 7763** (Milan, Zen3 family `0x19`, 4C/8SMT,
+~2.45 GHz, BMI2, pas d'AVX-512) — hyperviseur partagé : les mesures nps vivent
+dans MIGRATION.md avec des fourchettes larges, le CI n'exige JAMAIS de seuil
+nps.
+
+> ⚠️ **Hôte de mesure ≠ hôte de référence.** Toutes les valeurs marquées
+> « EPYC 7763 » ci-dessous ont été mesurées sur `codespaces-f31cc3`
+> (8 cœurs). Les mesures du 2026-10-20 ont été prises sur un **hôte
+> différent** (`DESKTOP-2RKN1IA`, AMD Ryzen 5 1600X 6C/12T, WSL2). Elles
+> **ne sont pas comparables** aux valeurs EPYC et ne les remplacent pas :
+> elles valent comme *ordre de grandeur relatif* (A/B/A/B même session) et
+> comme *détection de régression*, pas comme mesure de référence. Toute
+> valeur de référence future doit être reprise sur l'hôte EPYC.
 
 Équipes de test prévues (phase MCTS) :
 - fastchess SPRT concurrency = **4–6** (4 cœurs physiques : ne pas saturer
@@ -18,6 +28,42 @@ ce journal accueillera SPRT/fix-ply/Match dès la phase MCTS)*
 | date | version | adversaire | conditions | résultat |
 |---|---|---|---|---|
 | — | — | — | — | — |
+
+## Réconciliation M4-d9 (2026-10-14) — prérequis de toute mesure Elo
+
+Le bench-freeze posé par `test.sh` (refus de SPRT tant que M4 n'est pas
+réconcilié) est **toujours actif** : la réconciliation est à **7/9 colonnes**.
+
+| colonne | mychess d9 | CPW d9 | verdict |
+|---|---|---|---|
+| Nodes | 2,439,530,234,167 | idem | OK exact |
+| Captures | 125,208,536,153 | idem | OK exact |
+| E.p. | 319,496,827 | idem | OK exact |
+| Castles | 1,784,356,000 | idem | OK exact |
+| Promotions | 17,334,376 | idem | OK exact |
+| Checks | 36,095,901,903 | idem | OK exact |
+| **Discovery Checks** | **37,103,750** | 37,101,713 | **DIFF +2 037** |
+| **Double Checks** | **6,315,946** | 5,547,231 | **DIFF +768 715** |
+| Mates | 400,191,963 | idem | OK exact |
+
+Analyse consignée dans `slaml/d9_checkcols_report_20261014.md` : la somme
+totale des checks est identique des deux côtés (36 095 901 903) — l'ensemble
+« feuilles avec ≥1 échec » est le même ; c'est la **classification** de cet
+ensemble qui diverge, sur deux colonnes rares (0,0055 % et 0,24 % des
+feuilles ep). Hypothèse dominante : divergence de **convention** sur le
+pattern « double échec par prise ep » (et castling-check), pas de movegen.
+Verdict formel **non rendu** à ce jour.
+
+Conséquence : **aucune mesure Elo n'est légale tant que ce point n'est pas
+tranché** (plan de localisation en 4 étapes dans le rapport : micro-FEN
+ep-double-échec, bisect d9 sur les racines, FEN dédiés d5–d6, puis verdict
+bug-fix vs erratum CPW + exemption documentée des 2 colonnes dans
+`reconcile.sh`).
+
+> Note d'hygiène : `slaml/reconcile.sh` contient un `cd /workspaces/probable-giggle`
+> codé en dur (ancien chemin du codespace) — il **échoue en exit 2** sur
+> l'hôte courant. À corriger (chemin relatif à la racine du repo) avant le
+> prochain usage.
 
 ## Baseline perf core (GATE 2.5, tag `vcore-1.0`, EPYC 7763 — pré-phase MCTS)
 
@@ -66,6 +112,66 @@ v1 (ne pas différer).
 `mcts_pst_eval/startpos` : 32.7–39.9 ns → le pattern eval A1 est bon marché
 vs playout aléatoire (~40-50 µs).
 
+## Re-mesure post-M4 (2026-10-20) — hôte NON-EPYC, valeurs relatives
+
+**Avertissement de comparabilité** : la session de mesures du 2026-10-20 a
+tourné sur `DESKTOP-2RKN1IA` (Ryzen 5 1600X, 6C/12T, WSL2), **pas** sur
+l'EPYC 7763 de référence. Ces nombres **ne remplacent pas** la baseline
+`final25` ci-dessus. Ils répondent à une seule question : *le passage
+`4fa6995` → `main` (idiomatic pass + toolchain 1.97) a-t-il dégradé les
+chemins chauds MCTS ?* — répondue par A/B/A/B **intercalé, même session**,
+deux builds côte à côte.
+
+| bench | A = `4fa6995` (pré-idiomatic) | B = `main` (1169620) | écart B/A |
+|---|---|---|---|
+| `mcts_descend30/startpos` | 749.4 / 746.5 ns (2 legs) | 709.1 / 703.8 ns | **×0.95 (gain −5.5 %)** |
+| `mcts_rep_walkback16/zero_miss` | 7.73 / 7.90 ns | 7.63 / 7.85 ns | ~×0.98 (bruit) |
+| `mcts_rep_walkback16/hit_at4` | 1.252 / 1.223 ns | 1.211 / 1.206 ns | ~×0.98 (bruit) |
+| `mcts_pst_eval/startpos` | 47.4 / 45.2 ns | 53.8 / 52.7 ns | **×1.15 (écart +15 %, codegen — voir plus bas)** |
+
+### La régression `mcts_pst_eval` n'est pas une régression de l'algorithme
+
+Le corps du bench est **byte-identique** entre les deux commits, et
+`src/eval.rs` n'y est même pas appelé (le bench lit `pos.mailbox` et
+applique une table de substitution locale). La suspicion initiale — une
+régression de la boucle d'éval feuille — ne tient pas. Découpage
+effectué :
+
+1. **Réversion du layout de `Position`** (`zobrist`/`halfmove` replacés en
+   queue) → **pas de changement** (53.7 ns). **Le layout n'est donc pas en
+   cause** (hypothèse initialement envisagée : infirmée).
+2. **Réversion de `src/eval.rs`** seule → **pas de changement** (53.8 ns).
+3. **Réversion de `src/` + `benches/` complètes** → retour à **45.7 ns**.
+   L'écart est donc réel et reproductible, mais il vient de l'ensemble
+   `src/` — i.e. de la **compilation**, pas d'une ligne de code.
+4. **Sonde à itérations fixes** (`examples/pst_fixed.rs`, 20 M itérations,
+   boucle identique, binaire séparé) → POST **9 820 281 887** instructions,
+   PRE **9 820 277 249** : **identiques à 5 ppm**. L'algorithme de la
+   boucle n'a pas changé d'une instruction. Le coût supplémentaire est
+   front-end / layout / branch-prediction, **pas** du travail supplémentaire.
+5. **Normalisation sur le binaire criterion lui-même** (instructions
+   divisées par le nombre d'itérations, 10 samples) : POST **757,8**
+   insn/iter vs PRE **728,0** (+4,09 %) et POST **374,8** cycles/iter vs
+   PRE **331,0** (+13,2 %).
+
+Verdict : **pas de régression fonctionnelle** — le compte d'instructions de
+la boucle est identique, et l'écart n'est **ni le layout de `Position`, ni
+`src/eval.rs`** (toutes deux réversions testées sans effet). Il vient du
+**codegen LTO** de l'ensemble `src/` (décalage d'inlining/d'alignement
+induit par le idiomatic pass + le toolchain 1.97) : le harnais criterion
+mesure un binaire dont l'inlining diffère, la sonde isolée non.
+
+Conséquence pratique : le dénominateur du budget sims/s (A1) repose sur
+cette boucle, et elle est **sensible au codegen** — c'est le genre d'écart
+qui déplace le rapport sims/s sans changer une seule ligne de logique. À
+surveiller à chaque changement de `src/` ; à trancher avec la calibration
+S8 (qui a besoin d'une distribution de |ΔQ| mesurée, donc d'un buffer
+réel — cf. plan d'instrumentation, tasks 2–7).
+
+> Ces mesures restent **hors hôte de référence** : la valeur `final25`
+> (EPYC) reste la référence du dénominateur. Reprendre la re-mesure sur
+> l'EPYC avant de figer le budget sims/s.
+
 ## Table Elo (source : Rustic/Sirius — une ligne par amélioration testée)
 
 Règles : SPRT elo0=0 elo1=5 alpha=0.05 beta=0.05 ; contrôle par NŒUDS
@@ -81,7 +187,8 @@ stickie Rustic — à documenter par mesure ; contrôle tiers = gauntlet).
 
 | date | commit | description | TC | Elo ± err | jeux | verdict |
 |---|---|---|---|---|---|---|
-| 2026-10-13 (post-M4: PENDING) | A1-uncommitted→ see commit | A1: playouts aléatoires remplacés par eval statique aux feuilles (eval_normalized = eval_for_mover/1000 clamp[-1,1]; terminalité exacte {-1,0,1} conservée AVANT l'eval; hooks PUCT/NN inchangés) | nœuds-fixes 10k (planifié) | PENDING | PENDING | SPRT planifié en premier après réconciliation M4 |
+| 2026-10-13 (post-M4: PENDING) | A1-uncommitted→ see commit | A1: playouts aléatoires remplacés par eval statique aux feuilles (eval_normalized = eval_for_mover/1000 clamp[-1,1]; terminalité exacte {-1,0,1} conservée AVANT l'eval; hooks PUCT/NN inchangés) | nœuds-fixes 10k (planifié) | PENDING | PENDING | **BLOQUÉ** — réconciliation M4 à 7/9 (voir plus haut) + fastchess absent de la machine |
+| 2026-10-20 | 8f52f16 (A1) | A1 commitée sur `main` ; le « see commit » de la ligne ci-dessus est résolu : `8f52f16` | — | — | — | inchangé (mesure A1 toujours bloquée) |
 
 Notes A1 : la valeur feuille = éval statique = le saut attendu le plus gros
 (Ramanujan 2010 shallow traps ; Monte-Carlo Chess 2012 ; lc0 par réseau).
@@ -89,6 +196,51 @@ Budget sims/s : le playout aléatoire (~76 µs) disparaît ; une feuille =
 make/unmake de descente (~22 ns/ply) + eval (~40-90 ns/position) → le
 dénominateur attendu de sims/s augmente d'un ordre de grandeur ; valeur
 exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
+
+## Instruments de mesure (état au 2026-10-20)
+
+Le journal ne peut pas encore être alimenté : deux maillons manquent.
+
+| instrument | rôle | état |
+|---|---|---|
+| `test.sh` (SPRT `elo0=0 elo1=5 alpha=0.05 beta=0.05`) | verdict **binaire** « le candidat est-il meilleur ? » | **gelé** (protocole figé, ne pas modifier) |
+| `tools/pr_sprt.py` (PR-SPRT) | **magnitude** Elo ± IC à partir du même log fastchess | **codé, 54 tests OK**, branche `feature/selfplay-instrumentation` (450a6ef) — non poussé |
+| `slaml/sims_abab.sh` | sims/s A/B/A/B (v1 vs A1) | script présent, **jamais exécuté** (pas de log `slaml/sims_abab_*.log`) |
+
+### PR-SPRT — implémenté, mais un défaut ouvert et une validation manquante
+
+* **Défaut ouvert (Important)** : sur un log dont `alpha`/`beta` sont
+  inversés (ex. `alpha=0.90 beta=0.95`), `sprt_bounds()` clamp les valeurs
+  sans vérifier l'ordre des bornes → `lower > upper` → le verdict sort
+  **`accepted` (exit 0)** sur un log malformé. Un gate CI branché sur ce
+  code de sortie peut donc valider à tort. Correctif attendu : refuser
+  `lower >= upper` → `ValueError` → exit 2. Reproduit :
+  ```python
+  parse_sprt_log_from_text("SPRT: elo0=0.00 elo1=5.00 alpha=0.90 beta=0.95\n"
+                            "LLR: 0.000\nGames: 100\nW/L/D: 55 40 5\n")
+  → verdict "accepted"
+  ```
+* **Validation manquante** : `fastchess` **n'est pas installé** sur la
+  machine et `prt/` est vide → le parseur **n'a jamais vu un log réel**.
+  Tous ses comportements dérivent de la lecture du code source upstream
+  (fastchess `v1.8.2-alpha`), pas d'une capture. C'est le gate de crédibilité
+  de l'instrument, et il est **ouvert**.
+
+### Ce qu'il faut avant la première ligne Elo de ce journal
+
+1. Trancher la réconciliation M4-d9 (7/9) — cf. plus haut.
+2. Installer `fastchess`, capturer un log réel dans `prt/`, valider
+   `tools/pr_sprt.py` dessus (Task 8 du plan d'instrumentation).
+3. Fermer le défaut `alpha`/`beta` de PR-SPRT.
+4. Reprendre la re-mesure des benches sur l'hôte EPYC de référence.
+5. Exécuter `slaml/sims_abab.sh` (A1 vs v1) pour chiffrer le saut sims/s.
+6. SPRT A1 vs v1 (`test.sh`, nœuds-fixes 10k), puis PR-SPRT sur le log
+   pour la magnitude.
+
+> Rappel SELFPLAY.md §1.5 : l'unité de plafond est **ΔElo par heure-CPU**,
+> pas « nombre de parties ». PR-SPRT donne l'Elo ; la CPU-hour reste à
+> comptabiliser par l'opérateur. Les deux sont nécessaires pour le gate
+> SP-3.
 
 ## Signaux design (rapportés, jamais implémentés discrètement)
 
