@@ -29,6 +29,6 @@
 //!     bit-identiques à `movegen`.
 
 pub mod attacks;
-pub mod legality;
 pub mod generate;
+pub mod legality;
 pub mod perft;
