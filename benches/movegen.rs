@@ -23,16 +23,11 @@ const FENS: [(&str, &str); 4] = [
     ),
 ];
 
-/// Coût d'une liste neuve, isolé. `black_box` empêche le compilateur de
-/// supprimer l'appel : sans lui, `MoveList::new()` sans `memset` se réduit à
-/// une constante et la mesure ne veut rien dire.
-fn bench_movelist_new(c: &mut Criterion) {
-    let mut g = c.benchmark_group("movelist_new");
-    g.bench_function("new", |b| {
-        b.iter(|| std::hint::black_box(MoveList::new()));
-    });
-    g.finish();
-}
+// Pas de banc `movelist_new` : `black_box(MoveList::new())` déplace les 514
+// octets de la structure à travers le retour de la closure, donc il mesure une
+// copie de 512 octets (le désassemblage montre 256 `movzwl` par itération), pas
+// le coût du constructeur. `generate/all/*` est le signal honnête ; ne pas
+// rajouter ce banc.
 
 fn bench_generate(c: &mut Criterion) {
     let mut g = c.benchmark_group("generate");
@@ -42,7 +37,11 @@ fn bench_generate(c: &mut Criterion) {
             b.iter(|| {
                 let mut l = MoveList::new();
                 generate(&pos, &mut l, GenKind::All);
-                std::hint::black_box(l.len())
+                // Black-boxing the slice (pointer + len, not a copy) keeps the
+                // whole generated buffer observable, so `generate` cannot be
+                // elided even if it ever inlines fully.
+                let s = l.as_slice();
+                std::hint::black_box((s.as_ptr(), s.len()))
             });
         });
         g.bench_function(format!("count/{name}"), |b| b.iter(|| count_moves(&pos)));
@@ -50,5 +49,5 @@ fn bench_generate(c: &mut Criterion) {
     g.finish();
 }
 
-criterion_group!(benches, bench_movelist_new, bench_generate);
+criterion_group!(benches, bench_generate);
 criterion_main!(benches);

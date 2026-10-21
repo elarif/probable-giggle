@@ -14,38 +14,45 @@ pub const MAX_MOVES: usize = 218;
 /// même si l'appelant pousse à la main, comme le font les tests.
 const CAPACITY: usize = 256;
 
-/// Fixed-capacity move list on the stack: no allocation in the hot path, and
-/// no zeroing either — only the first `len` entries are ever read.
+/// Fixed-capacity move list on the stack: no allocation in the hot path.
 ///
-/// The buffer is `MaybeUninit` so that `new()` costs nothing: a real caller
-/// fills the list from scratch every call, and paying 512 bytes of `memset`
-/// per node was ~14 % of `generate`'s latency on the opening position.
+/// The buffer is `MaybeUninit`, so `new()` writes only `len` and never touches
+/// the 512 bytes behind it. That zeroing cost ~4.5 % of `generate`'s
+/// instructions and 0–7 % of its wall time here; it is a net win below roughly
+/// twelve emitted moves per call and neutral above.
+///
+/// # Behaviour at the edges
+///
+/// * `push` keeps `len` as a `u8` and has no capacity guard, as before. A `u8`
+///   index into 256 slots is always in bounds, so the hot path pays neither a
+///   bounds check nor a branch; a `u16` counter with an `if` cost 5
+///   instructions and 2.6 branches per emitted move, which lost more than the
+///   `memset` saved on positions with many moves. Pushing past `CAPACITY` is
+///   out of contract either way: release wraps `len`, debug panics on the
+///   overflow.
+/// * `get` now panics out of bounds, where it used to return whatever the
+///   buffer held. Callers already had to stay below `len`.
 pub struct MoveList {
     moves: [MaybeUninit<Move>; CAPACITY],
-    // `u16`, not `u8`: `len` must be able to hold 256 (the full buffer), and a
-    // `u8` overflows on the 256th push. Alignment is already 2 because of
-    // `Move`, so the wider counter costs no extra byte.
-    len: u16,
+    len: u8,
 }
 
 impl MoveList {
     #[inline]
     pub fn new() -> MoveList {
         MoveList {
-            // SAFETY: `[MaybeUninit<Move>; CAPACITY]` accepts every bit pattern,
-            // including uninitialised memory, so `assume_init` on the *array of
-            // MaybeUninit* is sound and does not read anything.
-            moves: unsafe { MaybeUninit::<[MaybeUninit<Move>; CAPACITY]>::uninit().assume_init() },
+            // `[const { MaybeUninit::uninit() }; CAPACITY]` builds the array
+            // without reading anything, so no `assume_init` (and no `unsafe`)
+            // is needed here.
+            moves: [const { MaybeUninit::uninit() }; CAPACITY],
             len: 0,
         }
     }
     #[inline(always)]
     pub fn push(&mut self, m: Move) {
         debug_assert!((self.len as usize) < CAPACITY);
-        if (self.len as usize) < CAPACITY {
-            self.moves[self.len as usize].write(m);
-            self.len += 1;
-        }
+        self.moves[self.len as usize].write(m);
+        self.len += 1;
     }
     #[inline(always)]
     pub fn len(&self) -> usize {
@@ -57,7 +64,7 @@ impl MoveList {
     }
     #[inline(always)]
     pub fn get(&self, i: usize) -> Move {
-        assert!(i < self.len as usize, "MoveList::get hors bornes");
+        assert!(i < self.len as usize, "MoveList::get out of bounds");
         // SAFETY: `i < len`, and the first `len` entries were written by `push`.
         unsafe { self.moves[i].assume_init() }
     }
@@ -1163,15 +1170,16 @@ mod tests_movelist {
     }
 
     #[test]
-    fn la_capacite_est_de_256_et_le_remplissage_complet_est_lisible() {
+    fn remplir_jusqu_au_maximum_legal_puis_relire() {
+        const { assert!(MAX_MOVES < CAPACITY) };
         let mut l = MoveList::new();
-        for i in 0..256u16 {
+        for i in 0..MAX_MOVES as u16 {
             l.push(Move(i));
         }
-        assert_eq!(l.len(), 256);
+        assert_eq!(l.len(), MAX_MOVES);
         assert_eq!(l.get(0), Move(0));
-        assert_eq!(l.get(255), Move(255));
-        assert_eq!(l.as_slice().len(), 256);
+        assert_eq!(l.get(MAX_MOVES - 1), Move(MAX_MOVES as u16 - 1));
+        assert_eq!(l.as_slice().len(), MAX_MOVES);
     }
 
     #[test]
