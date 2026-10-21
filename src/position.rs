@@ -180,6 +180,19 @@ impl Position {
         Some(cap_sq)
     }
 
+    /// Un pion adverse peut-il capturer en passant sur `ep` ?
+    ///
+    /// Sert à canonicaliser la case ep : une case annoncée sans captureur
+    /// n'a aucun effet légal, mais polluerait le hash Zobrist.
+    #[inline(always)]
+    fn has_ep_capturer(&self, ep: u8, us: usize) -> bool {
+        let them = 1 - us;
+        if ep >= 64 {
+            return false;
+        }
+        PAWN_ATTACKERS[them][ep as usize] & self.bb_piece[PAWN] & self.bb_color[them] != 0
+    }
+
     #[inline(always)]
     pub fn is_square_attacked(&self, sq: u8, by: Color) -> bool {
         let bi = by.idx();
@@ -337,8 +350,19 @@ impl Position {
         if self.ep != NO_EP {
             zob ^= z.ep_file[(self.ep & 7) as usize];
         }
+        // Canonicalisation : la case ep n'est conservee que si un pion adverse
+        // peut effectivement y capturer. Sans cela, un double pas sans
+        // captureur laisse une case « fantome » dans le hash Zobrist, et deux
+        // positions identiques atteintes autrement hashent differemment
+        // (repetition et transposition ratees). Le pion mobile est deja pose
+        // sur `to` a ce stade, donc l'ensemble des captureurs est exact.
         self.ep = if flags == FLAG_DOUBLE_PUSH {
-            ((from + to) / 2) as u8
+            let candidate = ((from + to) / 2) as u8;
+            if self.has_ep_capturer(candidate, us) {
+                candidate
+            } else {
+                NO_EP
+            }
         } else {
             NO_EP
         };
@@ -521,6 +545,12 @@ impl Position {
         // move that moves a piece which is not there — so the right is
         // dropped here, once, instead of being re-checked at every node.
         pos.castle &= pos.supported_castle_rights();
+        // Meme canonicalisation qu'a la sortie de `make` : une FEN peut
+        // annoncer une case ep sans pion capable de capturer. Le camp qui a
+        // double-pousse est l'adverse du trait.
+        if pos.ep != NO_EP && !pos.has_ep_capturer(pos.ep, pos.side.opp().idx()) {
+            pos.ep = NO_EP;
+        }
         pos.zobrist = pos.recompute_zobrist();
         Ok(pos)
     }
