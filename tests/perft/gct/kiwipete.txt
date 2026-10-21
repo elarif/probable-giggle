@@ -1,0 +1,15 @@
+# gct-kiwipete  r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+# source: https://grandchesstree.com/perft-results (Grand Chess Tree)
+# valeurs VERBATIM de la table GCT ; conversion appliquee par tests/gct_oracle.rs :
+#   mychess.checks = checks + mates ; mychess.mates = mates
+# colonnes discovery/double : non comparables (voir docs/ecart_d9_convention.md) -> "-"
+r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+# depth nodes captures ep castles promotions checks discovery double mates
+0 1 0 0 0 0 0 - - 0
+1 48 8 0 2 0 0 - - 0
+2 2039 351 1 91 0 3 - - 0
+3 97862 17102 45 3162 0 992 - - 1
+4 4085603 757163 1929 128013 15172 25480 - - 43
+5 193690690 35043416 73365 4993637 8392 3279716 - - 30171
+6 8031647685 1558445089 3577504 184513607 56627920 91878047 - - 360003
+7 374190009323 69479646226 117075132 7831249352 49612944 8306459296 - - 111664735

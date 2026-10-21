@@ -511,9 +511,8 @@ fn les_huit_decalages_correspondent_a_la_grille_naive() {
     }
 }
 
-/// `Position` n'implémente pas `Debug`, et ajouter le derive toucherait au
-/// core gelé : on rend le plateau depuis ses champs publics (`mailbox`,
-/// `side`, `castle`, `ep`).
+/// NOTE (review finale) : `Position` implémente `Debug` ; ce helper a été
+/// supprimé au profit de `{pos:?}`.
 fn describe(pos: &Position) -> String {
     use std::fmt::Write;
     let mut s = String::new();
@@ -1023,8 +1022,8 @@ fn positions() -> Vec<Position> {
     v
 }
 
-/// `Position` n'implémente pas `Debug` : rendu du plateau depuis ses champs
-/// publics (`mailbox`, `side`, `castle`, `ep`).
+/// NOTE (review finale) : `Position` implémente `Debug` ; ce helper a été
+/// supprimé au profit de `{pos:?}`.
 fn describe(pos: &Position) -> String {
     use std::fmt::Write;
     let mut s = String::new();
@@ -1346,8 +1345,8 @@ fn sorted_movegen(pos: &Position) -> Vec<MoveKey> {
     v
 }
 
-/// `Position` n'implémente pas `Debug` : rendu du plateau depuis ses champs
-/// publics (`mailbox`, `side`, `castle`, `ep`).
+/// NOTE (review finale) : `Position` implémente `Debug` ; ce helper a été
+/// supprimé au profit de `{pos:?}`.
 fn describe(pos: &Position) -> String {
     use std::fmt::Write;
     let mut s = String::new();
@@ -3031,7 +3030,7 @@ Incohérence détectée et corrigée pendant la rédaction :
 3. **`gen_pawns` recevait `us` alors que `W` le détermine** — la première version comparait `us` à une constante *à l'intérieur* de la boucle. Laissé tel quel mais en tête de fonction (un seul `if`, replié à la compilation), pour garder les deux paramètres explicites à l'appel.
 4. **`emit_pawn_capture` portait un paramètre `_promo_rank` inutilisé** — vestige du `RANK_8`/`RANK_1` du post, déjà appliqué par l'appelant (`cap_ne & RANK_8`). Supprimé, les quatre sites d'appel sont alignés sur une seule ligne.
 5. **`gen_knights` appelait un `enemy_is_king_hole()` qui retournait `0`** — masque décoratif. Supprimé.
+6. **`Position` n'implémente pas `Debug`** — *affirmation fausse, corrigée à la review finale de branche*. `impl fmt::Debug for Position` existe depuis le point de branchement (`src/position.rs`), n'est pas conditionné par une feature et imprime le plateau **plus** `zobrist`, `halfmove`, `side`, `castle`, `ep` : il est strictement plus informatif que le helper proposé ici. Les trois helpers `describe(&pos)` ont donc été supprimés au profit de `{pos:?}` dans `tests/gct_attacks.rs`, `tests/gct_legality.rs` et `tests/gct_equivalence.rs` (≈ 60 lignes retirées) ; aucun test n'y perd d'information.
 7. **La case du roi ennemi n'était pas masquée du tout** (revue de la tâche 4). Le plan excluait le roi de `enemy`, ce qui suffisait à empêcher une *capture* de roi mais laissait un coup vers sa case classé « calme ». Corrigé par `blocked = us_bb | them_king` appliqué aux cibles du roi, des cavaliers et des glissantes : no-op sur position légale, mais nécessaire pour que le contrat « aucun coup illégal émis, même sur entrée illégale » soit vrai.
-6. **`Position` n'implémente pas `Debug`** — sept assertions de test écrivaient `{pos:?}` et ne compilaient donc pas. Ajouter le derive toucherait au core gelé. Corrigé : un helper `describe(&pos)` (rendu du plateau depuis `mailbox`, `side`, `castle`, `ep`, tous publics) est fourni dans chacun des trois fichiers de test concernés (`tests/gct_attacks.rs`, `tests/gct_legality.rs`, `tests/gct_equivalence.rs`).
 
 Leçon pour l'exécuteur : le code C# de source a été lu intégralement, mais **le code Rust de ce plan n'a pas été compilé**. Il doit être traité comme un premier jet à corriger contre le compilateur, pas comme du code fini. Les endroits les plus susceptibles de demander un ajustement sont : les conversions de signe dans `emit_pawn_pushes` / `emit_pawn_capture` (`i16` → `u8`), l'ordre des arguments de `Move::new(from, to, flags)`, et les appels `let Some(...) = ... else { ... }` (let-else, stable depuis 1.65, disponible en 1.97).

@@ -58,7 +58,9 @@ pub struct Position {
     pub halfmove: u8,
     pub side: Color,
     pub castle: u8,
-    pub ep: u8, // NO_EP (64) when none
+    /// En-passant target square, stored **canonical**: kept only when a pawn
+    /// of the side that would capture attacks it. `NO_EP` (64) when none.
+    pub ep: u8,
 }
 
 impl Position {
@@ -178,6 +180,21 @@ impl Position {
             return None;
         }
         Some(cap_sq)
+    }
+
+    /// Can the side that is *not* `pusher` capture on `ep`?
+    ///
+    /// `pusher` is the colour index of the side that just played the double
+    /// push. Used to canonicalise the stored ep square: a square no opposing
+    /// pawn attacks has no legal effect but would still pollute the Zobrist
+    /// key.
+    #[inline(always)]
+    fn has_ep_capturer(&self, ep: u8, pusher: usize) -> bool {
+        let capturer = 1 - pusher;
+        if ep >= 64 {
+            return false;
+        }
+        PAWN_ATTACKERS[capturer][ep as usize] & self.bb_piece[PAWN] & self.bb_color[capturer] != 0
     }
 
     #[inline(always)]
@@ -337,8 +354,20 @@ impl Position {
         if self.ep != NO_EP {
             zob ^= z.ep_file[(self.ep & 7) as usize];
         }
+        // Canonicalise: keep ep only when the opposing side can capture there.
+        // The pawn is already on `to`, so the attacker test also implies the
+        // captured pawn exists; `ep_capture_square` is not needed here.
+        debug_assert!(
+            flags != FLAG_DOUBLE_PUSH || kind == PAWN,
+            "FLAG_DOUBLE_PUSH on a non-pawn (synthetic make misuse)"
+        );
         self.ep = if flags == FLAG_DOUBLE_PUSH {
-            ((from + to) / 2) as u8
+            let candidate = ((from + to) / 2) as u8;
+            if self.has_ep_capturer(candidate, us) {
+                candidate
+            } else {
+                NO_EP
+            }
         } else {
             NO_EP
         };
@@ -421,11 +450,12 @@ impl Position {
     /// The parser is strict: a malformed board (wrong number of ranks, a
     /// rank that does not sum to 8, a piece off the board) is rejected
     /// rather than silently accepted. A FEN that is *syntactically* valid
-    /// but *semantically* illegal (no king, two kings, an en-passant
-    /// square with no pawn to capture) is still accepted — the engine
-    /// contract for illegal positions is defined in
+    /// but *semantically* illegal (no king, two kings) is still accepted —
+    /// the engine contract for illegal positions is defined in
     /// [`crate::movegen::generate`], and the movegen layer must stay
-    /// crash-free on such entries.
+    /// crash-free on such entries. An en-passant square is parsed, then
+    /// canonicalised away when no pawn of the side to move could
+    /// pseudo-legally capture on it (see the `ep` field of [`Position`]).
     pub fn from_fen(fen: &str) -> Result<Position, FenError> {
         let parts: Vec<&str> = fen.split_whitespace().collect();
         if parts.len() < 4 {
@@ -521,6 +551,16 @@ impl Position {
         // move that moves a piece which is not there — so the right is
         // dropped here, once, instead of being re-checked at every node.
         pos.castle &= pos.supported_castle_rights();
+        if pos.ep != NO_EP {
+            // A FEN can name an ep square that no pawn can exploit, or whose
+            // attacker has no captured pawn behind it: both halves of the
+            // generator's condition are required here, unlike in `make`.
+            let capturable = pos.ep_capture_square(pos.side).is_some()
+                && pos.has_ep_capturer(pos.ep, pos.side.opp().idx());
+            if !capturable {
+                pos.ep = NO_EP;
+            }
+        }
         pos.zobrist = pos.recompute_zobrist();
         Ok(pos)
     }
