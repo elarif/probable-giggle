@@ -200,12 +200,12 @@ rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 Créer `tests/perft/gct/kiwipete.txt` :
 
 ```
-# gct-kiwipete  r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -
+# gct-kiwipete  r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
 # source: https://grandchesstree.com/perft-results (Grand Chess Tree)
 # valeurs VERBATIM de la table GCT ; conversion appliquee par tests/gct_oracle.rs :
 #   mychess.checks = checks + mates ; mychess.mates = mates
 # colonnes discovery/double : non comparables (voir docs/ecart_d9_convention.md) -> "-"
-r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -
+r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
 # depth nodes captures ep castles promotions checks discovery double mates
 0 1 0 0 0 0 0 - - 0
 1 48 8 0 2 0 0 - - 0
@@ -995,7 +995,7 @@ fn oracles(pos: &Position) -> (u64, u64, u64, [u64; 64]) {
 fn positions() -> Vec<Position> {
     let fens = [
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
         "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
         "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
         "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
@@ -1774,7 +1774,7 @@ Dans `tests/gct_equivalence.rs`, ajouter à la fin :
 fn positions_goldens() -> Vec<Position> {
     let fens = [
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
         "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
         "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
         "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
@@ -2657,7 +2657,7 @@ const FENS: [(&str, &str); 4] = [
     ),
     (
         "kiwipete",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
     ),
     (
         "pos3",
@@ -2695,18 +2695,14 @@ fn bench_generate(c: &mut Criterion) {
 }
 
 fn bench_count(c: &mut Criterion) {
+    // `gct` n'a pas d'equivalent de `count_moves` : son API materialise
+    // toujours la liste. C'est une difference de conception a mesurer, pas a
+    // dupliquer — `bench_generate` mesure deja `gct_generate`, donc refaire la
+    // meme fermeture ici n'apporterait aucune information.
     let mut g = c.benchmark_group("count");
     for (name, fen) in FENS {
         let pos = Position::from_fen(fen).unwrap();
-        g.bench_function(format!("gct/{name}"), |b| {
-            b.iter(|| {
-                let mut l = MoveList::new();
-                gct_generate(&pos, &mut l)
-            });
-        });
-        g.bench_function(format!("movegen_count_moves/{name}"), |b| {
-            b.iter(|| count_moves(&pos))
-        });
+        g.bench_function(format!("movegen/{name}"), |b| b.iter(|| count_moves(&pos)));
     }
     g.finish();
 }
