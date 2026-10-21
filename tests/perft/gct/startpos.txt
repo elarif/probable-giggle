@@ -1,6 +1,6 @@
 # gct-startpos  rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 # source: https://grandchesstree.com/perft-results (Grand Chess Tree)
-# valeurs VERBATIM de la table GCT ; conversion appliquee par tests/gct_oracle.rs :
+# valeurs VERBATIM de la table GCT ; conversion appliquee par tests/perft_publie.rs :
 #   mychess.checks = checks + mates ; mychess.mates = mates
 # colonnes discovery/double : non comparables (voir docs/ecart_d9_convention.md) -> "-"
 rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1

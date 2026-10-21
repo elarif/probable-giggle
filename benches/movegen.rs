@@ -78,8 +78,10 @@ fn bench_terminaison(c: &mut Criterion) {
 /// coups de `generate` change avec le chemin d'évasion, donc un corpus
 /// construit dessus ne serait pas le même avant et après la modification.
 /// Le parcours et les graines sont ceux de `tests/movegen_echecs.rs` (qui
-/// affirme la composition du corpus) ; le plafond est plus bas ici pour que
-/// le coût mesuré soit celui de `generate`, pas celui du corpus.
+/// affirme la composition du corpus). Le corpus est construit en entier
+/// (`usize::MAX`) puis `bench_echec` en prélève 48 positions réparties sur
+/// toute sa longueur : c'est l'échantillonnage, pas un plafond, qui fixe le
+/// coût mesuré.
 fn corpus_echec(plafond: usize) -> Vec<Position> {
     const GRAINES: [(&str, u32, u64); 10] = [
         (
@@ -177,7 +179,10 @@ fn echantillon(corpus: &[Position], n: usize) -> Vec<Position> {
 }
 
 /// Chemin d'échec : `generate` sur des positions où le camp au trait est en
-/// échec, donc où `allowed` fait au plus deux cases.
+/// échec. Le masque `allowed` n'y fait pas « au plus deux cases » : il va de
+/// 1 à 7 cases (moyenne 2,206 sur le corpus), parce qu'un donneur glissant
+/// laisse jusqu'à six cases d'interposition. C'est cette géométrie que le
+/// chemin inverse de la tâche 4 payait deux fois par case de sortie.
 ///
 /// Pas de `iter_batched` : le corpus (48 positions) est prêt avant la boucle,
 /// et une copie par itération dominerait le coût mesuré.

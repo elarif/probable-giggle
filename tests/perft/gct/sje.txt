@@ -1,6 +1,6 @@
 # gct-sje  r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
 # source: https://grandchesstree.com/perft-results (Grand Chess Tree)
-# valeurs VERBATIM de la table GCT ; conversion appliquee par tests/gct_oracle.rs :
+# valeurs VERBATIM de la table GCT ; conversion appliquee par tests/perft_publie.rs :
 #   mychess.checks = checks + mates ; mychess.mates = mates
 # colonnes discovery/double : non comparables (voir docs/ecart_d9_convention.md) -> "-"
 r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10

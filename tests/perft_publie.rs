@@ -64,8 +64,8 @@ fn required_column(path: &str, lineno: usize, toks: &[&str], idx: usize, column:
 // des goldens GCT verbatim (`discovery`/`double` à `-`), convention
 // incompatible avec celle du Chess Programming Wiki ; et ici `checks` reste en
 // convention GCT (la conversion `+ mates` se fait dans `check_row`), alors que
-// `tests/gct_perft.rs` la fait dans `check`. Un chargeur partagé mélangerait
-// les deux conventions. Ne pas factoriser.
+// l'ancien `tests/gct_perft.rs` la faisait dans `check`. Un chargeur partagé
+// mélangerait les deux conventions. Ne pas factoriser.
 fn load(path: &str) -> Golden {
     let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{path}: {e}"));
     let mut fen = String::new();

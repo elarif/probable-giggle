@@ -1,6 +1,6 @@
 # gct-kiwipete  r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
 # source: https://grandchesstree.com/perft-results (Grand Chess Tree)
-# valeurs VERBATIM de la table GCT ; conversion appliquee par tests/gct_oracle.rs :
+# valeurs VERBATIM de la table GCT ; conversion appliquee par tests/perft_publie.rs :
 #   mychess.checks = checks + mates ; mychess.mates = mates
 # colonnes discovery/double : non comparables (voir docs/ecart_d9_convention.md) -> "-"
 r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
