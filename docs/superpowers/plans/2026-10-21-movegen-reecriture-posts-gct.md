@@ -1482,13 +1482,20 @@ pub fn generate(pos: &Position, out: &mut MoveList) -> usize {
     let them_king = pos.bb_piece[KING] & pos.color_bb(them);
     // Les pièces adverses capturables : jamais le roi.
     let enemy = pos.color_bb(them) & !them_king;
+    // Cibles interdites : nos pièces, plus la case du roi ennemi. Sans ce
+    // second terme, `enemy` excluant déjà le roi, un coup vers sa case serait
+    // classé « calme » et émis — contraire au contrat GATE 2.5 M3. Sur une
+    // position légale le terme est un no-op (le roi est toujours dans
+    // `color_bb(them)`), il ne protège que l'entrée illégale.
+    // CORRECTIF D'EXÉCUTION (tâche 4).
+    let blocked = us_bb | them_king;
 
     let danger = king_danger(pos, ksq, them);
     let checkers = compute_checkers(pos, ksq, them);
     let (pinned, pin_lines) = compute_pins(pos, ksq, them, us);
 
     // 6. Coups de roi : toujours en premier, toujours sans masque d'échec.
-    gen_king_moves(out, ksq, us_bb, danger, them_king, enemy);
+    gen_king_moves(out, ksq, blocked, danger, enemy);
 
     // 7. Double échec : seuls les coups de roi sont légaux.
     let ncheck = checkers.count_ones();
@@ -1507,8 +1514,8 @@ pub fn generate(pos: &Position, out: &mut MoveList) -> usize {
     // 9. Pièces.
     gen_pawns::<true>(pos, out, check_mask, pinned, &pin_lines, occ, enemy, us);
     gen_pawns::<false>(pos, out, check_mask, pinned, &pin_lines, occ, enemy, us);
-    gen_knights(pos, out, us_bb, check_mask, &pin_lines, enemy);
-    gen_sliders(pos, out, us_bb, check_mask, &pin_lines, occ, enemy);
+    gen_knights(pos, out, blocked, check_mask, &pin_lines, enemy);
+    gen_sliders(pos, out, blocked, check_mask, &pin_lines, occ, enemy);
 
     // 10. Roque — ajouté à la tâche 5.
     out.len()
@@ -1531,10 +1538,10 @@ fn emit_targets(out: &mut MoveList, from: u8, targets: u64, enemy: u64) {
     }
 }
 
-/// `GenKingMoves` : `!danger` (occupation sans notre roi) et `!us`.
+/// `GenKingMoves` : `!danger` (occupation sans notre roi) et `!blocked`.
 #[inline]
-fn gen_king_moves(out: &mut MoveList, ksq: u8, us_bb: u64, danger: u64, them_king: u64, enemy: u64) {
-    let targets = KING_ATT[ksq as usize] & !us_bb & !danger & !them_king;
+fn gen_king_moves(out: &mut MoveList, ksq: u8, blocked: u64, danger: u64, enemy: u64) {
+    let targets = KING_ATT[ksq as usize] & !blocked & !danger;
     emit_targets(out, ksq, targets, enemy);
 }
 
@@ -1544,7 +1551,7 @@ fn gen_king_moves(out: &mut MoveList, ksq: u8, us_bb: u64, danger: u64, them_kin
 fn gen_knights(
     pos: &Position,
     out: &mut MoveList,
-    us_bb: u64,
+    blocked: u64,
     check_mask: u64,
     pin_lines: &[u64; 64],
     enemy: u64,
@@ -1553,9 +1560,7 @@ fn gen_knights(
     while kn != 0 {
         let s = kn.trailing_zeros() as u8;
         kn &= kn - 1;
-        // La case du roi ennemi n'a pas besoin d'être masquée ici : elle est
-        // occupée, donc absente de `!us_bb`, et déjà retirée de `enemy`.
-        let targets = KNIGHT_ATT[s as usize] & !us_bb & check_mask & pin_lines[s as usize];
+        let targets = KNIGHT_ATT[s as usize] & !blocked & check_mask & pin_lines[s as usize];
         emit_targets(out, s, targets, enemy);
     }
 }
@@ -1565,7 +1570,7 @@ fn gen_knights(
 fn gen_sliders(
     pos: &Position,
     out: &mut MoveList,
-    us_bb: u64,
+    blocked: u64,
     check_mask: u64,
     pin_lines: &[u64; 64],
     occ: u64,
@@ -1575,15 +1580,14 @@ fn gen_sliders(
     while b != 0 {
         let s = b.trailing_zeros() as u8;
         b &= b - 1;
-        let targets =
-            bishop_attacks(s, occ) & !us_bb & check_mask & pin_lines[s as usize];
+        let targets = bishop_attacks(s, occ) & !blocked & check_mask & pin_lines[s as usize];
         emit_targets(out, s, targets, enemy);
     }
     let mut r = pos.bb_piece[ROOK] & us_bb;
     while r != 0 {
         let s = r.trailing_zeros() as u8;
         r &= r - 1;
-        let targets = rook_attacks(s, occ) & !us_bb & check_mask & pin_lines[s as usize];
+        let targets = rook_attacks(s, occ) & !blocked & check_mask & pin_lines[s as usize];
         emit_targets(out, s, targets, enemy);
     }
     let mut q = pos.bb_piece[QUEEN] & us_bb;
@@ -1591,7 +1595,7 @@ fn gen_sliders(
         let s = q.trailing_zeros() as u8;
         q &= q - 1;
         let targets = (bishop_attacks(s, occ) | rook_attacks(s, occ))
-            & !us_bb
+            & !blocked
             & check_mask
             & pin_lines[s as usize];
         emit_targets(out, s, targets, enemy);
@@ -3034,7 +3038,8 @@ Incohérence détectée et corrigée pendant la rédaction :
 2. **`Move::0` est `pub` mais la convention du dépôt interdit d'y toucher hors `src/types.rs`** — la première version de `MoveKey` comparait `m.0`. Corrigé en `(from, to, flags)`.
 3. **`gen_pawns` recevait `us` alors que `W` le détermine** — la première version comparait `us` à une constante *à l'intérieur* de la boucle. Laissé tel quel mais en tête de fonction (un seul `if`, replié à la compilation), pour garder les deux paramètres explicites à l'appel.
 4. **`emit_pawn_capture` portait un paramètre `_promo_rank` inutilisé** — vestige du `RANK_8`/`RANK_1` du post, déjà appliqué par l'appelant (`cap_ne & RANK_8`). Supprimé, les quatre sites d'appel sont alignés sur une seule ligne.
-5. **`gen_knights` appelait un `enemy_is_king_hole()` qui retournait `0`** — masque décoratif. Supprimé ; un commentaire explique pourquoi la case du roi ennemi n'a pas besoin d'être retirée là (elle est occupée, donc absente de `!us_bb`, et déjà absente de `enemy`).
+5. **`gen_knights` appelait un `enemy_is_king_hole()` qui retournait `0`** — masque décoratif. Supprimé.
+7. **La case du roi ennemi n'était pas masquée du tout** (revue de la tâche 4). Le plan excluait le roi de `enemy`, ce qui suffisait à empêcher une *capture* de roi mais laissait un coup vers sa case classé « calme ». Corrigé par `blocked = us_bb | them_king` appliqué aux cibles du roi, des cavaliers et des glissantes : no-op sur position légale, mais nécessaire pour que le contrat « aucun coup illégal émis, même sur entrée illégale » soit vrai.
 6. **`Position` n'implémente pas `Debug`** — sept assertions de test écrivaient `{pos:?}` et ne compilaient donc pas. Ajouter le derive toucherait au core gelé. Corrigé : un helper `describe(&pos)` (rendu du plateau depuis `mailbox`, `side`, `castle`, `ep`, tous publics) est fourni dans chacun des trois fichiers de test concernés (`tests/gct_attacks.rs`, `tests/gct_legality.rs`, `tests/gct_equivalence.rs`).
 
 Leçon pour l'exécuteur : le code C# de source a été lu intégralement, mais **le code Rust de ce plan n'a pas été compilé**. Il doit être traité comme un premier jet à corriger contre le compilateur, pas comme du code fini. Les endroits les plus susceptibles de demander un ajustement sont : les conversions de signe dans `emit_pawn_pushes` / `emit_pawn_capture` (`i16` → `u8`), l'ordre des arguments de `Move::new(from, to, flags)`, et les appels `let Some(...) = ... else { ... }` (let-else, stable depuis 1.65, disponible en 1.97).
