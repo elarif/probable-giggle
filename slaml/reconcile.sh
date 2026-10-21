@@ -1,11 +1,15 @@
 #!/bin/sh
 # Réconciliation M4-d9 : le log du run détaillé vs la table CPW stockée.
-# usage: sh slaml/reconcile.sh  → exit 0 = réconcilié exactement ; 1 = divergence.
+# usage: sh slaml/reconcile.sh [log]  → exit 0 = réconcilié exactement ; 1 = divergence.
 # (aucune mesure : lecture de logs uniquement ; peut tourner pendant le run,
 #  il répond simplement "log incomplet" tant que la table n'est pas imprimée.)
-cd /workspaces/probable-giggle || exit 2
+#
+# Le chemin de travail est la racine du repo, déduite de l'emplacement du
+# script : le chemin du codespace d'origine était codé en dur, ce qui
+# faisait échouer le script en exit 2 sur toute autre machine.
+cd "$(dirname "$0")/.." || exit 2
 
-LOG=slaml/d9_detailed.log
+LOG=${1:-slaml/d9_detailed.log}
 REF=slaml/cpw_d9_reference.md
 
 [ -f "$LOG" ] || { echo "reconcile: $LOG absent"; exit 2; }
