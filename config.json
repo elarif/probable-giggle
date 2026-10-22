@@ -22,7 +22,7 @@
         "enabled": false
     },
     "opening": {
-        "file": "openings/builtin_min.epd",
+        "file": "/tmp/openings_src/eco_lichess.epd",
         "format": 0,
         "order": 0,
         "plies": -1,
@@ -51,16 +51,16 @@
         "append_file": true
     },
     "sprt": {
-        "alpha": 0.0,
-        "beta": 0.0,
+        "alpha": 0.05,
+        "beta": 0.05,
         "elo0": 0.0,
-        "elo1": 0.0,
+        "elo1": 5.0,
         "model": "normalized",
-        "enabled": false
+        "enabled": true
     },
     "config_name": "config.json",
     "output": 0,
-    "seed": 2682445711277395387,
+    "seed": 10693101728863946086,
     "variant": 0,
     "type": 0,
     "gauntlet_seeds": 1,
@@ -69,8 +69,8 @@
     "wait": 0,
     "autosaveinterval": 20,
     "games": 2,
-    "rounds": 2,
-    "concurrency": 2,
+    "rounds": 400,
+    "concurrency": 5,
     "force_concurrency": false,
     "recover": false,
     "noswap": false,
@@ -89,57 +89,62 @@
     },
     "engines": [
         {
-            "name": "A1",
+            "name": "cand",
             "dir": "",
-            "cmd": "/workspaces/probable-giggle/target/release/mychess",
+            "cmd": "/home/elarif/mychess/target/release/mychess",
             "args": "uci",
             "restart": false,
-            "options": [],
+            "options": [
+                [
+                    "LeafQ",
+                    "1"
+                ]
+            ],
             "limit": {
                 "tc": {
-                    "increment": 0,
+                    "increment": 80,
                     "fixed_time": 0,
-                    "time": 0,
+                    "time": 8000,
                     "moves": 0,
                     "timemargin": 0
                 },
-                "nodes": 1000,
+                "nodes": 0,
                 "plies": 0
             },
             "variant": 0
         },
         {
-            "name": "v1",
+            "name": "base",
             "dir": "",
-            "cmd": "/workspaces/probable-giggle/prt/mychess-vmcts-v1",
+            "cmd": "/home/elarif/mychess/.worktrees/phase4-ref/target/release/mychess",
             "args": "uci",
             "restart": false,
             "options": [],
             "limit": {
                 "tc": {
-                    "increment": 0,
+                    "increment": 80,
                     "fixed_time": 0,
-                    "time": 0,
+                    "time": 8000,
                     "moves": 0,
                     "timemargin": 0
                 },
-                "nodes": 1000,
+                "nodes": 0,
                 "plies": 0
             },
             "variant": 0
         }
     ],
     "stats": {
-        "A1 vs v1": {
-            "wins": 0,
-            "losses": 0,
-            "draws": 4,
+        "cand vs base": {
+            "wins": 1,
+            "losses": 229,
+            "draws": 130,
             "penta_WW": 0,
-            "penta_WD": 0,
+            "penta_WD": 1,
             "penta_WL": 0,
-            "penta_DD": 2,
-            "penta_LD": 0,
-            "penta_LL": 0
+            "penta_DD": 27,
+            "penta_LD": 75,
+            "penta_LL": 77
         }
     }
 }
