@@ -19,8 +19,13 @@
 //! the comparison is not polluted by a machine that drifted between runs.
 //!
 //! ```text
-//! cargo run --release --example mcts_tactics -- <nodes> [threads...]
+//! cargo run --release --example mcts_tactics -- <nodes> [threads...] [leafq:d,...]
 //! ```
+//!
+//! `leafq:d` (phase 5) adds a **configuration dimension** : the depth of
+//! the tactical resolution of the leaf (`0` = the static evaluation alone,
+//! the phase-4 behaviour). The list is given as `leafq:0,1,2`; without it,
+//! the probe runs the phase-4 configurations only.
 
 use mychess::eval;
 use mychess::mcts::{Limits, Policy, Search};
@@ -134,6 +139,12 @@ fn main() {
     let nodes: u64 = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(10_000);
     let threads: Vec<usize> = args.iter().skip(2).filter_map(|s| s.parse().ok()).collect();
     let threads = if threads.is_empty() { vec![1] } else { threads };
+    // Phase 5: the depths of the tactical resolution of the leaf.
+    let leaf_qs: Vec<u32> = args
+        .iter()
+        .find_map(|s| s.strip_prefix("leafq:"))
+        .map(|s| s.split(',').filter_map(|x| x.trim().parse().ok()).collect())
+        .unwrap_or_else(|| vec![0]);
 
     // The oracle is computed once, before any search.
     let mut positions = Vec::new();
@@ -149,48 +160,52 @@ fn main() {
 
     println!("# nodes budget: {nodes}");
     println!("# fen | #wins | hit rate and score per configuration");
-    let mut hits = [[0usize; 8]; 2];
-    let mut totals = [[0usize; 8]; 2];
+    let mut hits = vec![[0usize; 8]; 2 * leaf_qs.len()];
+    let mut totals = vec![[0usize; 8]; 2 * leaf_qs.len()];
     for (fen, pos, wins) in &positions {
         print!("{fen} | {} |", wins.len());
         for (pi, policy) in [Policy::Uct, Policy::Puct].iter().enumerate() {
-            for (ti, t) in threads.iter().enumerate() {
-                let limits = Limits {
-                    nodes,
-                    movetime_ms: None,
-                    max_playout_ply: 100,
-                    c_uct: std::f32::consts::SQRT_2,
-                    c_puct: mychess::mcts::DEFAULT_C_PUCT,
-                    root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
-                    leaf_q: 0,
-                };
-                let search = Search::new(*pos, vec![pos.zobrist], limits, 42)
-                    .with_threads(*t)
-                    .with_policy(*policy);
-                let o = search.run(&AtomicBool::new(false));
-                let hit = wins.contains(&o.best);
-                hits[pi][ti] += usize::from(hit);
-                totals[pi][ti] += 1;
-                print!(
-                    " {}/{}=T{t}:{}({})",
-                    policy_name(*policy),
-                    ti,
-                    if hit { "HIT" } else { "miss" },
-                    o.score_cp
-                );
+            for (li, leaf_q) in leaf_qs.iter().enumerate() {
+                for (ti, t) in threads.iter().enumerate() {
+                    let limits = Limits {
+                        nodes,
+                        movetime_ms: None,
+                        max_playout_ply: 100,
+                        c_uct: std::f32::consts::SQRT_2,
+                        c_puct: mychess::mcts::DEFAULT_C_PUCT,
+                        root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
+                        leaf_q: *leaf_q,
+                    };
+                    let search = Search::new(*pos, vec![pos.zobrist], limits, 42)
+                        .with_threads(*t)
+                        .with_policy(*policy);
+                    let o = search.run(&AtomicBool::new(false));
+                    let hit = wins.contains(&o.best);
+                    hits[pi * leaf_qs.len() + li][ti] += usize::from(hit);
+                    totals[pi * leaf_qs.len() + li][ti] += 1;
+                    print!(
+                        " {}/{}=T{t}:q{leaf_q}:{}({})",
+                        policy_name(*policy),
+                        li,
+                        if hit { "HIT" } else { "miss" },
+                        o.score_cp
+                    );
+                }
             }
         }
         println!();
     }
     println!("# hit rate per configuration");
     for (pi, policy) in [Policy::Uct, Policy::Puct].iter().enumerate() {
-        for (ti, t) in threads.iter().enumerate() {
-            println!(
-                "# {}/{ti} (threads {t}): {}/{}",
-                policy_name(*policy),
-                hits[pi][ti],
-                totals[pi][ti]
-            );
+        for (li, leaf_q) in leaf_qs.iter().enumerate() {
+            for (ti, t) in threads.iter().enumerate() {
+                println!(
+                    "# {}/q{leaf_q} (threads {t}): {}/{}",
+                    policy_name(*policy),
+                    hits[pi * leaf_qs.len() + li][ti],
+                    totals[pi * leaf_qs.len() + li][ti]
+                );
+            }
         }
     }
 }

@@ -68,6 +68,7 @@ fn main() {
     let mut over_pawn = [0usize; 3];
     let mut over_rook = [0usize; 3];
     let mut with_capture = 0usize;
+    let mut total_captures = 0usize;
     let mut sampled = 0usize;
     let mut diffs: [Vec<i32>; 3] = [Vec::new(), Vec::new(), Vec::new()];
     // Deux populations : les positions **prises dans un échange** (le
@@ -101,9 +102,17 @@ fn main() {
 
         let v_static = eval::eval_for_mover(&pos);
         let caps: MoveList = generate_captures(&pos);
-        if !caps.is_empty() {
+        // Le mode `CapturesOnly` est **bruité** : il compte aussi les
+        // coups calmes du roi. On compte les **vrais** echanges (capture
+        // ou promotion) : c'est eux qui font tourner la quiescence.
+        let real = caps
+            .iter()
+            .filter(|mv| mv.is_capture() || mv.is_promotion())
+            .count();
+        if real > 0 {
             with_capture += 1;
         }
+        total_captures += real;
         for (i, d) in [1u32, 2, 4].iter().enumerate() {
             let v_q = qvalue(&pos, *d);
             let diff = (v_static - v_q).abs() as i64;
@@ -121,8 +130,12 @@ fn main() {
 
     println!("positions echantillonnees : {sampled}");
     println!(
-        "positions avec au moins une capture disponible : {with_capture} ({:.1} %)",
+        "positions avec au moins un echange (capture ou promotion) : {with_capture} ({:.1} %)",
         100.0 * with_capture as f64 / sampled.max(1) as f64
+    );
+    println!(
+        "echanges par position (moyenne) : {:.2}",
+        total_captures as f64 / sampled.max(1) as f64
     );
     println!();
     println!(
@@ -150,7 +163,11 @@ fn main() {
         );
     }
     println!();
-    println!("ecart moyen et biais en centipions (positif = l'eval statique surestime)");
+    println!(
+        "ecart moyen et biais en centipions (le biais est v_static - v_q : il est\n\
+         toujours <= 0, car le stand-pat garantit v_q >= v_static — l'eval statique\n\
+         ne peut que *sousestimer* ce que la quiescence voit)"
+    );
 
     // --- les positions prises dans un échange (effet horizon) -------------
     let n_in = pop.iter().filter(|&&x| x).count();

@@ -60,10 +60,40 @@
 //! Tout est en **centipions**, comme `eval::eval_for_mover`. La
 //! normalisation vers l'espace Q `[-1, 1]` reste faite par le pont
 //! `mcts::eval_normalized` — ce module ne connaît pas le MCTS.
+//!
+//! ## Verdict mesuré : **REVERTIE** (2026-10-22)
+//!
+//! La quiescence-lite a été **mesurée** contre la phase 4 gelée, et elle
+//! est **négative** : −177 Elo à 2 000 nœuds et −241 Elo à 10 000 nœuds
+//! pour `depth = 1` (−118 et −155 pour `depth = 2`). Le réglage par
+//! défaut reste donc `LeafQ = 0` (l'éval statique, le comportement de la
+//! phase 4).
+//!
+//! Le mécanisme est compris et il est **informatif** :
+//!
+//! 1. le `max` est **optimiste** — en profondeur 1 la capture est
+//!    supposée tenir (la réplique adverse n'est pas vue) ;
+//! 2. il **double compte** les échanges que l'arbre explorera de lui-même
+//!    une fois le nœud développé (la feuille est un nœud de frontière) ;
+//! 3. l'inflation qui en résulte est **systématique et positionnelle**
+//!    (+354 cp en moyenne pour le trait à la feuille) : elle fausse les
+//!    Q, et le moteur devient excessivement défensif.
+//!
+//! La leçon pour la suite : **une feuille de MCTS veut une espérance, pas
+//! un `max` adversarial.** La variante non biaisée (la moyenne sur les
+//! captures au lieu du maximum, pondérée par le nombre de coups légaux)
+//! est la piste naturelle ; sa correction serait un ordre de grandeur
+//! plus petite. Voir `docs/mcts/phase5-2026-10-22.md` §4.
+//!
+//! Le module est **conservé** : il porte les tests unitaires de la
+//! sémantique, la sonde `examples/leaf_probe` s'appuie dessus, et
+//! l'option UCI `LeafQ` permet de reproduire la mesure.
 
 use crate::eval;
 use crate::movegen::{MoveList, generate_captures, has_legal_move};
 use crate::position::Position;
+use crate::tables::{RANK_1, RANK_8};
+use crate::types::{Color, PAWN};
 
 /// La valeur d'un **mat** en centipions, dans l'échelle de la quiescence.
 ///
@@ -76,9 +106,46 @@ pub const MATE_CP: i32 = 30_000;
 /// échec) : nulle, comme la règle de nulle du moteur.
 pub const STALEMATE_CP: i32 = 0;
 
-/// La valeur de `pos` **pour le trait**, après avoir résolu les captures
-/// sur `depth` plies.
+/// Un test **superset**, bon marché : le trait peut-il capturer (ou
+/// promouvoir) ?
 ///
+/// `generate_captures` coûte une **génération légale complète** ; sur une
+/// position calme — la majorité des feuilles — c'est du pur gaspillage.
+/// Ce test répond à « y a-t-il *un peu* de chance d'échange » avec
+/// quelques opérations sur les bitboards, et il est délibérément un
+/// **superset** : un faux positif ne coûte que la génération (rare), un
+/// faux négatif cacherait une capture (interdit). Tout ce qui n'est pas
+/// manifestement vide renvoie donc `true`.
+///
+/// Les trois cas :
+///
+/// * la **prise en passant** n'attaque pas une case occupée, elle a son
+///   propre chemin ;
+/// * une **promotion** peut être calme (le pion avance sur une case
+///   vide) : la présence d'un pion sur la rangée de promotion suffit ;
+/// * sinon, une pièce adverse **attaquée** par le trait est la seule
+///   source de capture.
+fn may_exchange(pos: &Position, us: Color) -> bool {
+    if pos.ep_square().is_some() {
+        return true;
+    }
+    let promo_rank = if us == Color::White { RANK_8 } else { RANK_1 };
+    if pos.pieces(us, PAWN) & promo_rank != 0 {
+        return true;
+    }
+    let mut enemies = pos.color_bb(us.opp());
+    while enemies != 0 {
+        let sq = enemies.trailing_zeros() as u8;
+        if pos.is_square_attacked(sq, us) {
+            return true;
+        }
+        enemies &= enemies - 1;
+    }
+    false
+}
+
+/// La valeur de `pos` **pour le trait**, après avoir résolu les captures
+/// sur `depth` plies.///
 /// * `depth == 0` : l'éval statique (comportement de la phase 4) ;
 /// * pas de capture disponible : l'éval statique (stand-pat) ;
 /// * sinon : le maximum entre l'éval statique et la meilleure chaîne de
@@ -90,6 +157,14 @@ pub const STALEMATE_CP: i32 = 0;
 pub fn qvalue(pos: &Position, depth: u32) -> i32 {
     let stand_pat = eval::eval_for_mover(pos);
     if depth == 0 {
+        return stand_pat;
+    }
+    if !may_exchange(pos, pos.side) {
+        // Aucun echange possible : la quiescence ne peut rien voir de
+        // plus que l'eval statique. On evite ainsi le cout d'une
+        // generation complete sur la majorite des feuilles (les
+        // positions calmes), ou la generation de captures est du pur
+        // gaspillage.
         return stand_pat;
     }
     let caps: MoveList = generate_captures(pos);
@@ -131,7 +206,6 @@ fn qvalue_after(pos: &Position, depth: u32) -> i32 {
     }
     qvalue(pos, depth)
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,5 +286,64 @@ mod tests {
             q >= MATE_CP,
             "le mat doit etre detecte dans la chaine : {q}"
         );
+    }
+
+    /// La version **sans** le filtre rapide : elle genere toujours les
+    /// captures.
+    fn qvalue_unfiltered(pos: &Position, depth: u32) -> i32 {
+        let stand_pat = eval::eval_for_mover(pos);
+        if depth == 0 {
+            return stand_pat;
+        }
+        let caps: MoveList = generate_captures(pos);
+        if caps.is_empty() {
+            return stand_pat;
+        }
+        let mut best = stand_pat;
+        for mv in caps.iter() {
+            if !(mv.is_capture() || mv.is_promotion()) {
+                continue;
+            }
+            let mut child = *pos;
+            let undo = child.make(mv);
+            let v = -qvalue_after(&child, depth - 1);
+            child.unmake(mv, undo);
+            if v > best {
+                best = v;
+            }
+        }
+        best
+    }
+
+    /// Le filtre rapide ne doit **jamais** cacher une capture : sur un
+    /// corpus tire au hasard, la valeur filtree est **identique** a la
+    /// valeur brute.
+    #[test]
+    fn the_fast_filter_never_hides_a_capture() {
+        use crate::mcts::Rng;
+        use crate::movegen::generate_all;
+
+        let mut rng = Rng::new(0x00C0_FFEE_1234_5678);
+        let mut checked = 0usize;
+        for _ in 0..40 {
+            let mut pos = Position::startpos();
+            for _ in 0..30 {
+                let list = generate_all(&pos);
+                if list.is_empty() {
+                    break;
+                }
+                let pick = (rng.next_u64() % list.len() as u64) as usize;
+                pos.make(list.as_slice()[pick]);
+                for d in [1u32, 2] {
+                    assert_eq!(
+                        qvalue(&pos, d),
+                        qvalue_unfiltered(&pos, d),
+                        "le filtre rapide a change la valeur sur {pos:?} (profondeur {d})"
+                    );
+                }
+                checked += 1;
+            }
+        }
+        assert!(checked > 100, "le corpus est trop petit : {checked}");
     }
 }

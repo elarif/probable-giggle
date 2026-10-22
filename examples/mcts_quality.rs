@@ -19,8 +19,12 @@
 //! polluted by a machine that drifted between two runs.
 //!
 //! ```text
-//! cargo run --release --example mcts_quality -- <nodes> [threads...]
+//! cargo run --release --example mcts_quality -- <nodes> [threads...] [leafq:d,...]
 //! ```
+//!
+//! `leafq:d` (phase 5) adds the depth of the tactical resolution of the
+//! leaf as a configuration dimension (`0` = the static evaluation alone,
+//! the phase-4 behaviour).
 
 use mychess::mcts::{Limits, Policy, Search};
 use mychess::movegen::{MoveList, generate};
@@ -84,6 +88,12 @@ fn main() {
         .and_then(|s| s.parse().ok())
         .map(|t| vec![t])
         .unwrap_or_else(|| vec![1, 2, 4, 6]);
+    // Phase 5: the depths of the tactical resolution of the leaf.
+    let leaf_qs: Vec<u32> = args
+        .iter()
+        .find_map(|s| s.strip_prefix("leafq:"))
+        .map(|s| s.split(',').filter_map(|x| x.trim().parse().ok()).collect())
+        .unwrap_or_else(|| vec![0]);
 
     println!("# nodes budget: {nodes}");
     println!("# fen | mates | score per configuration");
@@ -91,29 +101,35 @@ fn main() {
         let pos = Position::from_fen(fen).expect("valid FEN");
         let mates = mating_moves(&pos);
         for policy in [Policy::Uct, Policy::Puct] {
-            let mut line = format!("{fen} | {} | {}", mates.len(), policy_name(policy));
-            for t in &threads {
-                let limits = Limits {
-                    nodes,
-                    movetime_ms: None,
-                    max_playout_ply: 100,
-                    c_uct: std::f32::consts::SQRT_2,
-                    c_puct: mychess::mcts::DEFAULT_C_PUCT,
-                    root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
-                    leaf_q: 0,
-                };
-                let search = Search::new(pos, vec![pos.zobrist], limits, 42)
-                    .with_threads(*t)
-                    .with_policy(policy);
-                let o = search.run(&AtomicBool::new(false));
-                let found = !mates.is_empty() && mates.contains(&o.best);
-                line += &format!(
-                    " T={t}:{} ({})",
-                    if found { "MATE" } else { "----" },
-                    o.score_cp
+            for leaf_q in &leaf_qs {
+                let mut line = format!(
+                    "{fen} | {} | {} q{leaf_q}",
+                    mates.len(),
+                    policy_name(policy)
                 );
+                for t in &threads {
+                    let limits = Limits {
+                        nodes,
+                        movetime_ms: None,
+                        max_playout_ply: 100,
+                        c_uct: std::f32::consts::SQRT_2,
+                        c_puct: mychess::mcts::DEFAULT_C_PUCT,
+                        root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
+                        leaf_q: *leaf_q,
+                    };
+                    let search = Search::new(pos, vec![pos.zobrist], limits, 42)
+                        .with_threads(*t)
+                        .with_policy(policy);
+                    let o = search.run(&AtomicBool::new(false));
+                    let found = !mates.is_empty() && mates.contains(&o.best);
+                    line += &format!(
+                        " T={t}:{} ({})",
+                        if found { "MATE" } else { "----" },
+                        o.score_cp
+                    );
+                }
+                println!("{line}");
             }
-            println!("{line}");
         }
     }
 }

@@ -155,6 +155,14 @@ pub struct Limits {
     /// quiescence-lite. This is what removes the *horizon effect*: a leaf
     /// that stands in the middle of an exchange is no longer scored as if
     /// the exchange did not exist.
+    ///
+    /// **Measured verdict (2026-10-22): the default stays `0`.** The
+    /// quiescence-lite is *negative* against the frozen phase 4
+    /// (−177 Elo at 2 000 nodes, −241 at 10 000 for `d = 1`): the `max`
+    /// over captures is optimistic and double-counts the exchanges the
+    /// tree explores by itself. The knob is kept (default `0`, i.e. the
+    /// phase-4 behaviour) as a documented experiment — see
+    /// `docs/mcts/phase5-2026-10-22.md` §4.
     pub leaf_q: u32,
 }
 

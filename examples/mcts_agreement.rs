@@ -21,8 +21,14 @@
 //! score error at the same node budget.
 //!
 //! ```text
-//! cargo run --release --example mcts_agreement -- <ref_nodes> <positions> [budgets...]
+//! cargo run --release --example mcts_agreement -- <ref_nodes> <positions> [budgets...] [leafq:d,...]
 //! ```
+//!
+//! `leafq:d,...` (phase 5) sweeps the depth of the tactical resolution of
+//! the leaf. For each depth, the **reference** is recomputed with the same
+//! depth (the legacy UCT rule at `ref_nodes`): the question is then "does
+//! the short search converge faster to the long answer **of its own
+//! leaf**", which is the internal consistency of the quiescent leaf.
 
 use mychess::mcts::{Limits, Policy, Rng, Search};
 use mychess::movegen::{MoveList, generate};
@@ -121,6 +127,23 @@ fn main() {
     }
 
     let tactical = args.iter().any(|s| s == "tactical");
+    // Phase 5: the **dispersion** mode. The agreement with a long search
+    // measures the *bias* of a short search; the dispersion measures its
+    // *noise*: the same position, the same budget, only the seed changes.
+    // A leaf evaluation that injects a position-dependent bias (the
+    // quiescence's optimistic max) shows up here as a larger dispersion.
+    let noise = args.iter().any(|s| s == "noise");
+    let seeds: u64 = args
+        .iter()
+        .find_map(|s| s.strip_prefix("seeds="))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(8);
+    // Phase 5: the depths of the tactical resolution of the leaf.
+    let leaf_qs: Vec<u32> = args
+        .iter()
+        .find_map(|s| s.strip_prefix("leafq:"))
+        .map(|s| s.split(',').filter_map(|x| x.trim().parse().ok()).collect())
+        .unwrap_or_else(|| vec![0]);
     let threads: usize = args
         .iter()
         .find_map(|s| s.strip_prefix("threads="))
@@ -139,61 +162,108 @@ fn main() {
     println!("# reference: the legacy UCT rule at {ref_nodes} nodes");
 
     // --- the reference ------------------------------------------------------
-    let mut reference: Vec<(Move, i32)> = Vec::with_capacity(positions.len());
-    for pos in &positions {
-        let o = Search::new(*pos, vec![pos.zobrist], limits(ref_nodes), 42)
-            .with_policy(Policy::Uct)
-            .run(&AtomicBool::new(false));
-        reference.push((o.best, o.score_cp));
-    }
-
-    // --- the short searches -------------------------------------------------
-    for budget in &budgets {
-        // The legacy UCT rule (the baseline).
-        {
-            let mut agree = 0usize;
-            let mut err_sum = 0i64;
-            let mut n = 0usize;
-            for (pos, (ref_move, ref_score)) in positions.iter().zip(reference.iter()) {
-                let o = Search::new(*pos, vec![pos.zobrist], limits(*budget), 42)
-                    .with_policy(Policy::Uct)
-                    .with_threads(threads)
-                    .run(&AtomicBool::new(false));
-                if o.best == *ref_move {
-                    agree += 1;
-                }
-                err_sum += (o.score_cp - ref_score).abs() as i64;
-                n += 1;
-            }
-            println!(
-                "# budget {budget} policy uct: agreement {agree}/{n} ({:.1} %), mean |score error| {:.1} cp",
-                100.0 * agree as f64 / n as f64,
-                err_sum as f64 / n as f64
-            );
+    // The reference is computed **per leaf depth**: the question is
+    // whether a short search converges faster to the long answer *of its
+    // own leaf*.
+    for leaf_q in &leaf_qs {
+        let mut reference: Vec<(Move, i32)> = Vec::with_capacity(positions.len());
+        for pos in &positions {
+            let mut lim = limits(ref_nodes);
+            lim.leaf_q = *leaf_q;
+            let o = Search::new(*pos, vec![pos.zobrist], lim, 42)
+                .with_policy(Policy::Uct)
+                .run(&AtomicBool::new(false));
+            reference.push((o.best, o.score_cp));
         }
-        // The PUCT rule, for every explored constant.
-        for c_puct in &c_pucts {
-            let mut agree = 0usize;
-            let mut err_sum = 0i64;
-            let mut n = 0usize;
-            for (pos, (ref_move, ref_score)) in positions.iter().zip(reference.iter()) {
-                let mut lim = limits(*budget);
-                lim.c_puct = *c_puct;
-                let o = Search::new(*pos, vec![pos.zobrist], lim, 42)
-                    .with_policy(Policy::Puct)
-                    .with_threads(threads)
-                    .run(&AtomicBool::new(false));
-                if o.best == *ref_move {
-                    agree += 1;
+
+        // --- the short searches ---------------------------------------------
+        for budget in &budgets {
+            // The legacy UCT rule (the baseline).
+            {
+                let mut agree = 0usize;
+                let mut err_sum = 0i64;
+                let mut n = 0usize;
+                for (pos, (ref_move, ref_score)) in positions.iter().zip(reference.iter()) {
+                    let mut lim = limits(*budget);
+                    lim.leaf_q = *leaf_q;
+                    let o = Search::new(*pos, vec![pos.zobrist], lim, 42)
+                        .with_policy(Policy::Uct)
+                        .with_threads(threads)
+                        .run(&AtomicBool::new(false));
+                    if o.best == *ref_move {
+                        agree += 1;
+                    }
+                    err_sum += (o.score_cp - ref_score).abs() as i64;
+                    n += 1;
                 }
-                err_sum += (o.score_cp - ref_score).abs() as i64;
-                n += 1;
+                println!(
+                    "# budget {budget} policy uct leafq {leaf_q}: agreement {agree}/{n} ({:.1} %), mean |score error| {:.1} cp",
+                    100.0 * agree as f64 / n as f64,
+                    err_sum as f64 / n as f64
+                );
             }
-            println!(
-                "# budget {budget} policy puct (c_puct {c_puct}): agreement {agree}/{n} ({:.1} %), mean |score error| {:.1} cp",
-                100.0 * agree as f64 / n as f64,
-                err_sum as f64 / n as f64
-            );
+            // The PUCT rule, for every explored constant.
+            for c_puct in &c_pucts {
+                let mut agree = 0usize;
+                let mut err_sum = 0i64;
+                let mut n = 0usize;
+                for (pos, (ref_move, ref_score)) in positions.iter().zip(reference.iter()) {
+                    let mut lim = limits(*budget);
+                    lim.c_puct = *c_puct;
+                    lim.leaf_q = *leaf_q;
+                    let o = Search::new(*pos, vec![pos.zobrist], lim, 42)
+                        .with_policy(Policy::Puct)
+                        .with_threads(threads)
+                        .run(&AtomicBool::new(false));
+                    if o.best == *ref_move {
+                        agree += 1;
+                    }
+                    err_sum += (o.score_cp - ref_score).abs() as i64;
+                    n += 1;
+                }
+                println!(
+                    "# budget {budget} policy puct (c_puct {c_puct}) leafq {leaf_q}: agreement {agree}/{n} ({:.1} %), mean |score error| {:.1} cp",
+                    100.0 * agree as f64 / n as f64,
+                    err_sum as f64 / n as f64
+                );
+            }
+        }
+
+        // --- the dispersion (phase 5) ---------------------------------------
+        if noise {
+            for budget in &budgets {
+                for leaf_q in &leaf_qs {
+                    let mut dev_sum = 0f64;
+                    let mut moved = 0usize;
+                    let mut n = 0usize;
+                    for pos in &positions {
+                        let mut scores = Vec::with_capacity(seeds as usize);
+                        let mut moves = Vec::with_capacity(seeds as usize);
+                        for s in 0..seeds {
+                            let mut lim = limits(*budget);
+                            lim.leaf_q = *leaf_q;
+                            let o = Search::new(*pos, vec![pos.zobrist], lim, 1000 + s)
+                                .with_policy(Policy::Puct)
+                                .with_threads(threads)
+                                .run(&AtomicBool::new(false));
+                            scores.push(o.score_cp as f64);
+                            moves.push(o.best);
+                        }
+                        let mean = scores.iter().sum::<f64>() / scores.len() as f64;
+                        dev_sum += scores.iter().map(|x| (x - mean).abs()).sum::<f64>()
+                            / scores.len() as f64;
+                        if moves.iter().any(|m| *m != moves[0]) {
+                            moved += 1;
+                        }
+                        n += 1;
+                    }
+                    println!(
+                        "# budget {budget} leafq {leaf_q}: dispersion |score - moyenne| {:.1} cp, coup instable sur {moved}/{n} positions ({:.1} %)",
+                        dev_sum / n as f64,
+                        100.0 * moved as f64 / n as f64
+                    );
+                }
+            }
         }
     }
 }

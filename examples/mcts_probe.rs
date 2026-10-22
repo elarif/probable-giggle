@@ -17,10 +17,15 @@
 //! selection); the two are measured **in the same session**, so the
 //! comparison is not polluted by a machine that drifted between runs.
 //!
+//! `leafq:<d>` (phase 5) sets the depth of the **tactical resolution of
+//! the leaf** (`0` = the static evaluation alone, i.e. the phase-4
+//! behaviour). The option is recognised **wherever** it appears in the
+//! command line.
+//!
 //! Output (one line, machine-readable):
 //!
 //! ```text
-//! PROBE|nodes|elapsed_ms|nps|vmhwm_kb|best|score|tree_nodes|tree_edges|policy
+//! PROBE|nodes|elapsed_ms|nps|vmhwm_kb|best|score|tree_nodes|tree_edges|policy|leaf_q
 //! ```
 //!
 //! `vmhwm_kb` is the **peak** resident set of the process (`VmHWM` of
@@ -64,6 +69,13 @@ fn main() {
         Policy::Uct => "uct",
         Policy::Puct => "puct",
     };
+    // Phase 5: the depth of the tactical resolution of the leaf. The
+    // option is recognised wherever it appears.
+    let leaf_q: u32 = args
+        .iter()
+        .find_map(|a| a.strip_prefix("leafq:"))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
 
     let pos = Position::from_fen(fen).expect("valid FEN");
     let limits = Limits {
@@ -77,7 +89,7 @@ fn main() {
         c_uct: std::f32::consts::SQRT_2,
         c_puct: mychess::mcts::DEFAULT_C_PUCT,
         root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
-        leaf_q: 0,
+        leaf_q,
     };
     let search = Search::new(pos, vec![pos.zobrist], limits, 42).with_policy(policy);
     let search = if threads > 1 {
@@ -91,7 +103,7 @@ fn main() {
     let ms = elapsed.as_millis().max(1) as u64;
     let nps = o.nodes as f64 / (elapsed.as_secs_f64().max(1e-9));
     println!(
-        "PROBE|{}|{}|{:.0}|{}|{}|{}|{}|{}|{policy_name}",
+        "PROBE|{}|{}|{:.0}|{}|{}|{}|{}|{}|{policy_name}|{leaf_q}",
         o.nodes,
         ms,
         nps,
