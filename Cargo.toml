@@ -39,6 +39,10 @@ harness = false
 name = "mcts"
 harness = false
 
+[[bench]]
+name = "ab"
+harness = false
+
 [profile.release]
 lto = true
 codegen-units = 1

@@ -2,6 +2,7 @@
 //! make/unmake with incremental Zobrist, FEN, perft — FROZEN at `vcore-1.0`)
 //! plus the MCTS phase additions: `eval` (PST hook), `mcts` (UCT v1), `uci`.
 
+pub mod ab;
 pub mod eval;
 pub mod mcts;
 pub mod memo;

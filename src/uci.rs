@@ -16,6 +16,7 @@
 //!   playout counts as one node);
 //! * tree is rebuilt per `go` (B2 adds reuse).
 
+use crate::ab;
 use crate::mcts::{Limits, Policy, Search};
 use crate::movegen;
 use crate::position::Position;
@@ -35,6 +36,24 @@ const NODE_BUDGET_SENTINEL: u64 = u64::MAX / 4;
 /// **dépassait** l'horloge (158/200 parties adjugées en TC 1+0.01) ; la
 /// phase 5 borne par le bas à 1 ms et retranche cette marge par le haut.
 const TIME_MARGIN_MS: u128 = 5;
+
+/// L'algorithme de recherche piloté par l'option UCI `Search`.
+///
+/// * `Mcts` — le MCTS du projet (le **défaut**, inchangé : toutes les
+///   mesures gelées des phases 3–5 restent reproductibles) ;
+/// * `Alpha` — l'alpha-beta de `crate::ab` (le moteur de **référence**,
+///   `docs/ab/plan-alpha-beta-2026-10-22.md`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchKind {
+    Mcts,
+    Alpha,
+}
+
+impl Default for SearchKind {
+    fn default() -> Self {
+        SearchKind::Mcts
+    }
+}
 
 pub struct UciState {
     pos: Position,
@@ -56,6 +75,8 @@ pub struct UciState {
     leaf_q: u32,
     /// Number of parallel root workers (phase 3). 1 = mono-thread.
     threads: usize,
+    /// The search algorithm (AB): `mcts` (default) or `alpha`.
+    search: SearchKind,
     worker: Option<std::thread::JoinHandle<()>>,
     stop: Arc<AtomicBool>,
 }
@@ -74,6 +95,7 @@ impl Default for UciState {
             policy: Policy::default(),
             leaf_q: 0,
             threads: 1,
+            search: SearchKind::default(),
             worker: None,
             stop: Arc::new(AtomicBool::new(false)),
         }
@@ -145,6 +167,11 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                 "option name LeafQ type spin default {} min 0 max 8",
                 st.leaf_q
             ));
+            // L'alpha-beta de référence (`docs/ab/plan-alpha-beta-2026-10-22.md`).
+            // Le **défaut reste `mcts`** : les mesures gelées des phases
+            // 3–5 (et le tournoi du 2026-10-22) doivent rester
+            // reproductibles à l'identique.
+            out_line("option name Search type string default mcts");
             out_line("uciok");
         }
         Some("isready") => {
@@ -169,7 +196,53 @@ fn handle(st: &mut UciState, line: &str) -> bool {
             let policy = st.policy;
             let leaf_q = st.leaf_q;
             let threads = st.threads;
+            let kind = st.search;
             st.worker = Some(std::thread::spawn(move || {
+                // ---- l'alpha-beta de référence (phase AB) ----
+                // `docs/ab/plan-alpha-beta-2026-10-22.md`. Le chemin MCTS
+                // ci-dessous est **inchangé** : c'est lui qui porte les
+                // mesures gelées des phases 3 à 5.
+                if kind == SearchKind::Alpha {
+                    let limits = ab::Limits {
+                        max_depth: go.depth.unwrap_or(0),
+                        movetime_ms: go.movetime_ms,
+                        // The node budget is only used when it was
+                        // **explicitly** requested (`go nodes N`): the
+                        // depth -> nodes mapping of the MCTS must not
+                        // become the alpha-beta's node limit.
+                        nodes: if go.nodes_given && go.nodes < NODE_BUDGET_SENTINEL {
+                            go.nodes
+                        } else {
+                            u64::MAX
+                        },
+                    };
+                    let search = ab::Search::new(pos, hist, limits);
+                    let o = search.run(&stop);
+                    // Même contrat que le MCTS : une position jouable
+                    // reçoit toujours un coup **légal**.
+                    let best = if o.best == Move::NONE {
+                        ab::first_legal_move(&pos)
+                    } else {
+                        o.best
+                    };
+                    let nps = if o.elapsed_ms > 0 {
+                        o.nodes as f64 / (o.elapsed_ms as f64 / 1000.0)
+                    } else {
+                        o.nodes as f64
+                    };
+                    let pv: Vec<String> = o.pv.iter().map(|m| m.uci()).collect();
+                    println!(
+                        "info depth {} score cp {} nodes {} nps {:.0} time {} pv {}",
+                        o.depth,
+                        o.score_cp,
+                        o.nodes,
+                        nps,
+                        o.elapsed_ms,
+                        pv.join(" ")
+                    );
+                    println!("bestmove {}", move_uci(best));
+                    return;
+                }
                 let search = Search::new(
                     pos,
                     hist,
@@ -336,6 +409,13 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
                 .map(|x: usize| x.clamp(1, 64))
                 .unwrap_or(st.threads)
         }
+        // L'alpha-beta de référence (`docs/ab/plan-alpha-beta-2026-10-22.md`).
+        ("Search", _) => {
+            st.search = match v.trim().to_ascii_lowercase().as_str() {
+                "alpha" | "alphabeta" | "alpha-beta" => SearchKind::Alpha,
+                _ => SearchKind::Mcts,
+            }
+        }
         (name, value) => eprintln!("uci: ignored option {name:?} = {value:?}"),
     }
 }
@@ -402,6 +482,19 @@ fn apply_move(p: &mut Position, hist: &mut Vec<u64>, tok: &str) {
 pub struct GoLimits {
     pub nodes: u64,
     pub movetime_ms: Option<u128>,
+    /// The requested depth (`go depth N`).
+    ///
+    /// The MCTS path ignores it (it maps a depth to a node budget, its
+    /// historical behaviour) ; the **alpha-beta** path uses it as its
+    /// maximum depth.
+    pub depth: Option<u32>,
+    /// Whether the node budget was **explicitly** requested (`go nodes N`).
+    ///
+    /// It matters for the alpha-beta path: the MCTS maps a *depth* to a
+    /// node budget (30 000 nœuds par ply), and that derived budget must
+    /// **not** become the alpha-beta's node limit — it would abort the
+    /// depth-6 iteration at 180 000 nœuds.
+    pub nodes_given: bool,
 }
 
 /// Parse a `go` command into a budget.
@@ -414,6 +507,8 @@ pub struct GoLimits {
 pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
     let mut nodes: u64 = 10_000; // default budget (protocol: `go` must move)
     let mut movetime_ms: Option<u128> = None;
+    let mut depth: Option<u32> = None;
+    let mut nodes_given = false;
     let (mut my_time, mut my_inc): (u128, u128) = (0, 0);
     let mut is_white = *side == Color::White;
     let mut infinite = false;
@@ -426,6 +521,7 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
             "nodes" => {
                 if let Some(v) = val {
                     nodes = v.min(NODE_BUDGET_SENTINEL as u128) as u64;
+                    nodes_given = true;
                 }
                 i += 2;
             }
@@ -473,6 +569,8 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
                 if let Some(v) = val {
                     // generous mapping, v1: ~30k playouts per "ply depth"
                     nodes = v.min(1_000_000).saturating_mul(30_000) as u64;
+                    // The alpha-beta path takes the depth at face value.
+                    depth = Some(v.min(128) as u32);
                 }
                 i += 2;
             }
@@ -485,6 +583,8 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
         return GoLimits {
             nodes: NODE_BUDGET_SENTINEL,
             movetime_ms: Some(mt.saturating_sub(TIME_MARGIN_MS).max(1)),
+            depth,
+            nodes_given,
         };
     }
     if my_time > 0 {
@@ -514,6 +614,8 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
         return GoLimits {
             nodes: NODE_BUDGET_SENTINEL,
             movetime_ms: Some(budget),
+            depth,
+            nodes_given,
         };
     }
     if infinite {
@@ -521,10 +623,14 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
         return GoLimits {
             nodes: NODE_BUDGET_SENTINEL,
             movetime_ms: None,
+            depth,
+            nodes_given,
         };
     }
     GoLimits {
         nodes,
         movetime_ms: None,
+        depth,
+        nodes_given,
     }
 }
