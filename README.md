@@ -207,6 +207,31 @@ imputable à la seule règle PUCT. Écarts au protocole : book d'ouvertures
 de remplacement (ECO lichess, 3 863 positions, `tools/gen_epd_openings.py`)
 au lieu de l'UHO, et hôte non EPYC — d'où des Elo **relatifs**, à rejouer
 sur le book officiel et l'hôte de référence.
+### Niveau absolu — tournoi round-robin avec Reckless v0.1.0 (2026-10-22)
+
+L'estimation « 1417 Elo » (calibration directe contre Stockfish en force
+limitée) a été **annulée** : un round-robin a montré que l'échelle
+`UCI_Elo` de Stockfish n'est **pas** une échelle de force sous un budget
+de nœuds (matrice non transitive). Le tournoi a été **refait** avec un
+moteur de plus — **Reckless v0.1.0** — en **11 moteurs** (660 parties,
+12 par paire) sous un budget **de temps** (`movetime 200 ms/coup`), le
+seul budget que tous les moteurs honorent : Reckless n'implémente pas
+`go nodes`.
+
+Les **contrôles** passent (`mychess` 50,0 % · `reckless` 45,8 % ·
+`sf1900` 37,5 %) : l'environnement de mesure est sain, et le classement
+est cohérent (résidu maximal 90 Elo). Sous ce protocole, l'échelle
+`UCI_Elo` **est** monotone — et le classement donne **Reckless ≈ 2249**
+et **mychess ≈ 1296** sur cette échelle (interpolation locale entre les
+ancrages encadrants). Détails, contrôles et réserves : `docs/elo/README.md`.
+
+Le tournoi a au passage trouvé deux défauts de `mychess` : le `0000`
+répondu sur une position **jouable** (la recherche interrompue par un
+`stop` de l'arbitre ne produit aucun coup) — **corrigé**, avec deux
+tests de non-régression — et le dépassement récurrent du budget temps
+(7 parties sur 660) — **signalé, non corrigé** : le corriger changerait
+l'échelle gelée des phases 4 et 5.
+
 ### Phase 5 — feuille tactiquement résolue (quiescence-lite) : **mesurée, revertie**
 
 La phase 5 attaque l'**effet horizon** de la feuille : depuis A1, la

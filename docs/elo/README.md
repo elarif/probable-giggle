@@ -113,3 +113,160 @@ outil de mesure invalide, pas la force du moteur. Ce qui reste vrai :
 
 D'où la piste de la phase suivante : la **gestion du temps** est un
 levier plus rentable que l'éval, et il est mesurable.
+
+## Tournoi refait avec Reckless v0.1.0 (2026-10-22, budget en temps)
+
+> Le tournoi de la section précédente est **refait** avec un moteur de
+> plus : **Reckless v0.1.0** (<https://github.com/codedeliveryservice/Reckless/releases/tag/v0.1.0>).
+> Le protocole a dû **changer** : voir « Pourquoi le protocole a changé ».
+> Journal : `docs/elo/roundrobin-movetime-200ms-reckless.log` ·
+> Lancer : `tools/tournoi_roundrobin.sh` · Analyse : `tools/elo_roundrobin.py`.
+
+### Pourquoi le protocole a changé
+
+Le tournoi précédent jouait à **budget de nœuds** (`go nodes 40000` pour
+tous les moteurs). **Reckless v0.1.0 n'implémente pas `go nodes`** : son
+analyseur UCI (`engine/src/parser.rs`) n'accepte que `depth`, `movetime`
+et `wtime/btime/winc/binc`. Un `go nodes N` y tombe en
+`TimeControl::Infinite` — c'est-à-dire en **recherche infinie** : la
+partie se bloque, pas un résultat.
+
+Le seul budget que **tous** les moteurs honorent est donc le **temps** :
+`movetime 200 ms` par coup, identique pour chacun. C'est l'analogue
+direct du budget de nœuds (« le même budget **par coup** ») et cela
+supprime au passage le **biais de gestion d'horloge** que le contrôle de
+temps « horloge » introduisait (`mychess` ne recevait que ~4 % de son
+temps par coup, cf. la section précédente).
+
+Le protocole précédent est donc **incomparable** à celui-ci : les deux
+matrices ne se superposent pas. C'est le prix de l'ajout de Reckless, et
+il est assumé.
+
+> La release `v0.1.0` ne publie qu'un binaire **Windows** (`reckless.exe`).
+> Le moteur est donc compilé depuis la **source du tag `v0.1.0`**
+> (commit `ef98d47`), binaire installé dans
+> `~/.cache/mychess/engines/reckless-0.1.0`.
+
+### Protocole
+
+| | |
+|---|---|
+| moteurs | 11 : `mychess`, `mychess_ctrl`, `reckless`, `reckless_ctrl`, `sf1320`, `sf1425`, `sf1500`, `sf1600`, `sf1900`, `sf1900_ctrl`, `sf3190` |
+| parties | 660 (55 paires × 12 parties), 46 min 20 s, `-concurrency 5` |
+| budget | `movetime 200 ms` par coup pour **tous** les moteurs |
+| tolérance | `timemargin 200 ms` (une itération trop longue ne fait pas adjuger la partie) |
+| book | `eco_lichess.epd` (3 863 positions), ordre aléatoire, graine `20261022` |
+| adjudication | **aucune** (ni `-resign`, ni `-draw`) : même règle que le tournoi précédent — ces règles se déclenchent sur le score *rapporté* par le moteur, que le handicap de Stockfish brouille |
+| résultat | 613 mats, 38 nulles, **9 parties interrompues** par un dépassement de temps (dont une adjugée « coup illégal », voir « Les défauts trouvés par le tournoi ») |
+
+Les trois paires **de contrôle** (même binaire, ou même réglage) sont
+`mychess`/`mychess_ctrl`, `reckless`/`reckless_ctrl` et
+`sf1900`/`sf1900_ctrl` : elles doivent être à 50 %. C'est le seul test
+valide de l'environnement de mesure.
+
+### Résultats
+
+Classement (score sur les parties **jouées** ; les 9 parties
+interrompues par un dépassement de temps sont **écartées** de la
+matrice — voir « Les défauts trouvés par le tournoi ») :
+
+| rang | moteur | V-N-D | parties | score | Elo Bradley-Terry (champ) |
+|---|---|---|---|---|---|
+| 1 | `sf3190` | 120-0-0 | 120 | 100,0 % | +1901 |
+| 2 | `reckless_ctrl` | 90-26-4 | 120 | 76,7 % | +616 |
+| 3 | **`reckless`** | **90-27-3** | **120** | **76,2 %** | **+603** |
+| 4 | `sf1900_ctrl` | 71-45-3 | 119 | 60,9 % | +189 |
+| 5 | `sf1900` | 67-48-4 | 119 | 58,0 % | +122 |
+| 6 | `sf1600` | 58-53-9 | 120 | 52,1 % | −26 |
+| 7 | `sf1500` | 51-67-1 | 119 | 43,3 % | −222 |
+| 8 | `sf1425` | 27-81-9 | 117 | 26,9 % | −605 |
+| 9 | `mychess_ctrl` | 12-82-19 | 113 | 19,0 % | −797 |
+| 10 | `sf1320` | 18-95-5 | 118 | 17,4 % | −861 |
+| 11 | **`mychess`** | **9-89-19** | **117** | **15,8 %** | **−919** |
+
+**Contrôles** (paires de force identique, doivent être à 50 %) :
+
+| paire | parties | score | écart |
+|---|---|---|---|
+| `mychess` vs `mychess_ctrl` | 12 | 50,0 % | 0,0 σ |
+| `reckless` vs `reckless_ctrl` | 12 | 45,8 % | 0,3 σ |
+| `sf1900` vs `sf1900_ctrl` | 12 | 37,5 % | 0,9 σ |
+
+Les trois contrôles sont à 50 % : **l'environnement de mesure est sain**.
+Le résidu maximal du modèle de Bradley-Terry est de **90 Elo** (sur 55
+paires) : le classement est **cohérent** (transitif), contrairement à la
+matrice à budget de nœuds.
+
+### L'échelle `UCI_Elo` est-elle une échelle de force *ici* ?
+
+C'est le test qui avait annulé le « 1417 ». Testé sur les 15 paires de
+l'échelle `UCI_Elo` : **aucune inversion significative** (le nominally
+le plus fort bat toujours le nominally le plus faible). Sous un budget
+**de temps**, l'échelle `UCI_Elo` de Stockfish se comporte donc comme
+une échelle de force — ce qu'elle n'était pas sous un budget de nœuds,
+où le handicap ne réduisait que le *choif* de la racine.
+
+La relation « Elo du champ » → « Elo nominal » n'est **pas linéaire**
+(les ancrages s'écartent de la droite ajustée de 4 964 Elo) : le
+handicap ne retire pas la force d'une façon linéaire en `UCI_Elo`. La
+droite globale n'est donc pas exploitable ; l'estimateur retenu est
+l'**interpolation locale** entre les deux ancrages qui encadrent le
+moteur :
+
+| moteur | position | estimation (échelle `UCI_Elo`) |
+|---|---|---|
+| `reckless` | entre `sf1900` (1900) et `sf3190` (3190) | **≈ 2249** |
+| `mychess` | sous `sf1320` (1320) | **≈ 1296** (extrapolation) |
+
+Le verdict est **robuste** : en comptant les 9 parties interrompues par
+un dépassement de temps au lieu de les écarter, on obtient 2258 et 1293.
+
+### Les défauts trouvés par le tournoi
+
+Le tournoi a trouvé **deux défauts réels** de `mychess`, qu'aucun test
+unitaire ne voyait :
+
+1. **`0000` sur une position jouable** (corrigé, `src/uci.rs`). La
+   partie 332 a été perdue par « coup illégal » : `mychess` avait
+   **dépassé son temps**, fastchess lui a envoyé `stop` (pour qu'il
+   cesse de réfléchir) et attendait son `bestmove` ; la recherche
+   interrompue n'avait pas encore développé la racine, et le moteur a
+   répondu `0000` — un **coup illégal** dans une position qui avait
+   10 coups légaux. Le moteur répond maintenant un **coup légal** dès
+   que la recherche n'a rien produit (`uci::fallback_move`), et `0000`
+   reste la réponse correcte pour une position terminale. Deux tests
+   de non-régression (`go nodes 1` ⇒ un coup légal ; position de mat ⇒
+   `0000`).
+2. **Dépassement du budget temps** (signalé, **non corrigé**). 7 parties
+   sur 660 (1,1 %) impliquent `mychess` : 6 ont été perdues sur le temps
+   (débordement de 204 à 356 ms) et la septième est la partie 332, perdue
+   sur le `0000`. La cause est identifiée : l'échéance
+   n'est testée que **tous les 64 playouts** (`BUDGET_POLL_EVERY`), donc
+   le dernier lot peut dépasser d'autant. (2 autres parties ont
+   dépassé le temps avec Stockfish — `sf1320` et `sf1900` : le phénomène
+   n'est pas propre à `mychess`, mais il y est **3 fois** plus fréquent
+   — 6 temps pour `mychess`/`mychess_ctrl` contre 2 pour Stockfish.)
+   **Corriger ce point
+   changerait le comportement de la recherche** (le nombre de playouts
+   avant le test d'échéance), donc l'échelle gelée des phases 4 et 5 :
+   c'est une décision de phase, pas un correctif de bug.
+
+### Limites
+
+* **Un Elo n'est pas une propriété d'un moteur, mais d'un protocole.**
+  2249 et 1296 ne valent que pour « `movetime` 200 ms, book
+  `eco_lichess`, sans adjudication ». Le « 1417 » annulé reste annulé :
+  il mesure une autre position, dans un protocole dont l'ancre était
+  invalide.
+* L'estimation de `mychess` est une **extrapolation** sous le bas de
+  l'échelle : il ne fait que 32 % contre `sf1320` (3,5 points de score
+  en moyenne sur 11 parties), et le modèle le place **juste en dessous**
+  de `sf1320`.
+* La force de Stockfish en `UCI_LimitStrength` est calibrée par ses
+  auteurs pour son propre contrôle de temps : la lire à 200 ms/coup
+  reste une approximation.
+* Un seul hôte, une seule session, 12 parties par paire : l'intervalle
+  de confiance sur un score de paire est de ±14 points (1 σ), ce qui
+  explique les 0,3 σ et 0,9 σ des contrôles.
+* Le budget de 200 ms est **court** : les moteurs y sont en limite de
+  profondeur, et le classement pourrait bouger à 1 s/coup.

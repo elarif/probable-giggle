@@ -207,6 +207,7 @@ stickie Rustic — à documenter par mesure ; contrôle tiers = gauntlet).
 | 2026-10-22 | phase 4 (A2) | A2 : sélection **PUCT** (`Q + c_puct·P·sqrt(N)/(1+n)`) + prior MVV-LVA (`mcts::policy`, stocké dans `Edge::prior`) ; la largeur reste le tirage uniforme v1, la profondeur change ; la règle UCT est **conservée et figée** (`Policy::Uct`) ; options UCI `Policy`/`Cpuct`/`RootNoise` | nœuds-fixes 2k/10k/40k (**H1 aux trois**) + TC 8+0.08 (**H1**) | **+399,7 ± 50,9 (2k)** ; **+596,5 ± 90,9 (10k)** ; **+450,4 ± 55,2 (40k)** ; **+303,3 ± 36,4 (TC 8+0.08)** | 324 / 304 / 316 / 350 | **ACCEPTÉ (H1 aux trois budgets nœuds-fixes et au contrôle temps-fixe)** — voir la section « Échelle Elo — phase 4 » ; écarts au protocole : book ECO lichess (3 863 positions) au lieu de l'UHO, hôte non EPYC |
 | 2026-10-22 | phase 5 (A5) | A5 : **feuille tactiquement résolue** — `mcts::qsearch::qvalue` (quiescence-lite captures-seulement, stand-pat, terminalité prioritaire), `Limits.leaf_q`, option UCI `LeafQ` (défaut 0 = phase 4) ; **plus** le correctif du budget temps (plancher de 50 ms supprimé, budget borné par le temps restant − 5 ms) | nœuds-fixes 2k/10k/40k contre la **phase 4 gelée** (`0abdff2`) | **−177,2 ± 26,4 (q1, 2k)** ; **−118,1 ± 23,3 (q2, 2k)** ; **−240,8 ± 26,7 (q1, 10k)** ; **−154,5 ± 24,9 (q2, 10k)** | 400 / 400 / 370 / 400 | **REVERTIE (H0)** — la quiescence-lite est **négative** (−118 à −241 Elo) : le `max` de la quiescence est optimiste et double compte les échanges que l'arbre explorera ; `LeafQ` reste à **0**, le module est conservé comme expérience documentée ; le **correctif du budget temps est conservé** (0 partie adjugée sur dépassement en TC 1+0.01) |
 | 2026-10-22 | `f44abf5` | **niveau absolu** : calibration contre Stockfish 19 en force limitée (`UCI_LimitStrength` + `UCI_Elo`), budget **40 000 nœuds/move identique pour les deux moteurs**, book ECO lichess, 100 à 200 parties par niveau, 9 niveaux | nœuds-fixes 40k (les deux moteurs) | **≈ 1417 ± 19** (échelle `UCI_Elo` de Stockfish) | 900 (100 à 200 × 9 niveaux) | **mesuré** — méthode et preuves : `docs/elo/`, `docs/elo_estimation.md` ; l'estimation est **relative au book de remplacement** et au protocole (40k nœuds/move) ; le ± 19 est statistique, il ne couvre pas le biais de calibration de l'échelle `UCI_Elo` |
+| 2026-10-22 | `ce3650e` + ce commit | **niveau absolu, refait** : tournoi **round-robin de 11 moteurs** (`mychess` + **Reckless v0.1.0** + l'échelle Stockfish 1320 → 3190), 660 parties, 12 par paire, budget **temps** `movetime 200 ms/coup` — Reckless n'implémente pas `go nodes`, c'est le seul budget commun ; 3 paires de contrôle | `movetime 200 ms` (les 11 moteurs) | **mychess ≈ 1296** ; **Reckless ≈ 2249** (échelle `UCI_Elo` de Stockfish, interpolation locale entre les ancrages encadrants) | 660 (12 par paire) | **mesuré** — sous un budget **de temps**, l'échelle `UCI_Elo` est **monotone** (0 inversion significative sur 15 paires) alors qu'elle ne l'est pas sous un budget de nœuds : le « 1417 » reste **annulé** (autre protocole, ancre invalide) ; **deux défauts trouvés** : `0000` sur une position jouable (**corrigé**) et dépassement du budget temps (7/660, **signalé, non corrigé** — le corriger changerait l'échelle gelée) ; détails : `docs/elo/README.md` |
 
 ## Échelle Elo — phase 5 (feuille tactiquement résolue), 2026-10-22
 
@@ -365,6 +366,44 @@ Budget sims/s : le playout aléatoire (~76 µs) disparaît ; une feuille =
 make/unmake de descente (~22 ns/ply) + eval (~40-90 ns/position) → le
 dénominateur attendu de sims/s augmente d'un ordre de grandeur ; valeur
 exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
+
+## Tournoi round-robin (11 moteurs) — 2026-10-22, budget en temps
+
+* **champ** : `mychess`, `mychess_ctrl`, **`reckless` (v0.1.0)**,
+  `reckless_ctrl`, `sf1320`, `sf1425`, `sf1500`, `sf1600`, `sf1900`,
+  `sf1900_ctrl`, `sf3190` — 11 moteurs, 55 paires, **12 parties par
+  paire** (660 parties), 46 min 20 s, `-concurrency 5` ;
+* **budget** : `movetime 200 ms` par coup, identique pour tous — Reckless
+  v0.1.0 n'implémente **pas** `go nodes` (son parseur UCI n'accepte que
+  `depth`, `movetime` et `wtime/btime`), c'est le seul budget commun ;
+* **livrable** : `tools/tournoi_roundrobin.sh` (lanceur),
+  `tools/elo_roundrobin.py` (analyse), journal versionné
+  `docs/elo/roundrobin-movetime-200ms-reckless.log` ;
+* **contrôles** (même binaire / même réglage ⇒ 50 %) : `mychess` 50,0 %,
+  `reckless` 45,8 %, `sf1900` 37,5 % — **l'environnement de mesure est
+  sain** ; résidu maximal du modèle de Bradley-Terry : 90 Elo sur 55
+  paires (classement **cohérent**) ;
+* **résultat** : `sf3190` 100 % · **`reckless` 76,2 %** · `sf1900` 58,0 %
+  · `sf1600` 52,1 % · `sf1500` 43,3 % · `sf1425` 26,9 % · `sf1320` 17,4 %
+  · **`mychess` 15,8 %** — et, sur l'échelle `UCI_Elo` de Stockfish
+  (interpolation locale) : **Reckless ≈ 2249**, **mychess ≈ 1296** ;
+* **ce que ça change** : sous un budget **de temps**, l'échelle
+  `UCI_Elo` **est** une échelle de force (0 inversion significative sur
+  15 paires), alors qu'elle ne l'est pas sous un budget de nœuds. Le
+  « 1417 » reste **annulé** : il mesure une autre position, dans un
+  protocole dont l'ancre était invalide ;
+* **deux défauts trouvés par le tournoi** :
+  1. **`0000` sur une position jouable** — le moteur a dépassé son
+     budget, `fastchess` lui a envoyé `stop`, et la recherche
+     interrompue (racine non développée) a répondu `0000` : un coup
+     **illégal**, qui a fait perdre la partie 332. **Corrigé**
+     (`uci::fallback_move` + deux tests de non-régression) ;
+  2. **dépassement du budget temps** — 7 parties sur 660 impliquent
+     `mychess` (6 perdues sur le temps, débordement de 204 à 356 ms, et
+     la partie 332 sur le `0000`) : l'échéance n'est testée
+     que tous les 64 playouts. **Signalé, non corrigé** : le corriger
+     changerait le comportement de la recherche, donc l'échelle gelée
+     des phases 4 et 5 — c'est une décision de phase, pas un bugfix.
 
 ## Instruments de mesure (état au 2026-10-22)
 
