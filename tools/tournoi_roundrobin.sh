@@ -90,6 +90,18 @@ command -v fastchess >/dev/null || { echo "fastchess absent du PATH" >&2; exit 2
 
 mkdir -p "$(dirname "$OUT")"
 
+# `fastchess` **réécrit** un `config.json` dans le répertoire courant : ce
+# doit être le répertoire du journal, jamais la racine du dépôt (ce
+# fichier y est versionné, et il n'est pas un livrable de la mesure).
+OUT_ABS="$(cd "$(dirname "$OUT")" && pwd)/$(basename "$OUT")"
+OUT_DIR="$(dirname "$OUT_ABS")"
+MYCHESS_ABS="$(cd "$(dirname "$MYCHESS")" && pwd)/$(basename "$MYCHESS")"
+if [ -n "${BOOK:-}" ] && [ "${BOOK:0:1}" != "/" ]; then
+    BOOK_ABS="$(cd "$(dirname "$BOOK")" && pwd)/$(basename "$BOOK")"
+else
+    BOOK_ABS="$BOOK"
+fi
+
 # La graine du book et le budget sont inscrits dans l'en-tête du journal :
 # un journal sans son en-tête n'est pas une preuve.
 {
@@ -101,9 +113,11 @@ mkdir -p "$(dirname "$OUT")"
     echo "# date : $(date -Is)"
 } > "$OUT"
 
+(
+cd "$OUT_DIR"
 fastchess \
-    -engine name=mychess cmd="$MYCHESS" args="uci" \
-    -engine name=mychess_ctrl cmd="$MYCHESS" args="uci" \
+    -engine name=mychess cmd="$MYCHESS_ABS" args="uci" \
+    -engine name=mychess_ctrl cmd="$MYCHESS_ABS" args="uci" \
     -engine name=reckless cmd="$RECKLESS" \
     -engine name=reckless_ctrl cmd="$RECKLESS" \
     -engine name=sf1320 cmd="$SF" option.UCI_LimitStrength=true option.UCI_Elo=1320 \
@@ -114,9 +128,10 @@ fastchess \
     -engine name=sf1900_ctrl cmd="$SF" option.UCI_LimitStrength=true option.UCI_Elo=1900 \
     -engine name=sf3190 cmd="$SF" option.UCI_LimitStrength=true option.UCI_Elo=3190 \
     -each proto=uci "st=$ST" "timemargin=$TIMEMARGIN" \
-    -openings file="$BOOK" format=epd order=random \
+    -openings file="$BOOK_ABS" format=epd order=random \
     -rounds "$ROUNDS" -games "$GAMES" -concurrency "$CONCURRENCY" -srand "$SEED" \
-    >> "$OUT" 2>&1 < /dev/null
+    >> "$OUT_ABS" 2>&1 < /dev/null
+)
 
 echo "journal : $OUT"
 grep -c "^Finished game" "$OUT" || true
