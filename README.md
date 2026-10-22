@@ -198,7 +198,9 @@ et `docs/mcts/phase4-2026-10-22.md`.
 a été compilé depuis les sources le 2026-10-22, et l'échelle SPRT
 (`elo0=0 elo1=5`, α=β=0.05) **phase 4 (PUCT) contre phase 3 (UCT)** donne
 **+399,7 ± 50,9 Elo** à 2 000 nœuds, **+596,5 ± 90,9** à 10 000 et
-**+450,4 ± 55,2** à 40 000 : **H1 accepté aux trois budgets**. Deux
+**+450,4 ± 55,2** à 40 000 : **H1 accepté aux trois budgets**. Le contrôle
+temps-fixe (TC 8+0.08) confirme : **+303,3 ± 36,4**, H1 accepté à 350
+parties. Deux
 contrôles : phase 3 contre phase 3 → 50,00 % (LLR −0,01) ; phase 4 forcé
 en `Policy=uct` contre phase 3 → 50,00 % (LLR −0,08) — l'écart est donc
 imputable à la seule règle PUCT. Écarts au protocole : book d'ouvertures

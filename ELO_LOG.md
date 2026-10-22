@@ -204,7 +204,7 @@ stickie Rustic — à documenter par mesure ; contrôle tiers = gauntlet).
 |---|---|---|---|---|---|---|
 | 2026-10-13 (post-M4: PENDING) | A1-uncommitted→ see commit | A1: playouts aléatoires remplacés par eval statique aux feuilles (eval_normalized = eval_for_mover/1000 clamp[-1,1]; terminalité exacte {-1,0,1} conservée AVANT l'eval; hooks PUCT/NN inchangés) | nœuds-fixes 10k (planifié) | PENDING | PENDING | **BLOQUÉ** — réconciliation M4 à 7/9 (voir plus haut) + fastchess absent de la machine |
 | 2026-10-20 | 8f52f16 (A1) | A1 commitée sur `main` ; le « see commit » de la ligne ci-dessus est résolu : `8f52f16` | — | — | — | inchangé (mesure A1 toujours bloquée) |
-| 2026-10-22 | phase 4 (A2) | A2 : sélection **PUCT** (`Q + c_puct·P·sqrt(N)/(1+n)`) + prior MVV-LVA (`mcts::policy`, stocké dans `Edge::prior`) ; la largeur reste le tirage uniforme v1, la profondeur change ; la règle UCT est **conservée et figée** (`Policy::Uct`) ; options UCI `Policy`/`Cpuct`/`RootNoise` | nœuds-fixes 2k/10k/40k (**H1 aux trois**) + TC 8+0.08 (inconcluant) | **+399,7 ± 50,9 (2k)** ; **+596,5 ± 90,9 (10k)** ; **+450,4 ± 55,2 (40k)** ; TC 8+0.08 : +263,4 ± 43,7 | 324 / 304 / 316 / 200 | **ACCEPTÉ (H1 aux trois budgets nœuds-fixes)** — voir la section « Échelle Elo — phase 4 » ; écarts au protocole : book ECO lichess (3 863 positions) au lieu de l'UHO, hôte non EPYC |
+| 2026-10-22 | phase 4 (A2) | A2 : sélection **PUCT** (`Q + c_puct·P·sqrt(N)/(1+n)`) + prior MVV-LVA (`mcts::policy`, stocké dans `Edge::prior`) ; la largeur reste le tirage uniforme v1, la profondeur change ; la règle UCT est **conservée et figée** (`Policy::Uct`) ; options UCI `Policy`/`Cpuct`/`RootNoise` | nœuds-fixes 2k/10k/40k (**H1 aux trois**) + TC 8+0.08 (**H1**) | **+399,7 ± 50,9 (2k)** ; **+596,5 ± 90,9 (10k)** ; **+450,4 ± 55,2 (40k)** ; **+303,3 ± 36,4 (TC 8+0.08)** | 324 / 304 / 316 / 350 | **ACCEPTÉ (H1 aux trois budgets nœuds-fixes et au contrôle temps-fixe)** — voir la section « Échelle Elo — phase 4 » ; écarts au protocole : book ECO lichess (3 863 positions) au lieu de l'UHO, hôte non EPYC |
 
 ## Échelle Elo — phase 4 (A2), 2026-10-22
 
@@ -263,14 +263,18 @@ de la phase 4 est imputable à la seule règle PUCT.
 
 | contrôle temps-fixe | parties | V-N-D | score | Elo ± err | LLR | verdict |
 |---|---|---|---|---|---|---|
-| TC 8+0.08, 200 parties | 200 | 132-4-64 | 82,00 % | **+263,4 ± 43,7** | 1,61 (54,6 %) | **inconcluant** |
+| TC 8+0.08, 200 parties | 200 | 132-4-64 | 82,00 % | +263,4 ± 43,7 | 1,61 (54,6 %) | inconclusive |
+| TC 8+0.08, 400 rondes | 350 | 256-10-84 | 85,14 % | **+303,3 ± 36,4** | **2,95 (100,2 %)** | **H1 accepté** |
 
-Le contrôle temps-fixe ne **confirme** donc pas le verdict, il ne le
-**contredit** pas : en mode temps le taux de nulle monte à 32 % (contre
-5 % en nœuds-fixes) parce que le budget de ~80 ms/coup rend les deux
-règles plus proches ; le signal est dilué et 200 parties ne suffisent
-pas à franchir la borne H1. À rejouer avec 400 rondes pour fermer la
-porte.
+Le run de 200 parties était **inconcluant** : en mode temps le taux de
+nulle monte à 32 % (64/200) contre 5 à 16 % en nœuds-fixes — le budget
+de ~80 ms/coup rend les deux règles plus proches, le signal est dilué
+et 200 parties ne suffisaient pas à franchir la borne. Le run **prolongé
+(400 rondes)** franchit la borne : le SPRT s'arrête à **H1 accepté** à
+350 parties. Le contrôle temps-fixe **confirme** donc le verdict de
+l'échelle nœuds-fixes, avec une ampleur un peu plus faible (+303 contre
++400 à +600), comme attendu : à ~80 k nœuds par coup, les deux règles
+sont plus proches qu'à 2 000–40 000 nœuds.
 
 Rapport complet : `docs/mcts/phase4-2026-10-22.md` (§3).
 
@@ -285,11 +289,10 @@ d'exploration. Le prior est livré comme crochet du pipeline
 Rapport : `docs/mcts/phase4-2026-10-22.md`.
 
 **Verdict A2 : ACCEPTÉ** sur l'échelle Elo (H1 aux trois budgets
-nœuds-fixes, voir plus haut). Les proxies des §2.3–2.4 de la phase 4
-allaient dans le même sens que l'Elo, ce qui est le premier cas où les
-deux familles de mesures concordent dans ce dépôt. Le contrôle
-temps-fixe (TC 8+0.08) est **de même signe mais non concluant** en 200
-parties : à rejouer avec plus de parties.
+nœuds-fixes **et** au contrôle temps-fixe TC 8+0.08, voir plus haut).
+Les proxies des §2.3–2.4 de la phase 4 allaient dans le même sens que
+l'Elo : c'est le premier cas où les deux familles de mesures concordent
+dans ce dépôt.
 
 Notes A1 : la valeur feuille = éval statique = le saut attendu le plus gros
 (Ramanujan 2010 shallow traps ; Monte-Carlo Chess 2012 ; lc0 par réseau).
