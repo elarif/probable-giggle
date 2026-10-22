@@ -194,10 +194,17 @@ du pipeline « logits → softmax → prior » que la policy apprise de D1
 branchera. Plan et rapport : `docs/superpowers/plans/2026-10-22-mcts-phase4-puct-priors.md`
 et `docs/mcts/phase4-2026-10-22.md`.
 
-**L'Elo de la phase 4 n'est pas mesuré** : `fastchess` n'est pas installé
-sur ce poste, aucune ligne SPRT n'a jamais été jouée. La phase change le
-comportement mono par défaut : la ligne de référence de la phase 3 est donc
-à rejouer avant toute conclusion sur la force.
+**L'Elo de la phase 4 est mesuré et la phase est acceptée** : `fastchess`
+a été compilé depuis les sources le 2026-10-22, et l'échelle SPRT
+(`elo0=0 elo1=5`, α=β=0.05) **phase 4 (PUCT) contre phase 3 (UCT)** donne
+**+399,7 ± 50,9 Elo** à 2 000 nœuds, **+596,5 ± 90,9** à 10 000 et
+**+450,4 ± 55,2** à 40 000 : **H1 accepté aux trois budgets**. Deux
+contrôles : phase 3 contre phase 3 → 50,00 % (LLR −0,01) ; phase 4 forcé
+en `Policy=uct` contre phase 3 → 50,00 % (LLR −0,08) — l'écart est donc
+imputable à la seule règle PUCT. Écarts au protocole : book d'ouvertures
+de remplacement (ECO lichess, 3 863 positions, `tools/gen_epd_openings.py`)
+au lieu de l'UHO, et hôte non EPYC — d'où des Elo **relatifs**, à rejouer
+sur le book officiel et l'hôte de référence.
 ### Mesure Elo (chaque amélioration = un SPRT)
 
 `./test.sh <cand_bin> <base_bin> [nodes] [rounds]` lance fastchess
@@ -209,12 +216,25 @@ tant que M4-d9 (`slaml/d9_detailed.log`) n'est pas réconcilié vers
 Openings officielles : placer `openings/uho_lichess_4852_v1.epd`
 (voir openings/README.md ; `builtin_min.epd` = smoke seulement).
 
+`fastchess` n'était pas installé sur le poste de mesure ; il a été
+**compilé depuis les sources** le 2026-10-22 :
+
+```bash
+git clone --depth 1 https://github.com/Disservin/fastchess.git && cd fastchess && make
+install fastchess ~/.local/bin/
+```
+
+Si l'UHO n'est pas téléchargeable, `python3 tools/gen_epd_openings.py
+/tmp/eco_lichess.epd` produit un book de remplacement (3 863 positions ECO
+lichess) — **les Elo mesurés avec ce book sont relatifs**, à rejouer sur
+l'UHO pour publier.
+
 ### Ladder (une étape à la fois, SPRT seul verdict)
 
-A1 eval-leaf → **A2 PUCT+priors (fait, phase 4)** → A3 FPU → A4 cpuct →
-B1 virtual loss+parallel → B2 tree reuse → B3 transpositions → C1 dirichlet →
-C2 priors SEE/history → C3 tapered eval. Interdits : RAVE, ordre Sirius
-copié, multi-améliorations.
+A1 eval-leaf → **A2 PUCT+priors (fait, phase 4, Elo +400 à +600)** → A3 FPU →
+A4 cpuct → B1 virtual loss+parallel → B2 tree reuse → B3 transpositions →
+C1 dirichlet → C2 priors SEE/history → C3 tapered eval. Interdits : RAVE,
+ordre Sirius copié, multi-améliorations.
 
 La suite du ladder côté entraînement est planifiée dans SELFPLAY.md
 (**v2** — plan corrigé, canonique) : chiffrage CPU/NPS en P-1, décision
