@@ -35,6 +35,10 @@ harness = false
 name = "movegen"
 harness = false
 
+[[bench]]
+name = "mcts"
+harness = false
+
 [profile.release]
 lto = true
 codegen-units = 1
