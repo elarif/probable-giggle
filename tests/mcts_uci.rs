@@ -156,6 +156,80 @@ impl UciSession {
     }
 }
 
+/// **Régression** — un budget qui ne développe pas la racine ne doit pas
+/// produire `0000`.
+///
+/// Le tournoi round-robin du 2026-10-22 (avec Reckless v0.1.0) a
+/// produit une partie perdue par « coup illégal » : le moteur avait
+/// **dépassé son temps**, fastchess lui a envoyé `stop` (pour qu'il
+/// cesse de réfléchir), et la recherche interrompue n'avait encore rien
+/// produit — le moteur a répondu `0000`.
+///
+/// `0000` n'est une réponse UCI correcte que dans une position
+/// **terminale** (mat ou pat). Dans une position jouable, c'est un coup
+/// illégal : la partie est perdue sur une position qui était jouable.
+///
+/// Avec `go nodes 1`, la recherche fait **un seul** playout : la racine
+/// n'est jamais développée, la recherche ne produit donc aucun coup.
+/// C'est le cas dégénéré déterministe de la régression.
+#[test]
+fn uci_go_nodes_1_answers_a_legal_move_not_0000() {
+    let mut s = UciSession::start();
+    s.send("uci");
+    let _ = s.wait_for("uciok", 5000);
+    s.send("position startpos moves e2e4 e7e5");
+    s.send("isready");
+    let _ = s.wait_for("readyok", 30000);
+    s.send("go nodes 1");
+    let lines = s.window_for_bestmove();
+    let bm = lines
+        .iter()
+        .find(|l| l.starts_with("bestmove"))
+        .and_then(|l| l.split_whitespace().nth(1))
+        .expect("bestmove line");
+    assert_ne!(bm, "0000", "a playable position must get a legal move");
+    // The move must be legal in the replayed position.
+    let mut pos = mychess::Position::startpos();
+    for u in ["e2e4", "e7e5"] {
+        let mut list = mychess::movegen::MoveList::new();
+        mychess::movegen::generate(&pos, &mut list, mychess::types::GenKind::All);
+        for i in 0..list.len() {
+            if list.get(i).uci() == u {
+                pos.make(list.get(i));
+            }
+        }
+    }
+    let mut list = mychess::movegen::MoveList::new();
+    mychess::movegen::generate(&pos, &mut list, mychess::types::GenKind::All);
+    let known: Vec<String> = (0..list.len()).map(|i| list.get(i).uci()).collect();
+    assert!(
+        known.iter().any(|u| u == bm),
+        "bestmove {bm} illegal (legal: {known:?})"
+    );
+}
+
+/// Le contre-test : dans une position **terminale** (ici un mat), `0000`
+/// est la bonne réponse — il n'y a aucun coup à jouer. Le repli ne doit
+/// donc pas transformer un mat en « coup illégal ».
+#[test]
+fn uci_mated_position_still_answers_0000() {
+    let mut s = UciSession::start();
+    s.send("uci");
+    let _ = s.wait_for("uciok", 5000);
+    // Fool's mate : les noirs matent en un coup.
+    s.send("position startpos moves f2f3 e7e5 g2g4 d8h4");
+    s.send("isready");
+    let _ = s.wait_for("readyok", 30000);
+    s.send("go nodes 1");
+    let lines = s.window_for_bestmove();
+    let bm = lines
+        .iter()
+        .find(|l| l.starts_with("bestmove"))
+        .and_then(|l| l.split_whitespace().nth(1))
+        .expect("bestmove line");
+    assert_eq!(bm, "0000", "a mated position has no move to play");
+}
+
 /// Phase 3: the `Threads` option must be advertised and accepted.
 #[test]
 fn uci_advertises_threads_option() {

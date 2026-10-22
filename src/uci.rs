@@ -187,6 +187,18 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                 .with_threads(threads)
                 .with_policy(policy);
                 let o = search.run(&stop);
+                // Une recherche **arrêtée** avant de développer la racine ne
+                // produit aucun coup. Répondre `0000` dans une position
+                // jouable est un **coup illégal** : fastchess (et tout
+                // autre arbitre) le compte comme tel, et la partie est
+                // perdue sur une position qui était jouable. `0000` n'est
+                // une réponse correcte que dans une position **terminale**
+                // (mat ou pat), où il n'y a aucun coup à jouer.
+                let best = if o.best == Move::NONE {
+                    fallback_move(&pos)
+                } else {
+                    o.best
+                };
                 let nps = if o.elapsed_ms > 0 {
                     o.nodes as f64 / (o.elapsed_ms as f64 / 1000.0)
                 } else {
@@ -206,7 +218,7 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                     leaf_q,
                     threads
                 );
-                println!("bestmove {}", move_uci(o.best));
+                println!("bestmove {}", move_uci(best));
             }));
         }
         Some("stop") => st.stop.store(true, Ordering::Relaxed),
@@ -224,6 +236,33 @@ fn stop_worker(st: &mut UciState) {
     if let Some(w) = st.worker.take() {
         st.stop.store(true, Ordering::Relaxed);
         let _ = w.join();
+    }
+}
+
+/// Le coup à jouer quand la recherche n'a rien produit.
+///
+/// `0000` n'est une réponse UCI correcte que dans une position
+/// **terminale** (mat ou pat) : il n'y a alors aucun coup à jouer. Dans
+/// une position jouable, `0000` est un **coup illégal** — l'adversaire
+/// le signale et la partie est perdue sur une position qui était
+/// jouable.
+///
+/// La recherche peut ne rien produire quand elle est **arrêtée** avant
+/// de développer la racine : c'est exactement ce que fait l'arbitre de
+/// fastchess quand il constate un dépassement de temps — il envoie
+/// `stop` au moteur trop lent et attend son `bestmove`. Le moteur doit
+/// alors répondre un coup **légal** (le meilleur qu'il ait), pas `0000`.
+///
+/// Le repli est le **premier coup légal** de la position : la recherche
+/// n'ayant rien produit, il n'y a pas de « meilleur » coup à estimer,
+/// et l'ordre des coups légaux est déterministe (donc reproductible).
+pub fn fallback_move(pos: &Position) -> Move {
+    let list = movegen::generate_all(pos);
+    if list.is_empty() {
+        // Position terminale : `0000` est la bonne réponse.
+        Move::NONE
+    } else {
+        list.get(0)
     }
 }
 
