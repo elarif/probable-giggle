@@ -204,6 +204,17 @@ stickie Rustic — à documenter par mesure ; contrôle tiers = gauntlet).
 |---|---|---|---|---|---|---|
 | 2026-10-13 (post-M4: PENDING) | A1-uncommitted→ see commit | A1: playouts aléatoires remplacés par eval statique aux feuilles (eval_normalized = eval_for_mover/1000 clamp[-1,1]; terminalité exacte {-1,0,1} conservée AVANT l'eval; hooks PUCT/NN inchangés) | nœuds-fixes 10k (planifié) | PENDING | PENDING | **BLOQUÉ** — réconciliation M4 à 7/9 (voir plus haut) + fastchess absent de la machine |
 | 2026-10-20 | 8f52f16 (A1) | A1 commitée sur `main` ; le « see commit » de la ligne ci-dessus est résolu : `8f52f16` | — | — | — | inchangé (mesure A1 toujours bloquée) |
+| 2026-10-22 | phase 4 (A2) | A2 : sélection **PUCT** (`Q + c_puct·P·sqrt(N)/(1+n)`) + prior MVV-LVA (`mcts::policy`, stocké dans `Edge::prior`) ; la largeur reste le tirage uniforme v1, la profondeur change ; la règle UCT est **conservée et figée** (`Policy::Uct`) ; options UCI `Policy`/`Cpuct`/`RootNoise` | nœuds-fixes 2k/10k/40k (planifié) | PENDING | PENDING | **BLOQUÉ** — fastchess absent de la machine ; la **ligne de référence de la phase 3 est à rejouer** (le comportement mono par défaut a changé) |
+
+Notes phase 4 (A2) : le gain mesuré est en **convergence en valeur** (erreur
+de score ÷ 4 à 7 contre une recherche de référence à 500–2 000 nœuds) et en
+**robustesse tactique en parallèle** (17/22 contre 10/22 à 6 threads et
+100 nœuds) ; le débit coûte −10 % sur kiwipete mais la mémoire et l'arbre
+divisent par ~1,6. **L'ablation montre que le prior MVV-LVA n'apporte rien
+de mesurable** : le gain vient de la forme de décroissance du terme
+d'exploration. Le prior est livré comme crochet du pipeline
+« logits → softmax → prior » que la policy apprise de D1 branchera.
+Rapport : `docs/mcts/phase4-2026-10-22.md`.
 
 Notes A1 : la valeur feuille = éval statique = le saut attendu le plus gros
 (Ramanujan 2010 shallow traps ; Monte-Carlo Chess 2012 ; lc0 par réseau).

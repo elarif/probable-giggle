@@ -148,8 +148,7 @@ Edge { mv: Move, child: u32, visits: u32, sum: f32, prior: f32 }   // 20 o
 * les statistiques de l'enfant vivent sur l'**arête** : `node.visits ==
   edge.visits` et `node.sum == edge.sum` (invariant du miroir), et le scan
   UCT ne lit qu'un tableau contigu ;
-* **sélection** : v1 = UCT `-(child.avg) + C·sqrt(ln N / n)` ; **A2** le
-  remplace par PUCT (le `Edge::prior` + hook `prior(pos, mv)` apparaissent là) ;
+* **sélection** : v1 = UCT `-(child.avg) + C·sqrt(ln N / n)` ; **phase 4** : PUCT `Q + c_puct·P·sqrt(N)/(1+n)` sur les enfants visités, la largeur restant le tirage uniforme v1 — `P` est le prior MVV-LVA calculé à l'expansion (`mcts::policy`, stocké dans `Edge::prior`) ;
 * **feuille** : depuis A1 = `eval::eval_for_mover` normalisé
   (`eval_normalized`, cp/1000 clamp [-1,1] — convention Q compatible PUCT/NN) ;
   la terminalité exacte {-1,0,1} reste prioritaire à la feuille. (Dans le
@@ -168,6 +167,37 @@ parallélisme racine **×5,3** à 6 threads à budget de nœuds constant et
 `docs/superpowers/plans/2026-10-22-mcts-phase3-arene-parallelisme.md` et
 `docs/mcts/phase3-2026-10-22.md`.
 
+### Phase 4 — PUCT et priors de policy
+
+La règle de sélection du MCTS devient **PUCT** : `Q + c_puct·P·sqrt(N)/(1+n)`,
+où `P` est le **prior** de policy du coup — un score **MVV-LVA** (captures +
+promotions) transformé en distribution de probabilité sur les coups légaux
+du nœud, calculé **une fois** à l'expansion et stocké dans `Edge::prior`
+(`mcts::policy`). La largeur de l'arbre (tirage uniforme parmi les enfants
+non visités) est **inchangée** ; c'est la **profondeur** qui change, et la
+forme de décroissance du terme d'exploration (`1/(1+n)` au lieu de
+`1/sqrt(n)`) qui fait le gain.
+
+La règle UCT d'origine est **conservée et figée** (`Policy::Uct`) : elle
+reste l'oracle du test différentiel de la phase 3 (épinglé dessus) et la
+contre-mesure A/B de la phase 4. Options UCI : `Policy` (`puct`/`uct`),
+`Cpuct`, `RootNoise`.
+
+Mesures (session unique, alternance A/B/A/B) : débit **−10 %** sur kiwipete
+(+6 % sur startpos) mais **RSS ÷1,55** et arbre **÷1,6** ; batterie
+tactique à 100 nœuds : **22/22** en mono et **17/22** à 6 threads contre
+**20/22** et **10/22** pour l'UCT ; convergence en valeur (erreur de score
+contre une recherche de référence) divisée par **4 à 7** à 500–2 000 nœuds.
+**Ablation : le prior MVV-LVA lui-même n'apporte rien de mesurable** — le
+gain vient de la forme de décroissance ; le prior est livré comme **crochet**
+du pipeline « logits → softmax → prior » que la policy apprise de D1
+branchera. Plan et rapport : `docs/superpowers/plans/2026-10-22-mcts-phase4-puct-priors.md`
+et `docs/mcts/phase4-2026-10-22.md`.
+
+**L'Elo de la phase 4 n'est pas mesuré** : `fastchess` n'est pas installé
+sur ce poste, aucune ligne SPRT n'a jamais été jouée. La phase change le
+comportement mono par défaut : la ligne de référence de la phase 3 est donc
+à rejouer avant toute conclusion sur la force.
 ### Mesure Elo (chaque amélioration = un SPRT)
 
 `./test.sh <cand_bin> <base_bin> [nodes] [rounds]` lance fastchess
@@ -181,9 +211,10 @@ Openings officielles : placer `openings/uho_lichess_4852_v1.epd`
 
 ### Ladder (une étape à la fois, SPRT seul verdict)
 
-A1 eval-leaf → A2 PUCT+priors → A3 FPU → A4 cpuct → B1 virtual loss+parallel →
-B2 tree reuse → B3 transpositions → C1 dirichlet → C2 priors SEE/history →
-C3 tapered eval. Interdits : RAVE, ordre Sirius copié, multi-améliorations.
+A1 eval-leaf → **A2 PUCT+priors (fait, phase 4)** → A3 FPU → A4 cpuct →
+B1 virtual loss+parallel → B2 tree reuse → B3 transpositions → C1 dirichlet →
+C2 priors SEE/history → C3 tapered eval. Interdits : RAVE, ordre Sirius
+copié, multi-améliorations.
 
 La suite du ladder côté entraînement est planifiée dans SELFPLAY.md
 (**v2** — plan corrigé, canonique) : chiffrage CPU/NPS en P-1, décision
