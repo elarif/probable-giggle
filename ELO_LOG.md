@@ -205,9 +205,73 @@ stickie Rustic — à documenter par mesure ; contrôle tiers = gauntlet).
 | 2026-10-13 (post-M4: PENDING) | A1-uncommitted→ see commit | A1: playouts aléatoires remplacés par eval statique aux feuilles (eval_normalized = eval_for_mover/1000 clamp[-1,1]; terminalité exacte {-1,0,1} conservée AVANT l'eval; hooks PUCT/NN inchangés) | nœuds-fixes 10k (planifié) | PENDING | PENDING | **BLOQUÉ** — réconciliation M4 à 7/9 (voir plus haut) + fastchess absent de la machine |
 | 2026-10-20 | 8f52f16 (A1) | A1 commitée sur `main` ; le « see commit » de la ligne ci-dessus est résolu : `8f52f16` | — | — | — | inchangé (mesure A1 toujours bloquée) |
 | 2026-10-22 | phase 4 (A2) | A2 : sélection **PUCT** (`Q + c_puct·P·sqrt(N)/(1+n)`) + prior MVV-LVA (`mcts::policy`, stocké dans `Edge::prior`) ; la largeur reste le tirage uniforme v1, la profondeur change ; la règle UCT est **conservée et figée** (`Policy::Uct`) ; options UCI `Policy`/`Cpuct`/`RootNoise` | nœuds-fixes 2k/10k/40k (**H1 aux trois**) + TC 8+0.08 (**H1**) | **+399,7 ± 50,9 (2k)** ; **+596,5 ± 90,9 (10k)** ; **+450,4 ± 55,2 (40k)** ; **+303,3 ± 36,4 (TC 8+0.08)** | 324 / 304 / 316 / 350 | **ACCEPTÉ (H1 aux trois budgets nœuds-fixes et au contrôle temps-fixe)** — voir la section « Échelle Elo — phase 4 » ; écarts au protocole : book ECO lichess (3 863 positions) au lieu de l'UHO, hôte non EPYC |
+| 2026-10-22 | phase 5 (A5) | A5 : **feuille tactiquement résolue** — `mcts::qsearch::qvalue` (quiescence-lite captures-seulement, stand-pat, terminalité prioritaire), `Limits.leaf_q`, option UCI `LeafQ` (défaut 0 = phase 4) ; **plus** le correctif du budget temps (plancher de 50 ms supprimé, budget borné par le temps restant − 5 ms) | nœuds-fixes 2k/10k/40k contre la **phase 4 gelée** (`0abdff2`) | **−177,2 ± 26,4 (q1, 2k)** ; **−118,1 ± 23,3 (q2, 2k)** ; **−240,8 ± 26,7 (q1, 10k)** ; **−154,5 ± 24,9 (q2, 10k)** | 400 / 400 / 370 / 400 | **REVERTIE (H0)** — la quiescence-lite est **négative** (−118 à −241 Elo) : le `max` de la quiescence est optimiste et double compte les échanges que l'arbre explorera ; `LeafQ` reste à **0**, le module est conservé comme expérience documentée ; le **correctif du budget temps est conservé** (0 partie adjugée sur dépassement en TC 1+0.01) |
+
+## Échelle Elo — phase 5 (feuille tactiquement résolue), 2026-10-22
+
+* **candidat** : `main` phase 5, option UCI `LeafQ = d` pilotée par
+  `fastchess -engine option.LeafQ=<d>` ;
+* **référence** : **phase 4 gelée** (worktree `.worktrees/phase4-ref`,
+  commit `0abdff2`) — c'est la même échelle que la phase 4, donc les
+  Elo sont **comparables** à ceux de la ligne A2 ;
+* protocole : identique à la phase 4 (SPRT `elo0=0 elo1=5 α=β=0.05`,
+  book `eco_lichess.epd` de remplacement, 200 rondes × 2 parties,
+  concurrence 5).
+
+| configuration | parties | V-N-D | score | Elo ± err | LLR | verdict |
+|---|---|---|---|---|---|---|
+| **contrôle** `LeafQ=0` contre phase 4 (2k) | 400 | 120-120-160 | 50,00 % | 0,0 ± 0,0 | −0,08 | neutre |
+| `LeafQ=1` (2 000 nœuds) | 400 | 18-206-176 | 26,50 % | **−177,2 ± 26,4** | −2,83 | **H0** |
+| `LeafQ=2` (2 000 nœuds) | 400 | 39-170-191 | 33,62 % | **−118,1 ± 23,3** | −2,33 | **H0** |
+| `LeafQ=1` (10 000 nœuds) | 370 | 1-223-146 | 20,00 % | **−240,8 ± 26,7** | **−2,95** | **H0 accepté** |
+| `LeafQ=2` (10 000 nœuds) | 400 | 27-194-179 | 29,12 % | **−154,5 ± 24,9** | −2,67 | **H0** |
+| `LeafQ=1` (40 000 nœuds) | 398 | 5-210-183 | 24,25 % | **−197,9 ± 24,3** | **−2,95** | **H0 accepté** |
+| `LeafQ=1` (TC 8+0.08) | 360 | 1-229-130 | 18,33 % | **−259,5 ± 31,0** | **−2,95** | **H0 accepté** |
+
+**Verdict : la quiescence-lite de la feuille est REVERTIE.** Le contrôle
+`LeafQ=0` contre phase 4 est **exactement neutre** (50,00 %, LLR −0,08) :
+le harnais n'est pas biaisé, le chemin par défaut est bien bit-à-bit, et
+tout l'écart est imputable à la seule résolution tactique de la feuille.
+
+Le mécanisme (mesuré, cf. `docs/mcts/phase5-2026-10-22.md` §4) : le
+`max` de la quiescence est **optimiste** (en profondeur 1 la capture est
+supposée tenir, la réplique n'est pas vue) et il **double compte** les
+échanges que l'arbre explorera lui-même. La valeur de feuille est donc
+gonflée de **+354 cp** en moyenne pour le trait à la feuille (`q1`), et
+cette inflation positionnelle fausse les Q. La régression est **monotone
+en l'inflation** :
+
+| profondeur | inflation moyenne | Elo (2 000 nœuds) | Elo (10 000 nœuds) |
+|---|---|---|---|
+| `q1` | +354 cp | −177,2 | −240,8 |
+| `q2` | +196 cp | −118,1 | −154,5 |
+
+Une feuille de MCTS veut une **espérance**, pas un `max` adversarial :
+c'est le cahier des charges de la variante non biaisée (moyenne sur les
+captures), qui est la suite naturelle sur ce sujet. Le module
+`mcts::qsearch`, ses tests et l'option `LeafQ` (défaut `0`) sont
+**conservés** comme expérience documentée et_negative.
+
+Le verdict est **robuste au protocole** : le contrôle **nœuds-fixes** et
+le contrôle **temps-fixe** (TC 8+0.08) disent la même chose, avec le
+même signe. En temps fixe, la régression est **plus forte** (−259 Elo) :
+la quiescence y coûte 27 à 64 % de débit (§2.2 du rapport), donc
+autant de nœuds en moins à budget de temps égal.
+
+### Phase 5 — le correctif du budget temps (conservé)
+
+La phase 4 a laissé un **défaut réel** : `parse_go` imposait un
+**plancher de 50 ms**, donc le moteur réfléchissait plus longtemps que
+son horloge (158/200 parties adjugées sur dépassement en TC 1+0.01). La
+phase 5 le corrige : le budget est **borné par le temps restant** moins
+une marge de 5 ms, et quand la formule TC ne donne rien (moins de 30 ms
+restants, pas d'incrément) le moteur consomme le temps restant au lieu
+de 1 ms. Mesure : `go wtime 20` → budget interne 15 ms, réponse à
+**16,3 ms** au pire ; le contrôle TC 1+0.01 ne fait **plus aucune**
+partie adjugée sur dépassement du côté phase 5. Ce correctif est
+**conservé** quelle que soit la décision sur la quiescence.
 
 ## Échelle Elo — phase 4 (A2), 2026-10-22
-
 Premier match joué par ce dépôt : `fastchess` a été **compilé depuis les
 sources** (`Disservin/fastchess`, commit `ebfd64cb7fac80d4822c50b07dca4fe934779d21`,
 installé dans `~/.local/bin`).

@@ -1,0 +1,976 @@
+Indexing opening suite...
+Started game 1 of 400 (cand vs base)
+Started game 3 of 400 (cand vs base)
+Started game 2 of 400 (base vs cand)
+Started game 4 of 400 (base vs cand)
+Started game 5 of 400 (cand vs base)
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+Finished game 4 (base vs cand): 1-0 {White mates}
+Started game 6 of 400 (base vs cand)
+Finished game 1 (cand vs base): 1-0 {White mates}
+Started game 7 of 400 (cand vs base)
+Finished game 2 (base vs cand): 1-0 {White mates}
+Started game 8 of 400 (base vs cand)
+Finished game 5 (cand vs base): 0-1 {Black mates}
+Started game 9 of 400 (cand vs base)
+Finished game 9 (cand vs base): 0-1 {Black mates}
+Started game 10 of 400 (base vs cand)
+Finished game 6 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 11 of 400 (cand vs base)
+Finished game 3 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 12 of 400 (base vs cand)
+Finished game 10 (base vs cand): 1-0 {White mates}
+Started game 13 of 400 (cand vs base)
+Finished game 12 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 14 of 400 (base vs cand)
+Finished game 8 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 15 of 400 (cand vs base)
+Finished game 7 (cand vs base): 0-1 {Black mates}
+Started game 16 of 400 (base vs cand)
+Finished game 15 (cand vs base): 0-1 {Black mates}
+Started game 17 of 400 (cand vs base)
+Finished game 11 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 18 of 400 (base vs cand)
+Finished game 14 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 19 of 400 (cand vs base)
+Finished game 17 (cand vs base): 0-1 {Black mates}
+Started game 20 of 400 (base vs cand)
+Finished game 13 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 21 of 400 (cand vs base)
+Finished game 18 (base vs cand): 0-1 {Black mates}
+Started game 22 of 400 (base vs cand)
+Finished game 20 (base vs cand): 0-1 {Black mates}
+Started game 23 of 400 (cand vs base)
+Finished game 16 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 24 of 400 (base vs cand)
+Finished game 19 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -88.74 +/- 95.36, nElo: -152.36 +/- 152.27
+LOS: 2.49 %, DrawRatio: 40.00 %, PairsRatio: 0.20
+Games: 20, Wins: 3, Losses: 8, Draws: 9, Points: 7.5 (37.50 %)
+Ptnml(0-2): [1, 4, 4, 1, 0], WL/DD Ratio: 1.00
+LLR: -0.10 (-3.5%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 25 of 400 (cand vs base)
+Finished game 21 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 26 of 400 (base vs cand)
+Finished game 24 (base vs cand): 0-1 {Black mates}
+Started game 27 of 400 (cand vs base)
+Finished game 22 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 28 of 400 (base vs cand)
+Finished game 25 (cand vs base): 0-1 {Black mates}
+Started game 29 of 400 (cand vs base)
+Finished game 27 (cand vs base): 0-1 {Black mates}
+Started game 30 of 400 (base vs cand)
+Finished game 26 (base vs cand): 1-0 {White mates}
+Started game 31 of 400 (cand vs base)
+Finished game 23 (cand vs base): 0-1 {Black mates}
+Started game 32 of 400 (base vs cand)
+Finished game 28 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 33 of 400 (cand vs base)
+Finished game 32 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 34 of 400 (base vs cand)
+Finished game 29 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 35 of 400 (cand vs base)
+Finished game 34 (base vs cand): 1-0 {White mates}
+Started game 36 of 400 (base vs cand)
+Finished game 31 (cand vs base): 0-1 {Black mates}
+Started game 37 of 400 (cand vs base)
+Finished game 33 (cand vs base): 0-1 {Black mates}
+Started game 38 of 400 (base vs cand)
+Finished game 30 (base vs cand): 1-0 {White mates}
+Started game 39 of 400 (cand vs base)
+Finished game 35 (cand vs base): 0-1 {Black mates}
+Started game 40 of 400 (base vs cand)
+Finished game 39 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 41 of 400 (cand vs base)
+Finished game 38 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 42 of 400 (base vs cand)
+Finished game 37 (cand vs base): 0-1 {Black mates}
+Started game 43 of 400 (cand vs base)
+Finished game 36 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 44 of 400 (base vs cand)
+Finished game 41 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 45 of 400 (cand vs base)
+Finished game 44 (base vs cand): 0-1 {Black mates}
+Started game 46 of 400 (base vs cand)
+Finished game 40 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -126.97 +/- 68.99, nElo: -220.19 +/- 107.67
+LOS: 0.00 %, DrawRatio: 35.00 %, PairsRatio: 0.08
+Games: 40, Wins: 4, Losses: 18, Draws: 18, Points: 13.0 (32.50 %)
+Ptnml(0-2): [3, 9, 7, 1, 0], WL/DD Ratio: 0.75
+LLR: -0.24 (-8.3%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 47 of 400 (cand vs base)
+Finished game 45 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 48 of 400 (base vs cand)
+Finished game 42 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 49 of 400 (cand vs base)
+Finished game 43 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 50 of 400 (base vs cand)
+Finished game 48 (base vs cand): 1-0 {White mates}
+Started game 51 of 400 (cand vs base)
+Finished game 49 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 52 of 400 (base vs cand)
+Finished game 47 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 53 of 400 (cand vs base)
+Finished game 46 (base vs cand): 0-1 {Black mates}
+Started game 54 of 400 (base vs cand)
+Finished game 51 (cand vs base): 0-1 {Black mates}
+Started game 55 of 400 (cand vs base)
+Finished game 52 (base vs cand): 1-0 {White mates}
+Started game 56 of 400 (base vs cand)
+Finished game 50 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 57 of 400 (cand vs base)
+Finished game 55 (cand vs base): 1-0 {White mates}
+Started game 58 of 400 (base vs cand)
+Finished game 56 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 59 of 400 (cand vs base)
+Finished game 53 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 60 of 400 (base vs cand)
+Warning; Move does not match uci move format, lowercase and 4/5 chars. Move 0000 played by base
+Warning; Illegal move 0000 played by base
+Finished game 58 (base vs cand): 0-1 {White makes an illegal move}
+Started game 61 of 400 (cand vs base)
+Finished game 54 (base vs cand): 1-0 {White mates}
+Started game 62 of 400 (base vs cand)
+Finished game 61 (cand vs base): 1-0 {White mates}
+Started game 63 of 400 (cand vs base)
+Finished game 57 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 64 of 400 (base vs cand)
+Finished game 60 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 65 of 400 (cand vs base)
+Finished game 62 (base vs cand): 1-0 {White mates}
+Started game 66 of 400 (base vs cand)
+Finished game 59 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -79.83 +/- 59.30, nElo: -121.91 +/- 86.48
+LOS: 0.29 %, DrawRatio: 35.48 %, PairsRatio: 0.33
+Games: 62, Wins: 9, Losses: 23, Draws: 30, Points: 24.0 (38.71 %)
+Ptnml(0-2): [4, 11, 11, 5, 0], WL/DD Ratio: 0.57
+LLR: -0.30 (-10.3%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 67 of 400 (cand vs base)
+Finished game 63 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 68 of 400 (base vs cand)
+Finished game 66 (base vs cand): 1-0 {White mates}
+Started game 69 of 400 (cand vs base)
+Finished game 64 (base vs cand): 1-0 {White mates}
+Started game 70 of 400 (base vs cand)
+Finished game 67 (cand vs base): 0-1 {Black mates}
+Started game 71 of 400 (cand vs base)
+Finished game 65 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 72 of 400 (base vs cand)
+Finished game 69 (cand vs base): 0-1 {Black mates}
+Started game 73 of 400 (cand vs base)
+Finished game 68 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 74 of 400 (base vs cand)
+Finished game 71 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 75 of 400 (cand vs base)
+Finished game 72 (base vs cand): 0-1 {Black mates}
+Started game 76 of 400 (base vs cand)
+Finished game 70 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 77 of 400 (cand vs base)
+Finished game 74 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 78 of 400 (base vs cand)
+Finished game 76 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 79 of 400 (cand vs base)
+Finished game 75 (cand vs base): 0-1 {Black mates}
+Started game 80 of 400 (base vs cand)
+Finished game 73 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 81 of 400 (cand vs base)
+Finished game 80 (base vs cand): 1-0 {White mates}
+Started game 82 of 400 (base vs cand)
+Finished game 78 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 83 of 400 (cand vs base)
+Finished game 79 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -86.37 +/- 51.05, nElo: -137.05 +/- 77.10
+LOS: 0.02 %, DrawRatio: 30.77 %, PairsRatio: 0.29
+Games: 78, Wins: 10, Losses: 29, Draws: 39, Points: 29.5 (37.82 %)
+Ptnml(0-2): [4, 17, 12, 6, 0], WL/DD Ratio: 0.50
+LLR: -0.40 (-13.5%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 84 of 400 (base vs cand)
+Finished game 77 (cand vs base): 0-1 {Black mates}
+Started game 85 of 400 (cand vs base)
+Finished game 82 (base vs cand): 1-0 {White mates}
+Started game 86 of 400 (base vs cand)
+Finished game 81 (cand vs base): 0-1 {Black mates}
+Started game 87 of 400 (cand vs base)
+Finished game 85 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 88 of 400 (base vs cand)
+Finished game 86 (base vs cand): 1-0 {White mates}
+Started game 89 of 400 (cand vs base)
+Finished game 89 (cand vs base): 0-1 {Black mates}
+Started game 90 of 400 (base vs cand)
+Finished game 87 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 91 of 400 (cand vs base)
+Finished game 83 (cand vs base): 0-1 {Black mates}
+Started game 92 of 400 (base vs cand)
+Finished game 92 (base vs cand): 0-1 {Black mates}
+Started game 93 of 400 (cand vs base)
+Finished game 84 (base vs cand): 1-0 {White mates}
+Started game 94 of 400 (base vs cand)
+Finished game 91 (cand vs base): 0-1 {Black mates}
+Started game 95 of 400 (cand vs base)
+Finished game 90 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 96 of 400 (base vs cand)
+Finished game 88 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 97 of 400 (cand vs base)
+Finished game 96 (base vs cand): 1-0 {White mates}
+Started game 98 of 400 (base vs cand)
+Finished game 98 (base vs cand): 1-0 {White mates}
+Started game 99 of 400 (cand vs base)
+Finished game 94 (base vs cand): 1-0 {White mates}
+Started game 100 of 400 (base vs cand)
+Finished game 97 (cand vs base): 0-1 {Black mates}
+Started game 101 of 400 (cand vs base)
+Finished game 100 (base vs cand): 1-0 {White mates}
+Started game 102 of 400 (base vs cand)
+Finished game 95 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 103 of 400 (cand vs base)
+Finished game 102 (base vs cand): 1-0 {White mates}
+Started game 104 of 400 (base vs cand)
+Finished game 93 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 105 of 400 (cand vs base)
+Finished game 99 (cand vs base): 0-1 {Black mates}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -115.23 +/- 48.09, nElo: -176.85 +/- 68.10
+LOS: 0.00 %, DrawRatio: 28.00 %, PairsRatio: 0.20
+Games: 100, Wins: 11, Losses: 43, Draws: 46, Points: 34.0 (34.00 %)
+Ptnml(0-2): [8, 22, 14, 6, 0], WL/DD Ratio: 0.56
+LLR: -0.58 (-19.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 106 of 400 (base vs cand)
+Finished game 105 (cand vs base): 0-1 {Black mates}
+Started game 107 of 400 (cand vs base)
+Finished game 106 (base vs cand): 1-0 {White mates}
+Started game 108 of 400 (base vs cand)
+Finished game 101 (cand vs base): 0-1 {Black mates}
+Started game 109 of 400 (cand vs base)
+Finished game 108 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 110 of 400 (base vs cand)
+Finished game 109 (cand vs base): 0-1 {Black mates}
+Started game 111 of 400 (cand vs base)
+Finished game 103 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 112 of 400 (base vs cand)
+Finished game 107 (cand vs base): 0-1 {Black mates}
+Started game 113 of 400 (cand vs base)
+Finished game 111 (cand vs base): 0-1 {Black mates}
+Started game 114 of 400 (base vs cand)
+Finished game 104 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 115 of 400 (cand vs base)
+Finished game 114 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 116 of 400 (base vs cand)
+Finished game 113 (cand vs base): 0-1 {Black mates}
+Started game 117 of 400 (cand vs base)
+Finished game 112 (base vs cand): 1-0 {White mates}
+Started game 118 of 400 (base vs cand)
+Finished game 117 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 119 of 400 (cand vs base)
+Finished game 110 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 120 of 400 (base vs cand)
+Finished game 115 (cand vs base): 0-1 {Black mates}
+Started game 121 of 400 (cand vs base)
+Finished game 116 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 122 of 400 (base vs cand)
+Finished game 119 (cand vs base): 1-0 {White mates}
+Started game 123 of 400 (cand vs base)
+Finished game 122 (base vs cand): 0-1 {Black mates}
+Started game 124 of 400 (base vs cand)
+Finished game 120 (base vs cand): 1-0 {White mates}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -129.32 +/- 45.22, nElo: -197.84 +/- 62.69
+LOS: 0.00 %, DrawRatio: 27.12 %, PairsRatio: 0.16
+Games: 118, Wins: 12, Losses: 54, Draws: 52, Points: 38.0 (32.20 %)
+Ptnml(0-2): [11, 26, 16, 6, 0], WL/DD Ratio: 0.60
+LLR: -0.73 (-24.7%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 125 of 400 (cand vs base)
+Finished game 118 (base vs cand): 1-0 {White mates}
+Started game 126 of 400 (base vs cand)
+Finished game 123 (cand vs base): 0-1 {Black mates}
+Started game 127 of 400 (cand vs base)
+Finished game 124 (base vs cand): 1-0 {White mates}
+Started game 128 of 400 (base vs cand)
+Finished game 127 (cand vs base): 1-0 {White mates}
+Started game 129 of 400 (cand vs base)
+Finished game 121 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 130 of 400 (base vs cand)
+Finished game 126 (base vs cand): 1-0 {White mates}
+Started game 131 of 400 (cand vs base)
+Finished game 129 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 132 of 400 (base vs cand)
+Finished game 125 (cand vs base): 0-1 {Black mates}
+Started game 133 of 400 (cand vs base)
+Finished game 128 (base vs cand): 1-0 {White mates}
+Started game 134 of 400 (base vs cand)
+Finished game 133 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 135 of 400 (cand vs base)
+Finished game 132 (base vs cand): 1-0 {White mates}
+Started game 136 of 400 (base vs cand)
+Finished game 130 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 137 of 400 (cand vs base)
+Finished game 135 (cand vs base): 1-0 {White mates}
+Started game 138 of 400 (base vs cand)
+Finished game 137 (cand vs base): 1-0 {White mates}
+Started game 139 of 400 (cand vs base)
+Finished game 136 (base vs cand): 1-0 {White mates}
+Started game 140 of 400 (base vs cand)
+Finished game 140 (base vs cand): 1-0 {White mates}
+Started game 141 of 400 (cand vs base)
+Finished game 138 (base vs cand): 1-0 {White mates}
+Started game 142 of 400 (base vs cand)
+Finished game 134 (base vs cand): 1-0 {White mates}
+Started game 143 of 400 (cand vs base)
+Finished game 131 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 144 of 400 (base vs cand)
+Finished game 141 (cand vs base): 0-1 {Black mates}
+Started game 145 of 400 (cand vs base)
+Finished game 143 (cand vs base): 0-1 {Black mates}
+Started game 146 of 400 (base vs cand)
+Finished game 145 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 147 of 400 (cand vs base)
+Finished game 139 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -126.97 +/- 41.26, nElo: -194.54 +/- 57.55
+LOS: 0.00 %, DrawRatio: 28.57 %, PairsRatio: 0.16
+Games: 140, Wins: 16, Losses: 65, Draws: 59, Points: 45.5 (32.50 %)
+Ptnml(0-2): [13, 30, 20, 7, 0], WL/DD Ratio: 0.82
+LLR: -0.86 (-29.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 148 of 400 (base vs cand)
+Finished game 146 (base vs cand): 1-0 {White mates}
+Started game 149 of 400 (cand vs base)
+Finished game 148 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 150 of 400 (base vs cand)
+Finished game 142 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 151 of 400 (cand vs base)
+Finished game 144 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 152 of 400 (base vs cand)
+Finished game 149 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 153 of 400 (cand vs base)
+Finished game 152 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 154 of 400 (base vs cand)
+Finished game 150 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 155 of 400 (cand vs base)
+Finished game 151 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 156 of 400 (base vs cand)
+Finished game 153 (cand vs base): 0-1 {Black mates}
+Started game 157 of 400 (cand vs base)
+Finished game 154 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 158 of 400 (base vs cand)
+Finished game 155 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 159 of 400 (cand vs base)
+Finished game 156 (base vs cand): 1-0 {White mates}
+Started game 160 of 400 (base vs cand)
+Finished game 160 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 161 of 400 (cand vs base)
+Finished game 157 (cand vs base): 0-1 {Black mates}
+Started game 162 of 400 (base vs cand)
+Finished game 159 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -125.45 +/- 37.51, nElo: -199.64 +/- 54.52
+LOS: 0.00 %, DrawRatio: 29.49 %, PairsRatio: 0.15
+Games: 156, Wins: 16, Losses: 70, Draws: 70, Points: 51.0 (32.69 %)
+Ptnml(0-2): [13, 35, 23, 7, 0], WL/DD Ratio: 0.64
+LLR: -0.95 (-32.2%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 163 of 400 (cand vs base)
+Finished game 147 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 164 of 400 (base vs cand)
+Finished game 158 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 165 of 400 (cand vs base)
+Finished game 163 (cand vs base): 0-1 {Black mates}
+Started game 166 of 400 (base vs cand)
+Finished game 164 (base vs cand): 1-0 {White mates}
+Started game 167 of 400 (cand vs base)
+Finished game 161 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 168 of 400 (base vs cand)
+Finished game 162 (base vs cand): 1-0 {White mates}
+Started game 169 of 400 (cand vs base)
+Finished game 167 (cand vs base): 0-1 {Black mates}
+Started game 170 of 400 (base vs cand)
+Finished game 170 (base vs cand): 1-0 {White mates}
+Started game 171 of 400 (cand vs base)
+Finished game 166 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 172 of 400 (base vs cand)
+Finished game 168 (base vs cand): 0-1 {Black mates}
+Started game 173 of 400 (cand vs base)
+Finished game 172 (base vs cand): 1-0 {White mates}
+Started game 174 of 400 (base vs cand)
+Finished game 174 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 175 of 400 (cand vs base)
+Finished game 171 (cand vs base): 0-1 {Black mates}
+Started game 176 of 400 (base vs cand)
+Finished game 165 (cand vs base): 0-1 {Black mates}
+Started game 177 of 400 (cand vs base)
+Finished game 175 (cand vs base): 0-1 {Black mates}
+Started game 178 of 400 (base vs cand)
+Finished game 176 (base vs cand): 0-1 {Black mates}
+Started game 179 of 400 (cand vs base)
+Finished game 178 (base vs cand): 0-1 {Black mates}
+Started game 180 of 400 (base vs cand)
+Finished game 169 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 181 of 400 (cand vs base)
+Finished game 180 (base vs cand): 1-0 {White mates}
+Started game 182 of 400 (base vs cand)
+Finished game 173 (cand vs base): 0-1 {Black mates}
+Started game 183 of 400 (cand vs base)
+Finished game 179 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -130.76 +/- 34.75, nElo: -211.70 +/- 51.04
+LOS: 0.00 %, DrawRatio: 29.21 %, PairsRatio: 0.12
+Games: 178, Wins: 18, Losses: 82, Draws: 78, Points: 57.0 (32.02 %)
+Ptnml(0-2): [15, 41, 26, 7, 0], WL/DD Ratio: 0.73
+LLR: -1.10 (-37.4%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 184 of 400 (base vs cand)
+Finished game 177 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 185 of 400 (cand vs base)
+Finished game 182 (base vs cand): 1-0 {White mates}
+Started game 186 of 400 (base vs cand)
+Finished game 181 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 187 of 400 (cand vs base)
+Finished game 183 (cand vs base): 0-1 {Black mates}
+Started game 188 of 400 (base vs cand)
+Finished game 184 (base vs cand): 0-1 {Black mates}
+Started game 189 of 400 (cand vs base)
+Finished game 186 (base vs cand): 1-0 {White mates}
+Started game 190 of 400 (base vs cand)
+Finished game 185 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 191 of 400 (cand vs base)
+Finished game 187 (cand vs base): 0-1 {Black mates}
+Started game 192 of 400 (base vs cand)
+Finished game 190 (base vs cand): 1-0 {White mates}
+Started game 193 of 400 (cand vs base)
+Finished game 188 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 194 of 400 (base vs cand)
+Finished game 192 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 195 of 400 (cand vs base)
+Finished game 195 (cand vs base): 1-0 {White mates}
+Started game 196 of 400 (base vs cand)
+Finished game 194 (base vs cand): 1-0 {White mates}
+Started game 197 of 400 (cand vs base)
+Finished game 193 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 198 of 400 (base vs cand)
+Finished game 191 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 199 of 400 (cand vs base)
+Finished game 197 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 200 of 400 (base vs cand)
+Finished game 196 (base vs cand): 1-0 {White mates}
+Started game 201 of 400 (cand vs base)
+Finished game 201 (cand vs base): 0-1 {Black mates}
+Started game 202 of 400 (base vs cand)
+Finished game 189 (cand vs base): 0-1 {Black mates}
+Started game 203 of 400 (cand vs base)
+Finished game 198 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 204 of 400 (base vs cand)
+Finished game 199 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 205 of 400 (cand vs base)
+Finished game 200 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -124.99 +/- 32.32, nElo: -203.50 +/- 48.15
+LOS: 0.00 %, DrawRatio: 31.00 %, PairsRatio: 0.13
+Games: 200, Wins: 21, Losses: 90, Draws: 89, Points: 65.5 (32.75 %)
+Ptnml(0-2): [16, 45, 31, 8, 0], WL/DD Ratio: 0.72
+LLR: -1.21 (-41.2%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 206 of 400 (base vs cand)
+Finished game 203 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 207 of 400 (cand vs base)
+Finished game 204 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 208 of 400 (base vs cand)
+Finished game 206 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 209 of 400 (cand vs base)
+Finished game 208 (base vs cand): 0-1 {Black mates}
+Started game 210 of 400 (base vs cand)
+Finished game 202 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 211 of 400 (cand vs base)
+Finished game 207 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 212 of 400 (base vs cand)
+Finished game 205 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 213 of 400 (cand vs base)
+Finished game 212 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 214 of 400 (base vs cand)
+Finished game 209 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 215 of 400 (cand vs base)
+Finished game 211 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 216 of 400 (base vs cand)
+Finished game 214 (base vs cand): 1-0 {White mates}
+Started game 217 of 400 (cand vs base)
+Finished game 210 (base vs cand): 1-0 {White mates}
+Started game 218 of 400 (base vs cand)
+Finished game 213 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 219 of 400 (cand vs base)
+Finished game 215 (cand vs base): 1-0 {White mates}
+Started game 220 of 400 (base vs cand)
+Finished game 219 (cand vs base): 0-1 {Black mates}
+Started game 221 of 400 (cand vs base)
+Finished game 217 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 222 of 400 (base vs cand)
+Finished game 218 (base vs cand): 1-0 {White mates}
+Started game 223 of 400 (cand vs base)
+Finished game 220 (base vs cand): 0-1 {Black mates}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -119.22 +/- 30.35, nElo: -196.37 +/- 46.12
+LOS: 0.00 %, DrawRatio: 32.11 %, PairsRatio: 0.14
+Games: 218, Wins: 23, Losses: 95, Draws: 100, Points: 73.0 (33.49 %)
+Ptnml(0-2): [16, 49, 35, 9, 0], WL/DD Ratio: 0.67
+LLR: -1.29 (-44.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 224 of 400 (base vs cand)
+Finished game 216 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 225 of 400 (cand vs base)
+Finished game 221 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 226 of 400 (base vs cand)
+Finished game 225 (cand vs base): 0-1 {Black mates}
+Started game 227 of 400 (cand vs base)
+Finished game 222 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 228 of 400 (base vs cand)
+Finished game 224 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 229 of 400 (cand vs base)
+Finished game 226 (base vs cand): 1-0 {White mates}
+Started game 230 of 400 (base vs cand)
+Finished game 228 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 231 of 400 (cand vs base)
+Finished game 223 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 232 of 400 (base vs cand)
+Finished game 232 (base vs cand): 1-0 {White mates}
+Started game 233 of 400 (cand vs base)
+Finished game 229 (cand vs base): 0-1 {Black mates}
+Started game 234 of 400 (base vs cand)
+Finished game 230 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 235 of 400 (cand vs base)
+Finished game 227 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 236 of 400 (base vs cand)
+Finished game 234 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 237 of 400 (cand vs base)
+Finished game 236 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 238 of 400 (base vs cand)
+Finished game 235 (cand vs base): 1-0 {White mates}
+Started game 239 of 400 (cand vs base)
+Finished game 231 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 240 of 400 (base vs cand)
+Finished game 239 (cand vs base): 1-0 {White mates}
+Started game 241 of 400 (cand vs base)
+Finished game 233 (cand vs base): 0-1 {Black mates}
+Started game 242 of 400 (base vs cand)
+Finished game 240 (base vs cand): 1-0 {White mates}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -113.34 +/- 29.16, nElo: -184.59 +/- 44.14
+LOS: 0.00 %, DrawRatio: 32.77 %, PairsRatio: 0.16
+Games: 238, Wins: 26, Losses: 101, Draws: 111, Points: 81.5 (34.24 %)
+Ptnml(0-2): [17, 52, 39, 11, 0], WL/DD Ratio: 0.62
+LLR: -1.38 (-46.9%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 243 of 400 (cand vs base)
+Finished game 237 (cand vs base): 0-1 {Black mates}
+Started game 244 of 400 (base vs cand)
+Finished game 242 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 245 of 400 (cand vs base)
+Finished game 244 (base vs cand): 1-0 {White mates}
+Started game 246 of 400 (base vs cand)
+Finished game 238 (base vs cand): 1-0 {White mates}
+Started game 247 of 400 (cand vs base)
+Finished game 243 (cand vs base): 0-1 {Black mates}
+Started game 248 of 400 (base vs cand)
+Finished game 246 (base vs cand): 1-0 {White mates}
+Started game 249 of 400 (cand vs base)
+Finished game 245 (cand vs base): 1-0 {White mates}
+Started game 250 of 400 (base vs cand)
+Finished game 241 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 251 of 400 (cand vs base)
+Finished game 248 (base vs cand): 1-0 {White mates}
+Started game 252 of 400 (base vs cand)
+Finished game 250 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 253 of 400 (cand vs base)
+Finished game 249 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 254 of 400 (base vs cand)
+Finished game 247 (cand vs base): 0-1 {Black mates}
+Started game 255 of 400 (cand vs base)
+Finished game 252 (base vs cand): 1-0 {White mates}
+Started game 256 of 400 (base vs cand)
+Finished game 254 (base vs cand): 0-1 {Black mates}
+Started game 257 of 400 (cand vs base)
+Finished game 251 (cand vs base): 0-1 {Black mates}
+Started game 258 of 400 (base vs cand)
+Finished game 253 (cand vs base): 0-1 {Black mates}
+Started game 259 of 400 (cand vs base)
+Finished game 257 (cand vs base): 0-1 {Black mates}
+Started game 260 of 400 (base vs cand)
+Finished game 259 (cand vs base): 1-0 {White mates}
+Started game 261 of 400 (cand vs base)
+Finished game 258 (base vs cand): 1-0 {White mates}
+Started game 262 of 400 (base vs cand)
+Finished game 256 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 263 of 400 (cand vs base)
+Finished game 261 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 264 of 400 (base vs cand)
+Finished game 260 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -117.39 +/- 29.21, nElo: -184.20 +/- 42.39
+LOS: 0.00 %, DrawRatio: 33.33 %, PairsRatio: 0.16
+Games: 258, Wins: 29, Losses: 113, Draws: 116, Points: 87.0 (33.72 %)
+Ptnml(0-2): [22, 52, 43, 12, 0], WL/DD Ratio: 0.65
+LLR: -1.52 (-51.7%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 265 of 400 (cand vs base)
+Finished game 265 (cand vs base): 0-1 {Black mates}
+Started game 266 of 400 (base vs cand)
+Finished game 266 (base vs cand): 1-0 {White mates}
+Started game 267 of 400 (cand vs base)
+Finished game 262 (base vs cand): 1-0 {White mates}
+Started game 268 of 400 (base vs cand)
+Finished game 255 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 269 of 400 (cand vs base)
+Finished game 267 (cand vs base): 0-1 {Black mates}
+Started game 270 of 400 (base vs cand)
+Finished game 264 (base vs cand): 1-0 {White mates}
+Started game 271 of 400 (cand vs base)
+Finished game 263 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 272 of 400 (base vs cand)
+Finished game 268 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 273 of 400 (cand vs base)
+Finished game 271 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 274 of 400 (base vs cand)
+Finished game 270 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 275 of 400 (cand vs base)
+Finished game 269 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 276 of 400 (base vs cand)
+Finished game 274 (base vs cand): 1-0 {White mates}
+Started game 277 of 400 (cand vs base)
+Finished game 275 (cand vs base): 0-1 {Black mates}
+Started game 278 of 400 (base vs cand)
+Finished game 273 (cand vs base): 0-1 {Black mates}
+Started game 279 of 400 (cand vs base)
+Finished game 277 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 280 of 400 (base vs cand)
+Finished game 272 (base vs cand): 1-0 {White mates}
+Started game 281 of 400 (cand vs base)
+Finished game 276 (base vs cand): 1-0 {White mates}
+Started game 282 of 400 (base vs cand)
+Finished game 282 (base vs cand): 1-0 {White mates}
+Started game 283 of 400 (cand vs base)
+Finished game 280 (base vs cand): 1-0 {White mates}
+Started game 284 of 400 (base vs cand)
+Finished game 279 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -123.70 +/- 28.38, nElo: -194.05 +/- 40.84
+LOS: 0.00 %, DrawRatio: 32.37 %, PairsRatio: 0.15
+Games: 278, Wins: 29, Losses: 124, Draws: 125, Points: 91.5 (32.91 %)
+Ptnml(0-2): [25, 57, 45, 12, 0], WL/DD Ratio: 0.61
+LLR: -1.68 (-57.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 285 of 400 (cand vs base)
+Finished game 281 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 286 of 400 (base vs cand)
+Finished game 283 (cand vs base): 0-1 {Black mates}
+Started game 287 of 400 (cand vs base)
+Finished game 278 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 288 of 400 (base vs cand)
+Finished game 287 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 289 of 400 (cand vs base)
+Finished game 288 (base vs cand): 1-0 {White mates}
+Started game 290 of 400 (base vs cand)
+Finished game 284 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 291 of 400 (cand vs base)
+Finished game 289 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 292 of 400 (base vs cand)
+Finished game 285 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 293 of 400 (cand vs base)
+Finished game 286 (base vs cand): 0-1 {Black mates}
+Started game 294 of 400 (base vs cand)
+Finished game 293 (cand vs base): 1-0 {White mates}
+Started game 295 of 400 (cand vs base)
+Finished game 294 (base vs cand): 0-1 {Black mates}
+Started game 296 of 400 (base vs cand)
+Finished game 290 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 297 of 400 (cand vs base)
+Finished game 295 (cand vs base): 0-1 {Black mates}
+Started game 298 of 400 (base vs cand)
+Finished game 296 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 299 of 400 (cand vs base)
+Finished game 291 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 300 of 400 (base vs cand)
+Finished game 292 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 301 of 400 (cand vs base)
+Finished game 299 (cand vs base): 0-1 {Black mates}
+Started game 302 of 400 (base vs cand)
+Finished game 302 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 303 of 400 (cand vs base)
+Finished game 298 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 304 of 400 (base vs cand)
+Finished game 301 (cand vs base): 0-1 {Black mates}
+Started game 305 of 400 (cand vs base)
+Finished game 300 (base vs cand): 1-0 {White mates}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -119.11 +/- 27.71, nElo: -183.08 +/- 39.32
+LOS: 0.00 %, DrawRatio: 32.00 %, PairsRatio: 0.16
+Games: 300, Wins: 32, Losses: 131, Draws: 137, Points: 100.5 (33.50 %)
+Ptnml(0-2): [26, 62, 48, 13, 1], WL/DD Ratio: 0.55
+LLR: -1.74 (-59.1%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 306 of 400 (base vs cand)
+Finished game 297 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 307 of 400 (cand vs base)
+Finished game 303 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 308 of 400 (base vs cand)
+Finished game 305 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 309 of 400 (cand vs base)
+Finished game 304 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 310 of 400 (base vs cand)
+Finished game 306 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 311 of 400 (cand vs base)
+Finished game 307 (cand vs base): 0-1 {Black mates}
+Started game 312 of 400 (base vs cand)
+Finished game 309 (cand vs base): 0-1 {Black mates}
+Started game 313 of 400 (cand vs base)
+Finished game 310 (base vs cand): 1-0 {White mates}
+Started game 314 of 400 (base vs cand)
+Finished game 311 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 315 of 400 (cand vs base)
+Finished game 308 (base vs cand): 0-1 {Black mates}
+Started game 316 of 400 (base vs cand)
+Finished game 315 (cand vs base): 1-0 {White mates}
+Started game 317 of 400 (cand vs base)
+Finished game 313 (cand vs base): 0-1 {Black mates}
+Started game 318 of 400 (base vs cand)
+Finished game 312 (base vs cand): 1-0 {White mates}
+Started game 319 of 400 (cand vs base)
+Finished game 316 (base vs cand): 1-0 {White mates}
+Started game 320 of 400 (base vs cand)
+Finished game 318 (base vs cand): 1-0 {White mates}
+Started game 321 of 400 (cand vs base)
+Finished game 314 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 322 of 400 (base vs cand)
+Finished game 320 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 323 of 400 (cand vs base)
+Finished game 317 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 324 of 400 (base vs cand)
+Finished game 324 (base vs cand): 0-1 {Black mates}
+Started game 325 of 400 (cand vs base)
+Finished game 322 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 326 of 400 (base vs cand)
+Finished game 319 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -117.16 +/- 26.39, nElo: -182.58 +/- 38.07
+LOS: 0.00 %, DrawRatio: 33.75 %, PairsRatio: 0.15
+Games: 320, Wins: 34, Losses: 138, Draws: 148, Points: 108.0 (33.75 %)
+Ptnml(0-2): [27, 65, 54, 13, 1], WL/DD Ratio: 0.54
+LLR: -1.85 (-62.7%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 327 of 400 (cand vs base)
+Finished game 323 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 328 of 400 (base vs cand)
+Finished game 326 (base vs cand): 1-0 {White mates}
+Started game 329 of 400 (cand vs base)
+Finished game 325 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 330 of 400 (base vs cand)
+Finished game 329 (cand vs base): 0-1 {Black mates}
+Started game 331 of 400 (cand vs base)
+Finished game 328 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 332 of 400 (base vs cand)
+Finished game 321 (cand vs base): 0-1 {Black mates}
+Started game 333 of 400 (cand vs base)
+Finished game 330 (base vs cand): 1-0 {White mates}
+Started game 334 of 400 (base vs cand)
+Finished game 327 (cand vs base): 0-1 {Black mates}
+Started game 335 of 400 (cand vs base)
+Finished game 332 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 336 of 400 (base vs cand)
+Finished game 331 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 337 of 400 (cand vs base)
+Finished game 335 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 338 of 400 (base vs cand)
+Finished game 336 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 339 of 400 (cand vs base)
+Finished game 334 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 340 of 400 (base vs cand)
+Finished game 339 (cand vs base): 0-1 {Black mates}
+Started game 341 of 400 (cand vs base)
+Finished game 337 (cand vs base): 0-1 {Black mates}
+Started game 342 of 400 (base vs cand)
+Finished game 333 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 343 of 400 (cand vs base)
+Finished game 341 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 344 of 400 (base vs cand)
+Finished game 338 (base vs cand): 1-0 {White mates}
+Started game 345 of 400 (cand vs base)
+Finished game 340 (base vs cand): 1-0 {White mates}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -118.88 +/- 25.90, nElo: -183.53 +/- 36.93
+LOS: 0.00 %, DrawRatio: 33.53 %, PairsRatio: 0.15
+Games: 340, Wins: 35, Losses: 147, Draws: 158, Points: 114.0 (33.53 %)
+Ptnml(0-2): [30, 68, 57, 14, 1], WL/DD Ratio: 0.50
+LLR: -1.98 (-67.1%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 346 of 400 (base vs cand)
+Finished game 342 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 347 of 400 (cand vs base)
+Finished game 343 (cand vs base): 0-1 {Black mates}
+Started game 348 of 400 (base vs cand)
+Finished game 344 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 349 of 400 (cand vs base)
+Finished game 345 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 350 of 400 (base vs cand)
+Finished game 347 (cand vs base): 0-1 {Black mates}
+Started game 351 of 400 (cand vs base)
+Finished game 346 (base vs cand): 1-0 {White mates}
+Started game 352 of 400 (base vs cand)
+Finished game 349 (cand vs base): 0-1 {Black mates}
+Started game 353 of 400 (cand vs base)
+Finished game 350 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 354 of 400 (base vs cand)
+Finished game 352 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 355 of 400 (cand vs base)
+Finished game 348 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 356 of 400 (base vs cand)
+Finished game 354 (base vs cand): 1-0 {White mates}
+Started game 357 of 400 (cand vs base)
+Finished game 351 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 358 of 400 (base vs cand)
+Finished game 355 (cand vs base): 0-1 {Black mates}
+Started game 359 of 400 (cand vs base)
+Finished game 359 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 360 of 400 (base vs cand)
+Finished game 357 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 361 of 400 (cand vs base)
+Finished game 360 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -118.21 +/- 25.00, nElo: -185.06 +/- 36.19
+LOS: 0.00 %, DrawRatio: 33.90 %, PairsRatio: 0.15
+Games: 354, Wins: 35, Losses: 151, Draws: 168, Points: 119.0 (33.62 %)
+Ptnml(0-2): [30, 72, 60, 14, 1], WL/DD Ratio: 0.46
+LLR: -2.05 (-69.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 362 of 400 (base vs cand)
+Finished game 356 (base vs cand): 1-0 {White mates}
+Started game 363 of 400 (cand vs base)
+Finished game 361 (cand vs base): 0-1 {Black mates}
+Started game 364 of 400 (base vs cand)
+Finished game 358 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 365 of 400 (cand vs base)
+Finished game 353 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 366 of 400 (base vs cand)
+Finished game 362 (base vs cand): 0-1 {Black mates}
+Started game 367 of 400 (cand vs base)
+Finished game 367 (cand vs base): 0-1 {Black mates}
+Started game 368 of 400 (base vs cand)
+Finished game 363 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 369 of 400 (cand vs base)
+Finished game 364 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 370 of 400 (base vs cand)
+Finished game 366 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 371 of 400 (cand vs base)
+Finished game 368 (base vs cand): 1-0 {White mates}
+Started game 372 of 400 (base vs cand)
+Finished game 370 (base vs cand): 1-0 {White mates}
+Started game 373 of 400 (cand vs base)
+Finished game 365 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 374 of 400 (base vs cand)
+Finished game 369 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 375 of 400 (cand vs base)
+Finished game 372 (base vs cand): 1-0 {White mates}
+Started game 376 of 400 (base vs cand)
+Finished game 374 (base vs cand): 1-0 {White mates}
+Started game 377 of 400 (cand vs base)
+Finished game 376 (base vs cand): 0-1 {Black mates}
+Started game 378 of 400 (base vs cand)
+Finished game 371 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 379 of 400 (cand vs base)
+Finished game 378 (base vs cand): 1-0 {White mates}
+Started game 380 of 400 (base vs cand)
+Finished game 377 (cand vs base): 1-0 {White mates}
+Started game 381 of 400 (cand vs base)
+Finished game 381 (cand vs base): 0-1 {Black mates}
+Started game 382 of 400 (base vs cand)
+Finished game 373 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 383 of 400 (cand vs base)
+Finished game 379 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 384 of 400 (base vs cand)
+Finished game 375 (cand vs base): 0-1 {Black mates}
+Started game 385 of 400 (cand vs base)
+Finished game 385 (cand vs base): 1-0 {White mates}
+Started game 386 of 400 (base vs cand)
+Finished game 383 (cand vs base): 0-1 {Black mates}
+Started game 387 of 400 (cand vs base)
+Finished game 384 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 388 of 400 (base vs cand)
+Finished game 382 (base vs cand): 1-0 {White mates}
+Started game 389 of 400 (cand vs base)
+Finished game 388 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 390 of 400 (base vs cand)
+Finished game 386 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 391 of 400 (cand vs base)
+Finished game 380 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -117.72 +/- 23.89, nElo: -184.57 +/- 34.66
+LOS: 0.00 %, DrawRatio: 34.72 %, PairsRatio: 0.15
+Games: 386, Wins: 39, Losses: 165, Draws: 182, Points: 130.0 (33.68 %)
+Ptnml(0-2): [33, 77, 67, 15, 1], WL/DD Ratio: 0.49
+LLR: -2.24 (-76.1%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 392 of 400 (base vs cand)
+Finished game 389 (cand vs base): 0-1 {Black mates}
+Started game 393 of 400 (cand vs base)
+Finished game 391 (cand vs base): 0-1 {Black mates}
+Started game 394 of 400 (base vs cand)
+Finished game 387 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 395 of 400 (cand vs base)
+Finished game 390 (base vs cand): 1-0 {White mates}
+Started game 396 of 400 (base vs cand)
+Finished game 395 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 397 of 400 (cand vs base)
+Finished game 393 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 398 of 400 (base vs cand)
+Finished game 396 (base vs cand): 1-0 {White mates}
+Started game 399 of 400 (cand vs base)
+Finished game 392 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 400 of 400 (base vs cand)
+Finished game 398 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Finished game 397 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Finished game 394 (base vs cand): 1-0 {White mates}
+Finished game 399 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Finished game 400 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (2000 nodes, 1t, NULL, eco_lichess.epd):
+Elo: -118.14 +/- 23.34, nElo: -186.31 +/- 34.05
+LOS: 0.00 %, DrawRatio: 35.00 %, PairsRatio: 0.14
+Games: 400, Wins: 39, Losses: 170, Draws: 191, Points: 134.5 (33.62 %)
+Ptnml(0-2): [34, 80, 70, 15, 1], WL/DD Ratio: 0.46
+LLR: -2.33 (-79.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Finished match
+Total Time: 00:01:11 (hours:minutes:seconds)
+

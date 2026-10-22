@@ -207,8 +207,65 @@ imputable à la seule règle PUCT. Écarts au protocole : book d'ouvertures
 de remplacement (ECO lichess, 3 863 positions, `tools/gen_epd_openings.py`)
 au lieu de l'UHO, et hôte non EPYC — d'où des Elo **relatifs**, à rejouer
 sur le book officiel et l'hôte de référence.
-### Mesure Elo (chaque amélioration = un SPRT)
+### Phase 5 — feuille tactiquement résolue (quiescence-lite) : **mesurée, revertie**
 
+La phase 5 attaque l'**effet horizon** de la feuille : depuis A1, la
+valeur d'une feuille est l'éval statique d'une position *quelconque*, qui
+peut être au milieu d'un échange. Le nouveau module `mcts::qsearch`
+calcule `qvalue(pos, d)` : la valeur **pour le trait** après avoir résolu
+les échanges sur `d` plies, avec la convention classique du **stand-pat**
+(le trait peut refuser l'échange). `Limits.leaf_q` et l'option UCI
+`LeafQ` le pilotent ; `leaf_q = 0` est **bit-à-bit** le chemin de la
+phase 4.
+
+**Le résultat est négatif, et il est mesuré.** Contre la phase 4 gelée,
+en nœuds-fixes :
+
+| configuration | parties | Elo ± err | LLR |
+|---|---|---|---|
+| `LeafQ=1`, 2 000 nœuds | 400 | **−177,2 ± 26,4** | −2,83 |
+| `LeafQ=2`, 2 000 nœuds | 400 | **−118,1 ± 23,3** | −2,33 |
+| `LeafQ=1`, 10 000 nœuds | 370 | **−240,8 ± 26,7** | −2,95 (H0) |
+| `LeafQ=2`, 10 000 nœuds | 400 | **−154,5 ± 24,9** | −2,67 |
+| `LeafQ=1`, 40 000 nœuds | 398 | **−197,9 ± 24,3** | −2,95 (H0) |
+| `LeafQ=1`, TC 8+0.08 (temps-fixe) | 360 | **−259,5 ± 31,0** | −2,95 (H0) |
+| contrôle `LeafQ=0` contre phase 4 | 400 | 0,0 ± 0,0 | −0,08 (neutre) |
+
+Le mécanisme est mesuré lui aussi : le `max` de la quiescence est
+**optimiste** (en profondeur 1, la capture est supposée tenir : la
+réplique n'est pas vue) et il **double compte** les échanges que l'arbre
+explorera de lui-même une fois le nœud développé. Résultat : la valeur
+de feuille est gonflée de **+354 cp en moyenne** pour le trait à la
+feuille, et cette inflation — positionnelle, donc systématique — fausse
+les Q et rend le moteur excessivement défensif. La régression est
+**monotone en l'inflation** (`q1` : +354 cp → −177 Elo ; `q2` : +196 cp
+→ −118 Elo), ce qui confirme le diagnostic. Le débit, lui, perd 27 à
+64 % à `LeafQ=1` (88,7 % des positions ont un échange, et la quiescence
+refait une génération légale complète par feuille).
+
+**Décision : `LeafQ` reste à `0`** (le comportement de la phase 4), le
+module et ses tests sont conservés comme **expérience documentée**, et le
+défaut de conception est écrit : une feuille de MCTS veut une
+**espérance**, pas un `max` adversarial. La suite naturelle est la
+variante **non biaisée** (moyenne sur les captures au lieu du max),
+dont la correction serait dix fois plus petite.
+
+Le verdict est **le même dans les deux régimes de mesure** : en
+nœuds-fixes (−177 à −241 Elo) et en **temps-fixe** (TC 8+0.08,
+−259 Elo), où la régression est **plus forte** encore — la quiescence y
+coûte 27 à 64 % de débit, donc autant de nœuds en moins à budget de
+temps égal.
+
+La phase 5 a en revanche **corrigé un vrai défaut** laissé par la phase 4 :
+le budget de réflexion avait un **plancher de 50 ms**, si bien que le
+moteur réfléchissait plus longtemps que son horloge (158/200 parties
+adjugées sur dépassement en TC 1+0.01). Le budget est désormais **borné
+par le temps restant** moins une marge de 5 ms, et `go wtime 20` répond
+en 16,3 ms au pire. Plan et rapport :
+`docs/superpowers/plans/2026-10-22-mcts-phase5-feuille-quiescence.md` et
+`docs/mcts/phase5-2026-10-22.md`.
+
+### Mesure Elo (chaque amélioration = un SPRT)
 `./test.sh <cand_bin> <base_bin> [nodes] [rounds]` lance fastchess
 (SPTRT elo0=0/elo1=5 α=β=0.05 ; tc=nodes=N ; openings EPD déséquilibrées
 chaque position deux fois ; concurrency 5). Une ligne par test dans
@@ -237,6 +294,12 @@ A1 eval-leaf → **A2 PUCT+priors (fait, phase 4, Elo +400 à +600)** → A3 FPU
 A4 cpuct → B1 virtual loss+parallel → B2 tree reuse → B3 transpositions →
 C1 dirichlet → C2 priors SEE/history → C3 tapered eval. Interdits : RAVE,
 ordre Sirius copié, multi-améliorations.
+
+> **Phase 5 (quiescence-lite de la feuille) : REVERTIE** — mesurée, −118 à
+> −241 Elo contre la phase 4. Elle n'entre donc pas dans le ladder ; le
+> correctif du budget temps qu'elle a produit est **conservé**. La
+> variante **non biaisée** de la feuille (une espérance, pas un `max`) est
+> la candidate suivante sur ce sujet.
 
 La suite du ladder côté entraînement est planifiée dans SELFPLAY.md
 (**v2** — plan corrigé, canonique) : chiffrage CPU/NPS en P-1, décision

@@ -1,0 +1,885 @@
+Indexing opening suite...
+Started game 1 of 800 (cand vs base)
+Started game 3 of 800 (cand vs base)
+Started game 4 of 800 (base vs cand)
+Started game 2 of 800 (base vs cand)
+Started game 5 of 800 (cand vs base)
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+Finished game 4 (base vs cand): 1-0 {White mates}
+Started game 6 of 800 (base vs cand)
+Finished game 6 (base vs cand): 1-0 {White mates}
+Started game 7 of 800 (cand vs base)
+Finished game 5 (cand vs base): 0-1 {Black mates}
+Started game 8 of 800 (base vs cand)
+Finished game 2 (base vs cand): 1-0 {White mates}
+Started game 9 of 800 (cand vs base)
+Finished game 1 (cand vs base): 0-1 {Black mates}
+Started game 10 of 800 (base vs cand)
+Finished game 3 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 11 of 800 (cand vs base)
+Finished game 9 (cand vs base): 0-1 {Black mates}
+Started game 12 of 800 (base vs cand)
+Finished game 8 (base vs cand): 1-0 {White mates}
+Started game 13 of 800 (cand vs base)
+Finished game 10 (base vs cand): 1-0 {White mates}
+Started game 14 of 800 (base vs cand)
+Finished game 13 (cand vs base): 0-1 {Black mates}
+Started game 15 of 800 (cand vs base)
+Finished game 7 (cand vs base): 0-1 {Black mates}
+Started game 16 of 800 (base vs cand)
+Finished game 11 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 17 of 800 (cand vs base)
+Finished game 14 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 18 of 800 (base vs cand)
+Finished game 12 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 19 of 800 (cand vs base)
+Finished game 16 (base vs cand): 1-0 {White mates}
+Started game 20 of 800 (base vs cand)
+Finished game 15 (cand vs base): 0-1 {Black mates}
+Started game 21 of 800 (cand vs base)
+Finished game 17 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 22 of 800 (base vs cand)
+Finished game 20 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 23 of 800 (cand vs base)
+Finished game 19 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -279.59 +/- 218.96, nElo: -401.18 +/- 160.50
+LOS: 0.00 %, DrawRatio: 22.22 %, PairsRatio: 0.00
+Games: 18, Wins: 0, Losses: 12, Draws: 6, Points: 3.0 (16.67 %)
+Ptnml(0-2): [5, 2, 2, 0, 0], WL/DD Ratio: 0.00
+LLR: -0.15 (-5.1%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 24 of 800 (base vs cand)
+Finished game 23 (cand vs base): 0-1 {Black mates}
+Started game 25 of 800 (cand vs base)
+Finished game 18 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 26 of 800 (base vs cand)
+Finished game 24 (base vs cand): 1-0 {White mates}
+Started game 27 of 800 (cand vs base)
+Finished game 21 (cand vs base): 0-1 {Black mates}
+Started game 28 of 800 (base vs cand)
+Finished game 26 (base vs cand): 1-0 {White mates}
+Started game 29 of 800 (cand vs base)
+Finished game 22 (base vs cand): 1-0 {White mates}
+Started game 30 of 800 (base vs cand)
+Finished game 28 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 31 of 800 (cand vs base)
+Finished game 29 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 32 of 800 (base vs cand)
+Finished game 27 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 33 of 800 (cand vs base)
+Finished game 30 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 34 of 800 (base vs cand)
+Finished game 31 (cand vs base): 0-1 {Black mates}
+Started game 35 of 800 (cand vs base)
+Finished game 32 (base vs cand): 1-0 {White mates}
+Started game 36 of 800 (base vs cand)
+Finished game 34 (base vs cand): 1-0 {White mates}
+Started game 37 of 800 (cand vs base)
+Finished game 33 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 38 of 800 (base vs cand)
+Finished game 25 (cand vs base): 0-1 {Black mates}
+Started game 39 of 800 (cand vs base)
+Finished game 39 (cand vs base): 0-1 {Black mates}
+Started game 40 of 800 (base vs cand)
+Finished game 35 (cand vs base): 0-1 {Black mates}
+Started game 41 of 800 (cand vs base)
+Finished game 40 (base vs cand): 1-0 {White mates}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -262.76 +/- 130.38, nElo: -361.00 +/- 113.49
+LOS: 0.00 %, DrawRatio: 27.78 %, PairsRatio: 0.00
+Games: 36, Wins: 0, Losses: 23, Draws: 13, Points: 6.5 (18.06 %)
+Ptnml(0-2): [10, 3, 5, 0, 0], WL/DD Ratio: 0.00
+LLR: -0.30 (-10.1%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 42 of 800 (base vs cand)
+Finished game 36 (base vs cand): 1-0 {White mates}
+Started game 43 of 800 (cand vs base)
+Finished game 37 (cand vs base): 0-1 {Black mates}
+Started game 44 of 800 (base vs cand)
+Finished game 38 (base vs cand): 1-0 {White mates}
+Started game 45 of 800 (cand vs base)
+Finished game 41 (cand vs base): 0-1 {Black mates}
+Started game 46 of 800 (base vs cand)
+Finished game 44 (base vs cand): 1-0 {White mates}
+Started game 47 of 800 (cand vs base)
+Finished game 47 (cand vs base): 0-1 {Black mates}
+Started game 48 of 800 (base vs cand)
+Finished game 43 (cand vs base): 0-1 {Black mates}
+Started game 49 of 800 (cand vs base)
+Finished game 42 (base vs cand): 1-0 {White mates}
+Started game 50 of 800 (base vs cand)
+Finished game 46 (base vs cand): 1-0 {White mates}
+Started game 51 of 800 (cand vs base)
+Finished game 45 (cand vs base): 0-1 {Black mates}
+Started game 52 of 800 (base vs cand)
+Finished game 50 (base vs cand): 1-0 {White mates}
+Started game 53 of 800 (cand vs base)
+Finished game 48 (base vs cand): 1-0 {White mates}
+Started game 54 of 800 (base vs cand)
+Finished game 51 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 55 of 800 (cand vs base)
+Finished game 49 (cand vs base): 0-1 {Black mates}
+Started game 56 of 800 (base vs cand)
+Finished game 52 (base vs cand): 1-0 {White mates}
+Started game 57 of 800 (cand vs base)
+Finished game 54 (base vs cand): 1-0 {White mates}
+Started game 58 of 800 (base vs cand)
+Finished game 56 (base vs cand): 1-0 {White mates}
+Started game 59 of 800 (cand vs base)
+Finished game 57 (cand vs base): 0-1 {Black mates}
+Started game 60 of 800 (base vs cand)
+Finished game 55 (cand vs base): 0-1 {Black mates}
+Started game 61 of 800 (cand vs base)
+Finished game 60 (base vs cand): 1-0 {White mates}
+Started game 62 of 800 (base vs cand)
+Finished game 58 (base vs cand): 1-0 {White mates}
+Started game 63 of 800 (cand vs base)
+Finished game 53 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 64 of 800 (base vs cand)
+Finished game 64 (base vs cand): 1-0 {White mates}
+Started game 65 of 800 (cand vs base)
+Finished game 63 (cand vs base): 0-1 {Black mates}
+Started game 66 of 800 (base vs cand)
+Finished game 62 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 67 of 800 (cand vs base)
+Finished game 59 (cand vs base): 0-1 {Black mates}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -344.53 +/- 120.70, nElo: -492.35 +/- 86.48
+LOS: 0.00 %, DrawRatio: 16.13 %, PairsRatio: 0.00
+Games: 62, Wins: 0, Losses: 47, Draws: 15, Points: 7.5 (12.10 %)
+Ptnml(0-2): [21, 5, 5, 0, 0], WL/DD Ratio: 0.00
+LLR: -0.56 (-18.9%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 68 of 800 (base vs cand)
+Finished game 61 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 69 of 800 (cand vs base)
+Finished game 65 (cand vs base): 0-1 {Black mates}
+Started game 70 of 800 (base vs cand)
+Finished game 68 (base vs cand): 1-0 {White mates}
+Started game 71 of 800 (cand vs base)
+Finished game 66 (base vs cand): 1-0 {White mates}
+Started game 72 of 800 (base vs cand)
+Finished game 71 (cand vs base): 0-1 {Black mates}
+Started game 73 of 800 (cand vs base)
+Finished game 67 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 74 of 800 (base vs cand)
+Finished game 74 (base vs cand): 1-0 {White mates}
+Started game 75 of 800 (cand vs base)
+Finished game 69 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 76 of 800 (base vs cand)
+Finished game 70 (base vs cand): 1-0 {White mates}
+Started game 77 of 800 (cand vs base)
+Finished game 73 (cand vs base): 0-1 {Black mates}
+Started game 78 of 800 (base vs cand)
+Finished game 72 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 79 of 800 (cand vs base)
+Finished game 76 (base vs cand): 1-0 {White mates}
+Started game 80 of 800 (base vs cand)
+Finished game 75 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 81 of 800 (cand vs base)
+Finished game 81 (cand vs base): 0-1 {Black mates}
+Started game 82 of 800 (base vs cand)
+Finished game 78 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 83 of 800 (cand vs base)
+Finished game 79 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 84 of 800 (base vs cand)
+Finished game 77 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 85 of 800 (cand vs base)
+Finished game 84 (base vs cand): 1-0 {White mates}
+Started game 86 of 800 (base vs cand)
+Finished game 80 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -292.96 +/- 85.28, nElo: -424.12 +/- 76.13
+LOS: 0.00 %, DrawRatio: 20.00 %, PairsRatio: 0.00
+Games: 80, Wins: 0, Losses: 55, Draws: 25, Points: 12.5 (15.62 %)
+Ptnml(0-2): [23, 9, 8, 0, 0], WL/DD Ratio: 0.00
+LLR: -0.68 (-23.2%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 87 of 800 (cand vs base)
+Finished game 82 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 88 of 800 (base vs cand)
+Finished game 85 (cand vs base): 0-1 {Black mates}
+Started game 89 of 800 (cand vs base)
+Finished game 86 (base vs cand): 1-0 {White mates}
+Started game 90 of 800 (base vs cand)
+Finished game 89 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 91 of 800 (cand vs base)
+Finished game 83 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 92 of 800 (base vs cand)
+Finished game 92 (base vs cand): 1-0 {White mates}
+Started game 93 of 800 (cand vs base)
+Finished game 88 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 94 of 800 (base vs cand)
+Finished game 87 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 95 of 800 (cand vs base)
+Finished game 93 (cand vs base): 0-1 {Black mates}
+Started game 96 of 800 (base vs cand)
+Finished game 90 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 97 of 800 (cand vs base)
+Finished game 91 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 98 of 800 (base vs cand)
+Finished game 96 (base vs cand): 1-0 {White mates}
+Started game 99 of 800 (cand vs base)
+Finished game 95 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 100 of 800 (base vs cand)
+Finished game 98 (base vs cand): 1-0 {White mates}
+Started game 101 of 800 (cand vs base)
+Finished game 94 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 102 of 800 (base vs cand)
+Finished game 97 (cand vs base): 0-1 {Black mates}
+Started game 103 of 800 (cand vs base)
+Finished game 102 (base vs cand): 1-0 {White mates}
+Started game 104 of 800 (base vs cand)
+Finished game 100 (base vs cand): 1-0 {White mates}
+Started game 105 of 800 (cand vs base)
+Finished game 103 (cand vs base): 0-1 {Black mates}
+Started game 106 of 800 (base vs cand)
+Finished game 101 (cand vs base): 0-1 {Black mates}
+Started game 107 of 800 (cand vs base)
+Finished game 99 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -273.53 +/- 67.24, nElo: -414.10 +/- 67.43
+LOS: 0.00 %, DrawRatio: 19.61 %, PairsRatio: 0.00
+Games: 102, Wins: 0, Losses: 67, Draws: 35, Points: 17.5 (17.16 %)
+Ptnml(0-2): [26, 15, 10, 0, 0], WL/DD Ratio: 0.00
+LLR: -0.85 (-28.9%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 108 of 800 (base vs cand)
+Finished game 107 (cand vs base): 0-1 {Black mates}
+Started game 109 of 800 (cand vs base)
+Finished game 104 (base vs cand): 1-0 {White mates}
+Started game 110 of 800 (base vs cand)
+Finished game 106 (base vs cand): 1-0 {White mates}
+Started game 111 of 800 (cand vs base)
+Finished game 105 (cand vs base): 0-1 {Black mates}
+Started game 112 of 800 (base vs cand)
+Finished game 108 (base vs cand): 1-0 {White mates}
+Started game 113 of 800 (cand vs base)
+Finished game 110 (base vs cand): 1-0 {White mates}
+Started game 114 of 800 (base vs cand)
+Finished game 111 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 115 of 800 (cand vs base)
+Finished game 113 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 116 of 800 (base vs cand)
+Finished game 109 (cand vs base): 0-1 {Black mates}
+Started game 117 of 800 (cand vs base)
+Finished game 115 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 118 of 800 (base vs cand)
+Finished game 112 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 119 of 800 (cand vs base)
+Finished game 116 (base vs cand): 1-0 {White mates}
+Started game 120 of 800 (base vs cand)
+Finished game 119 (cand vs base): 0-1 {Black mates}
+Started game 121 of 800 (cand vs base)
+Finished game 114 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 122 of 800 (base vs cand)
+Finished game 118 (base vs cand): 1-0 {White mates}
+Started game 123 of 800 (cand vs base)
+Finished game 122 (base vs cand): 1-0 {White mates}
+Started game 124 of 800 (base vs cand)
+Finished game 121 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 125 of 800 (cand vs base)
+Finished game 117 (cand vs base): 0-1 {Black mates}
+Started game 126 of 800 (base vs cand)
+Finished game 120 (base vs cand): 1-0 {White mates}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -277.88 +/- 62.62, nElo: -416.39 +/- 61.65
+LOS: 0.00 %, DrawRatio: 19.67 %, PairsRatio: 0.00
+Games: 122, Wins: 0, Losses: 81, Draws: 41, Points: 20.5 (16.80 %)
+Ptnml(0-2): [32, 17, 12, 0, 0], WL/DD Ratio: 0.00
+LLR: -1.02 (-34.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 127 of 800 (cand vs base)
+Finished game 125 (cand vs base): 0-1 {Black mates}
+Started game 128 of 800 (base vs cand)
+Finished game 124 (base vs cand): 1-0 {White mates}
+Started game 129 of 800 (cand vs base)
+Finished game 127 (cand vs base): 0-1 {Black mates}
+Started game 130 of 800 (base vs cand)
+Finished game 123 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 131 of 800 (cand vs base)
+Finished game 130 (base vs cand): 1-0 {White mates}
+Started game 132 of 800 (base vs cand)
+Finished game 129 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 133 of 800 (cand vs base)
+Finished game 128 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 134 of 800 (base vs cand)
+Finished game 126 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 135 of 800 (cand vs base)
+Finished game 134 (base vs cand): 1-0 {White mates}
+Started game 136 of 800 (base vs cand)
+Finished game 131 (cand vs base): 0-1 {Black mates}
+Started game 137 of 800 (cand vs base)
+Finished game 137 (cand vs base): 0-1 {Black mates}
+Started game 138 of 800 (base vs cand)
+Finished game 135 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 139 of 800 (cand vs base)
+Finished game 133 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 140 of 800 (base vs cand)
+Finished game 138 (base vs cand): 1-0 {White mates}
+Started game 141 of 800 (cand vs base)
+Finished game 132 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 142 of 800 (base vs cand)
+Finished game 136 (base vs cand): 1-0 {White mates}
+Started game 143 of 800 (cand vs base)
+Finished game 140 (base vs cand): 1-0 {White mates}
+Started game 144 of 800 (base vs cand)
+Finished game 139 (cand vs base): 0-1 {Black mates}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -273.70 +/- 54.53, nElo: -432.10 +/- 57.55
+LOS: 0.00 %, DrawRatio: 17.14 %, PairsRatio: 0.00
+Games: 140, Wins: 0, Losses: 92, Draws: 48, Points: 24.0 (17.14 %)
+Ptnml(0-2): [34, 24, 12, 0, 0], WL/DD Ratio: 0.00
+LLR: -1.17 (-39.7%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 145 of 800 (cand vs base)
+Finished game 142 (base vs cand): 1-0 {White mates}
+Started game 146 of 800 (base vs cand)
+Finished game 146 (base vs cand): 1-0 {White mates}
+Started game 147 of 800 (cand vs base)
+Finished game 143 (cand vs base): 1-0 {White mates}
+Started game 148 of 800 (base vs cand)
+Finished game 141 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 149 of 800 (cand vs base)
+Finished game 144 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 150 of 800 (base vs cand)
+Finished game 150 (base vs cand): 1-0 {White mates}
+Started game 151 of 800 (cand vs base)
+Finished game 149 (cand vs base): 0-1 {Black mates}
+Started game 152 of 800 (base vs cand)
+Finished game 145 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 153 of 800 (cand vs base)
+Finished game 153 (cand vs base): 0-1 {Black mates}
+Started game 154 of 800 (base vs cand)
+Finished game 147 (cand vs base): 0-1 {Black mates}
+Started game 155 of 800 (cand vs base)
+Finished game 148 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 156 of 800 (base vs cand)
+Finished game 151 (cand vs base): 0-1 {Black mates}
+Started game 157 of 800 (cand vs base)
+Finished game 155 (cand vs base): 0-1 {Black mates}
+Started game 158 of 800 (base vs cand)
+Finished game 154 (base vs cand): 1-0 {White mates}
+Started game 159 of 800 (cand vs base)
+Finished game 152 (base vs cand): 1-0 {White mates}
+Started game 160 of 800 (base vs cand)
+Finished game 158 (base vs cand): 1-0 {White mates}
+Started game 161 of 800 (cand vs base)
+Finished game 156 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 162 of 800 (base vs cand)
+Finished game 157 (cand vs base): 0-1 {Black mates}
+Started game 163 of 800 (cand vs base)
+Finished game 162 (base vs cand): 1-0 {White mates}
+Started game 164 of 800 (base vs cand)
+Finished game 159 (cand vs base): 0-1 {Black mates}
+Started game 165 of 800 (cand vs base)
+Finished game 160 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -269.37 +/- 51.25, nElo: -417.57 +/- 53.83
+LOS: 0.00 %, DrawRatio: 15.00 %, PairsRatio: 0.01
+Games: 160, Wins: 1, Losses: 105, Draws: 54, Points: 28.0 (17.50 %)
+Ptnml(0-2): [38, 29, 12, 1, 0], WL/DD Ratio: 0.00
+LLR: -1.33 (-45.1%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 166 of 800 (base vs cand)
+Finished game 161 (cand vs base): 0-1 {Black mates}
+Started game 167 of 800 (cand vs base)
+Finished game 165 (cand vs base): 0-1 {Black mates}
+Started game 168 of 800 (base vs cand)
+Finished game 164 (base vs cand): 1-0 {White mates}
+Started game 169 of 800 (cand vs base)
+Finished game 167 (cand vs base): 0-1 {Black mates}
+Started game 170 of 800 (base vs cand)
+Finished game 166 (base vs cand): 1-0 {White mates}
+Started game 171 of 800 (cand vs base)
+Finished game 163 (cand vs base): 0-1 {Black mates}
+Started game 172 of 800 (base vs cand)
+Finished game 172 (base vs cand): 1-0 {White mates}
+Started game 173 of 800 (cand vs base)
+Finished game 169 (cand vs base): 0-1 {Black mates}
+Started game 174 of 800 (base vs cand)
+Finished game 170 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 175 of 800 (cand vs base)
+Finished game 168 (base vs cand): 1-0 {White mates}
+Started game 176 of 800 (base vs cand)
+Finished game 171 (cand vs base): 0-1 {Black mates}
+Started game 177 of 800 (cand vs base)
+Finished game 173 (cand vs base): 0-1 {Black mates}
+Started game 178 of 800 (base vs cand)
+Finished game 174 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 179 of 800 (cand vs base)
+Finished game 178 (base vs cand): 1-0 {White mates}
+Started game 180 of 800 (base vs cand)
+Finished game 176 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 181 of 800 (cand vs base)
+Finished game 175 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 182 of 800 (base vs cand)
+Finished game 177 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 183 of 800 (cand vs base)
+Finished game 182 (base vs cand): 1-0 {White mates}
+Started game 184 of 800 (base vs cand)
+Finished game 180 (base vs cand): 1-0 {White mates}
+Started game 185 of 800 (cand vs base)
+Finished game 179 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -272.73 +/- 48.21, nElo: -426.69 +/- 50.76
+LOS: 0.00 %, DrawRatio: 14.44 %, PairsRatio: 0.01
+Games: 180, Wins: 1, Losses: 119, Draws: 60, Points: 31.0 (17.22 %)
+Ptnml(0-2): [43, 33, 13, 1, 0], WL/DD Ratio: 0.00
+LLR: -1.50 (-51.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 186 of 800 (base vs cand)
+Finished game 181 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 187 of 800 (cand vs base)
+Finished game 184 (base vs cand): 1-0 {White mates}
+Started game 188 of 800 (base vs cand)
+Finished game 183 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 189 of 800 (cand vs base)
+Finished game 187 (cand vs base): 0-1 {Black mates}
+Started game 190 of 800 (base vs cand)
+Finished game 185 (cand vs base): 0-1 {Black mates}
+Started game 191 of 800 (cand vs base)
+Finished game 190 (base vs cand): 1-0 {White mates}
+Started game 192 of 800 (base vs cand)
+Finished game 188 (base vs cand): 1-0 {White mates}
+Started game 193 of 800 (cand vs base)
+Finished game 193 (cand vs base): 0-1 {Black mates}
+Started game 194 of 800 (base vs cand)
+Finished game 186 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 195 of 800 (cand vs base)
+Finished game 191 (cand vs base): 0-1 {Black mates}
+Started game 196 of 800 (base vs cand)
+Finished game 194 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 197 of 800 (cand vs base)
+Finished game 192 (base vs cand): 1-0 {White mates}
+Started game 198 of 800 (base vs cand)
+Finished game 196 (base vs cand): 1-0 {White mates}
+Started game 199 of 800 (cand vs base)
+Finished game 197 (cand vs base): 0-1 {Black mates}
+Started game 200 of 800 (base vs cand)
+Finished game 189 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 201 of 800 (cand vs base)
+Finished game 200 (base vs cand): 1-0 {White mates}
+Started game 202 of 800 (base vs cand)
+Finished game 195 (cand vs base): 0-1 {Black mates}
+Started game 203 of 800 (cand vs base)
+Finished game 198 (base vs cand): 1-0 {White mates}
+Started game 204 of 800 (base vs cand)
+Finished game 204 (base vs cand): 1-0 {White mates}
+Started game 205 of 800 (cand vs base)
+Finished game 199 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -275.45 +/- 44.80, nElo: -442.29 +/- 48.15
+LOS: 0.00 %, DrawRatio: 13.00 %, PairsRatio: 0.01
+Games: 200, Wins: 1, Losses: 133, Draws: 66, Points: 34.0 (17.00 %)
+Ptnml(0-2): [47, 39, 13, 1, 0], WL/DD Ratio: 0.00
+LLR: -1.67 (-56.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 206 of 800 (base vs cand)
+Finished game 201 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 207 of 800 (cand vs base)
+Finished game 202 (base vs cand): 1-0 {White mates}
+Started game 208 of 800 (base vs cand)
+Finished game 203 (cand vs base): 0-1 {Black mates}
+Started game 209 of 800 (cand vs base)
+Finished game 207 (cand vs base): 0-1 {Black mates}
+Started game 210 of 800 (base vs cand)
+Finished game 206 (base vs cand): 1-0 {White mates}
+Started game 211 of 800 (cand vs base)
+Finished game 205 (cand vs base): 0-1 {Black mates}
+Started game 212 of 800 (base vs cand)
+Finished game 210 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 213 of 800 (cand vs base)
+Finished game 209 (cand vs base): 0-1 {Black mates}
+Started game 214 of 800 (base vs cand)
+Finished game 213 (cand vs base): 0-1 {Black mates}
+Started game 215 of 800 (cand vs base)
+Finished game 208 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 216 of 800 (base vs cand)
+Finished game 214 (base vs cand): 1-0 {White mates}
+Started game 217 of 800 (cand vs base)
+Finished game 211 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 218 of 800 (base vs cand)
+Finished game 216 (base vs cand): 1-0 {White mates}
+Started game 219 of 800 (cand vs base)
+Finished game 218 (base vs cand): 1-0 {White mates}
+Started game 220 of 800 (base vs cand)
+Finished game 217 (cand vs base): 0-1 {Black mates}
+Started game 221 of 800 (cand vs base)
+Finished game 212 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 222 of 800 (base vs cand)
+Finished game 215 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 223 of 800 (cand vs base)
+Finished game 219 (cand vs base): 0-1 {Black mates}
+Started game 224 of 800 (base vs cand)
+Finished game 221 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 225 of 800 (cand vs base)
+Finished game 220 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -274.89 +/- 42.10, nElo: -446.51 +/- 45.91
+LOS: 0.00 %, DrawRatio: 12.73 %, PairsRatio: 0.01
+Games: 220, Wins: 1, Losses: 146, Draws: 73, Points: 37.5 (17.05 %)
+Ptnml(0-2): [51, 44, 14, 1, 0], WL/DD Ratio: 0.00
+LLR: -1.84 (-62.5%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 226 of 800 (base vs cand)
+Finished game 225 (cand vs base): 0-1 {Black mates}
+Started game 227 of 800 (cand vs base)
+Finished game 222 (base vs cand): 1-0 {White mates}
+Started game 228 of 800 (base vs cand)
+Finished game 226 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 229 of 800 (cand vs base)
+Finished game 223 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 230 of 800 (base vs cand)
+Finished game 228 (base vs cand): 1-0 {White mates}
+Started game 231 of 800 (cand vs base)
+Finished game 224 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 232 of 800 (base vs cand)
+Finished game 230 (base vs cand): 1-0 {White mates}
+Started game 233 of 800 (cand vs base)
+Finished game 227 (cand vs base): 0-1 {Black mates}
+Started game 234 of 800 (base vs cand)
+Finished game 231 (cand vs base): 0-1 {Black mates}
+Started game 235 of 800 (cand vs base)
+Finished game 235 (cand vs base): 0-1 {Black mates}
+Started game 236 of 800 (base vs cand)
+Finished game 234 (base vs cand): 1-0 {White mates}
+Started game 237 of 800 (cand vs base)
+Finished game 229 (cand vs base): 0-1 {Black mates}
+Started game 238 of 800 (base vs cand)
+Finished game 233 (cand vs base): 0-1 {Black mates}
+Started game 239 of 800 (cand vs base)
+Finished game 232 (base vs cand): 1-0 {White mates}
+Started game 240 of 800 (base vs cand)
+Finished game 237 (cand vs base): 0-1 {Black mates}
+Started game 241 of 800 (cand vs base)
+Finished game 236 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 242 of 800 (base vs cand)
+Finished game 238 (base vs cand): 1-0 {White mates}
+Started game 243 of 800 (cand vs base)
+Finished game 239 (cand vs base): 0-1 {Black mates}
+Started game 244 of 800 (base vs cand)
+Finished game 241 (cand vs base): 0-1 {Black mates}
+Started game 245 of 800 (cand vs base)
+Finished game 242 (base vs cand): 1-0 {White mates}
+Started game 246 of 800 (base vs cand)
+Finished game 243 (cand vs base): 0-1 {Black mates}
+Started game 247 of 800 (cand vs base)
+Finished game 240 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -278.73 +/- 40.42, nElo: -453.83 +/- 43.77
+LOS: 0.00 %, DrawRatio: 12.40 %, PairsRatio: 0.01
+Games: 242, Wins: 1, Losses: 162, Draws: 79, Points: 40.5 (16.74 %)
+Ptnml(0-2): [57, 48, 15, 1, 0], WL/DD Ratio: 0.00
+LLR: -2.03 (-69.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 248 of 800 (base vs cand)
+Finished game 246 (base vs cand): 1/2-1/2 {Draw by adjudication}
+Started game 249 of 800 (cand vs base)
+Finished game 245 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 250 of 800 (base vs cand)
+Finished game 244 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 251 of 800 (cand vs base)
+Finished game 247 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 252 of 800 (base vs cand)
+Finished game 252 (base vs cand): 1-0 {White mates}
+Started game 253 of 800 (cand vs base)
+Finished game 249 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 254 of 800 (base vs cand)
+Finished game 248 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 255 of 800 (cand vs base)
+Finished game 250 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 256 of 800 (base vs cand)
+Finished game 251 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 257 of 800 (cand vs base)
+Finished game 253 (cand vs base): 0-1 {Black mates}
+Started game 258 of 800 (base vs cand)
+Finished game 256 (base vs cand): 1-0 {White mates}
+Started game 259 of 800 (cand vs base)
+Finished game 259 (cand vs base): 0-1 {Black mates}
+Started game 260 of 800 (base vs cand)
+Finished game 254 (base vs cand): 1-0 {White mates}
+Started game 261 of 800 (cand vs base)
+Finished game 261 (cand vs base): 0-1 {Black mates}
+Started game 262 of 800 (base vs cand)
+Finished game 258 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 263 of 800 (cand vs base)
+Finished game 255 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 264 of 800 (base vs cand)
+Finished game 257 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 265 of 800 (cand vs base)
+Finished game 264 (base vs cand): 1-0 {White mates}
+Started game 266 of 800 (base vs cand)
+Finished game 262 (base vs cand): 1-0 {White mates}
+Started game 267 of 800 (cand vs base)
+Finished game 266 (base vs cand): 1-0 {White mates}
+Started game 268 of 800 (base vs cand)
+Finished game 267 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 269 of 800 (cand vs base)
+Finished game 265 (cand vs base): 0-1 {Black mates}
+Started game 270 of 800 (base vs cand)
+Finished game 260 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -268.00 +/- 37.91, nElo: -432.50 +/- 41.91
+LOS: 0.00 %, DrawRatio: 14.39 %, PairsRatio: 0.01
+Games: 264, Wins: 1, Losses: 172, Draws: 91, Points: 46.5 (17.61 %)
+Ptnml(0-2): [60, 52, 19, 1, 0], WL/DD Ratio: 0.00
+LLR: -2.19 (-74.3%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 271 of 800 (cand vs base)
+Finished game 263 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 272 of 800 (base vs cand)
+Finished game 272 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 273 of 800 (cand vs base)
+Finished game 268 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 274 of 800 (base vs cand)
+Finished game 270 (base vs cand): 1-0 {White mates}
+Started game 275 of 800 (cand vs base)
+Finished game 269 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 276 of 800 (base vs cand)
+Finished game 275 (cand vs base): 0-1 {Black mates}
+Started game 277 of 800 (cand vs base)
+Finished game 271 (cand vs base): 0-1 {Black mates}
+Started game 278 of 800 (base vs cand)
+Finished game 273 (cand vs base): 0-1 {Black mates}
+Started game 279 of 800 (cand vs base)
+Finished game 274 (base vs cand): 1-0 {White mates}
+Started game 280 of 800 (base vs cand)
+Finished game 277 (cand vs base): 0-1 {Black mates}
+Started game 281 of 800 (cand vs base)
+Finished game 278 (base vs cand): 1-0 {White mates}
+Started game 282 of 800 (base vs cand)
+Finished game 280 (base vs cand): 1-0 {White mates}
+Started game 283 of 800 (cand vs base)
+Finished game 276 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 284 of 800 (base vs cand)
+Finished game 283 (cand vs base): 0-1 {Black mates}
+Started game 285 of 800 (cand vs base)
+Finished game 282 (base vs cand): 1-0 {White mates}
+Started game 286 of 800 (base vs cand)
+Finished game 286 (base vs cand): 1-0 {White mates}
+Started game 287 of 800 (cand vs base)
+Finished game 279 (cand vs base): 0-1 {Black mates}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -267.23 +/- 36.48, nElo: -433.97 +/- 40.70
+LOS: 0.00 %, DrawRatio: 14.29 %, PairsRatio: 0.01
+Games: 280, Wins: 1, Losses: 182, Draws: 97, Points: 49.5 (17.68 %)
+Ptnml(0-2): [63, 56, 20, 1, 0], WL/DD Ratio: 0.00
+LLR: -2.32 (-78.7%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 288 of 800 (base vs cand)
+Finished game 285 (cand vs base): 0-1 {Black mates}
+Started game 289 of 800 (cand vs base)
+Finished game 288 (base vs cand): 1-0 {White mates}
+Started game 290 of 800 (base vs cand)
+Finished game 281 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 291 of 800 (cand vs base)
+Finished game 284 (base vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 292 of 800 (base vs cand)
+Finished game 289 (cand vs base): 0-1 {Black mates}
+Started game 293 of 800 (cand vs base)
+Finished game 290 (base vs cand): 1-0 {White mates}
+Started game 294 of 800 (base vs cand)
+Finished game 293 (cand vs base): 0-1 {Black mates}
+Started game 295 of 800 (cand vs base)
+Finished game 287 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 296 of 800 (base vs cand)
+Finished game 295 (cand vs base): 0-1 {Black mates}
+Started game 297 of 800 (cand vs base)
+Finished game 296 (base vs cand): 1-0 {White mates}
+Started game 298 of 800 (base vs cand)
+Finished game 298 (base vs cand): 1-0 {White mates}
+Started game 299 of 800 (cand vs base)
+Finished game 291 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 300 of 800 (base vs cand)
+Finished game 292 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 301 of 800 (cand vs base)
+Finished game 301 (cand vs base): 0-1 {Black mates}
+Started game 302 of 800 (base vs cand)
+Finished game 302 (base vs cand): 1-0 {White mates}
+Started game 303 of 800 (cand vs base)
+Finished game 299 (cand vs base): 0-1 {Black mates}
+Started game 304 of 800 (base vs cand)
+Finished game 297 (cand vs base): 0-1 {Black mates}
+Started game 305 of 800 (cand vs base)
+Finished game 294 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 306 of 800 (base vs cand)
+Finished game 304 (base vs cand): 1-0 {White mates}
+Started game 307 of 800 (cand vs base)
+Finished game 300 (base vs cand): 1-0 {White mates}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -270.76 +/- 35.38, nElo: -440.38 +/- 39.18
+LOS: 0.00 %, DrawRatio: 13.91 %, PairsRatio: 0.01
+Games: 302, Wins: 1, Losses: 198, Draws: 103, Points: 52.5 (17.38 %)
+Ptnml(0-2): [69, 60, 21, 1, 0], WL/DD Ratio: 0.00
+LLR: -2.51 (-85.3%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 308 of 800 (base vs cand)
+Finished game 307 (cand vs base): 0-1 {Black mates}
+Started game 309 of 800 (cand vs base)
+Finished game 306 (base vs cand): 1-0 {White mates}
+Started game 310 of 800 (base vs cand)
+Finished game 305 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 311 of 800 (cand vs base)
+Finished game 310 (base vs cand): 1-0 {White mates}
+Started game 312 of 800 (base vs cand)
+Finished game 308 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 313 of 800 (cand vs base)
+Finished game 311 (cand vs base): 0-1 {Black mates}
+Started game 314 of 800 (base vs cand)
+Finished game 303 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 315 of 800 (cand vs base)
+Finished game 312 (base vs cand): 1-0 {White mates}
+Started game 316 of 800 (base vs cand)
+Finished game 309 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 317 of 800 (cand vs base)
+Finished game 316 (base vs cand): 1-0 {White mates}
+Started game 318 of 800 (base vs cand)
+Finished game 313 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 319 of 800 (cand vs base)
+Finished game 318 (base vs cand): 1-0 {White mates}
+Started game 320 of 800 (base vs cand)
+Finished game 315 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 321 of 800 (cand vs base)
+Finished game 314 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 322 of 800 (base vs cand)
+Finished game 321 (cand vs base): 0-1 {Black mates}
+Started game 323 of 800 (cand vs base)
+Finished game 320 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 324 of 800 (base vs cand)
+Finished game 317 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 325 of 800 (cand vs base)
+Finished game 319 (cand vs base): 0-1 {Black mates}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -265.63 +/- 33.29, nElo: -439.76 +/- 38.07
+LOS: 0.00 %, DrawRatio: 13.75 %, PairsRatio: 0.01
+Games: 320, Wins: 1, Losses: 207, Draws: 112, Points: 57.0 (17.81 %)
+Ptnml(0-2): [70, 67, 22, 1, 0], WL/DD Ratio: 0.00
+LLR: -2.64 (-89.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 326 of 800 (base vs cand)
+Finished game 322 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 327 of 800 (cand vs base)
+Finished game 323 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 328 of 800 (base vs cand)
+Finished game 327 (cand vs base): 0-1 {Black mates}
+Started game 329 of 800 (cand vs base)
+Finished game 326 (base vs cand): 1-0 {White mates}
+Started game 330 of 800 (base vs cand)
+Finished game 329 (cand vs base): 0-1 {Black mates}
+Started game 331 of 800 (cand vs base)
+Finished game 324 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 332 of 800 (base vs cand)
+Finished game 332 (base vs cand): 1-0 {White mates}
+Started game 333 of 800 (cand vs base)
+Finished game 325 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 334 of 800 (base vs cand)
+Finished game 328 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 335 of 800 (cand vs base)
+Finished game 331 (cand vs base): 0-1 {Black mates}
+Started game 336 of 800 (base vs cand)
+Finished game 334 (base vs cand): 1-0 {White mates}
+Started game 337 of 800 (cand vs base)
+Finished game 330 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 338 of 800 (base vs cand)
+Finished game 337 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 339 of 800 (cand vs base)
+Finished game 333 (cand vs base): 1/2-1/2 {Draw by insufficient mating material}
+Started game 340 of 800 (base vs cand)
+Finished game 335 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 341 of 800 (cand vs base)
+Finished game 340 (base vs cand): 1-0 {White mates}
+Started game 342 of 800 (base vs cand)
+Finished game 336 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 343 of 800 (cand vs base)
+Finished game 339 (cand vs base): 0-1 {Black mates}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -261.13 +/- 31.85, nElo: -434.41 +/- 37.04
+LOS: 0.00 %, DrawRatio: 14.20 %, PairsRatio: 0.01
+Games: 338, Wins: 1, Losses: 216, Draws: 121, Points: 61.5 (18.20 %)
+Ptnml(0-2): [72, 72, 24, 1, 0], WL/DD Ratio: 0.00
+LLR: -2.78 (-94.3%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 344 of 800 (base vs cand)
+Finished game 341 (cand vs base): 0-1 {Black mates}
+Started game 345 of 800 (cand vs base)
+Finished game 338 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 346 of 800 (base vs cand)
+Finished game 343 (cand vs base): 0-1 {Black mates}
+Started game 347 of 800 (cand vs base)
+Finished game 344 (base vs cand): 1-0 {White mates}
+Started game 348 of 800 (base vs cand)
+Finished game 342 (base vs cand): 1-0 {White mates}
+Started game 349 of 800 (cand vs base)
+Finished game 347 (cand vs base): 1/2-1/2 {Draw by adjudication}
+Started game 350 of 800 (base vs cand)
+Finished game 345 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 351 of 800 (cand vs base)
+Finished game 346 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 352 of 800 (base vs cand)
+Finished game 349 (cand vs base): 0-1 {Black mates}
+Started game 353 of 800 (cand vs base)
+Finished game 350 (base vs cand): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 354 of 800 (base vs cand)
+Finished game 352 (base vs cand): 1-0 {White mates}
+Started game 355 of 800 (cand vs base)
+Finished game 353 (cand vs base): 0-1 {Black mates}
+Started game 356 of 800 (base vs cand)
+Finished game 348 (base vs cand): 1-0 {White mates}
+Started game 357 of 800 (cand vs base)
+Finished game 351 (cand vs base): 0-1 {Black mates}
+Started game 358 of 800 (base vs cand)
+Finished game 356 (base vs cand): 1-0 {White mates}
+Started game 359 of 800 (cand vs base)
+Finished game 355 (cand vs base): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 360 of 800 (base vs cand)
+Finished game 354 (base vs cand): 1-0 {White mates}
+Started game 361 of 800 (cand vs base)
+Finished game 360 (base vs cand): 1-0 {White mates}
+Started game 362 of 800 (base vs cand)
+Finished game 361 (cand vs base): 0-1 {Black mates}
+Started game 363 of 800 (cand vs base)
+Finished game 358 (base vs cand): 1/2-1/2 {Draw by fifty moves rule}
+Started game 364 of 800 (base vs cand)
+Finished game 357 (cand vs base): 1/2-1/2 {Draw by fifty moves rule}
+Started game 365 of 800 (cand vs base)
+Finished game 362 (base vs cand): 1-0 {White mates}
+--------------------------------------------------
+Results of cand vs base (8+0.08, 1t, NULL, eco_lichess.epd):
+Elo: -259.52 +/- 31.00, nElo: -427.90 +/- 35.89
+LOS: 0.00 %, DrawRatio: 15.00 %, PairsRatio: 0.01
+Games: 360, Wins: 1, Losses: 229, Draws: 130, Points: 66.0 (18.33 %)
+Ptnml(0-2): [77, 75, 27, 1, 0], WL/DD Ratio: 0.00
+LLR: -2.95 (-100.2%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+SPRT ([0.00, 5.00]) completed - H0 was accepted
+Finished match
+Total Time: 00:41:37 (hours:minutes:seconds)
+

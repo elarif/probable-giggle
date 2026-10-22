@@ -63,40 +63,40 @@ C'est la sémantique **standard de la quiescence** (stand-pat), et c'est celle r
 
 ### Tâche 1 — `qvalue` (le cœur de la phase)
 
-- [ ] Créer `src/mcts/qsearch.rs` :
+- [x] Créer `src/mcts/qsearch.rs` :
   - `pub fn qvalue(pos: &Position, depth: u32) -> i32` — negamax captures-seulement, **stand-pat** (`eval_for_mover`), valeur **pour le trait**, en centipions ;
   - profondeur 0 ⇒ l'éval statique ; pas de capture disponible ⇒ l'éval statique ;
   - aucune allocation : `movegen::generate_captures` renvoie une `MoveList` de pile, `make`/`unmake` par capture.
-- [ ] Tests unitaires dans le module : position à capture gratuite (la valeur monte), échange Pair (la valeur reste équilibrée), position calme (valeur == éval statique), profondeur 0 (identique à l'éval).
-- [ ] Regrouper l'existant `examples/leaf_probe.rs` sur `qvalue` (plus de doublon de recherche) et le committer comme sonde.
+- [x] Tests unitaires dans le module : position à capture gratuite (la valeur monte), échange Pair (la valeur reste équilibrée), position calme (valeur == éval statique), profondeur 0 (identique à l'éval).
+- [x] Regrouper l'existant `examples/leaf_probe.rs` sur `qvalue` (plus de doublon de recherche) et le committer comme sonde.
 
 ### Tâche 2 — `leaf_value` paramétré
 
-- [ ] `pub fn leaf_value(pos: &Position, hist: &[u64], leaf_q: u32) -> f32` : terminalité **d'abord** (exact, jamais remplacé), puis `qvalue` si `leaf_q > 0`, sinon l'éval statique.
-- [ ] `Limits.leaf_q: u32` (défaut `0`), `Worker.leaf_q`, passage dans `search_once` (chemin mono **et** parallèle).
-- [ ] `Search::with_leaf_q(n)` (constructeur fluent).
-- [ ] Mettre à jour **tous** les littéraux `Limits { .. }` du dépôt (tests, exemples, bancs).
+- [x] `pub fn leaf_value(pos: &Position, hist: &[u64], leaf_q: u32) -> f32` : terminalité **d'abord** (exact, jamais remplacé), puis `qvalue` si `leaf_q > 0`, sinon l'éval statique.
+- [x] `Limits.leaf_q: u32` (défaut `0`), `Worker.leaf_q`, passage dans `search_once` (chemin mono **et** parallèle).
+- [x] `Search::with_leaf_q(n)` (constructeur fluent).
+- [x] Mettre à jour **tous** les littéraux `Limits { .. }` du dépôt (tests, exemples, bancs).
 
 ### Tâche 3 — option UCI + correctif du budget temps
 
-- [ ] Option UCI `LeafQ` (entier, défaut `0`), parsée et passée dans `Limits`.
-- [ ] **Correctif du budget temps** (`parse_go`) :
+- [x] Option UCI `LeafQ` (entier, défaut `0`), parsée et passée dans `Limits`.
+- [x] **Correctif du budget temps** (`parse_go`) :
   - le budget ne doit **jamais** dépasser le temps restant moins une marge (le plancher de 50 ms est la cause des 158/200 adjugations) ;
   - une **marge** de sécurité est réservée pour l'aller-retour UCI et la première allocation de l'arène (l'overshoot mesuré est de ~9 ms) ;
   - le chemin `movetime` reçoit la même marge.
-- [ ] Test : `go wtime 20` ⇒ le moteur répond **en moins de 20 ms** (plus de flag possible).
+- [x] Test : `go wtime 20` ⇒ le moteur répond **en moins de 20 ms** (plus de flag possible).
 
 ### Tâche 4 — filet de tests
 
-- [ ] `tests/mcts_phase5.rs` : sémantique de `qvalue`, `leaf_value` (terminalité prioritaire), **déterminisme** (même graine ⇒ même coup avec `leaf_q > 0`), légalité des coups, budget de nœuds exact, **parité `leaf_q = 0`** (le chemin par défaut est bit-à-bit le même qu'en phase 4).
-- [ ] `cargo test --release` : les suites phases 3 et 4 passent **sans modification**.
+- [x] `tests/mcts_phase5.rs` : sémantique de `qvalue`, `leaf_value` (terminalité prioritaire), **déterminisme** (même graine ⇒ même coup avec `leaf_q > 0`), légalité des coups, budget de nœuds exact, **parité `leaf_q = 0`** (le chemin par défaut est bit-à-bit le même qu'en phase 4).
+- [x] `cargo test --release` : les suites phases 3 et 4 passent **sans modification**.
 
 ### Tâche 5 — mesure
 
-- [ ] Débit : `mcts_probe` avec `leaf_q ∈ {0, 1, 2, 4}` (coût de la feuille sur le chemin chaud).
-- [ ] Erreur de feuille : `leaf_probe` (avant/après).
-- [ ] **Échelle Elo** : candidat = phase 5 (`leaf_q = d`), référence = phase 4 gelée, nœuds-fixes 2k/10k/40k + TC 8+0.08, avec le contrôle « phase 4 forcé `Policy=uct` » comme témoin.
-- [ ] Rapport `docs/mcts/phase5-2026-10-22.md`, `ELO_LOG.md`, `README.md`.
+- [x] Débit : `mcts_probe` avec `leaf_q ∈ {0, 1, 2, 4}` (coût de la feuille sur le chemin chaud).
+- [x] Erreur de feuille : `leaf_probe` (avant/après).
+- [x] **Échelle Elo** : candidat = phase 5 (`leaf_q = d`), référence = phase 4 gelée, nœuds-fixes 2k/10k/40k + TC 8+0.08, avec le contrôle « phase 4 forcé `Policy=uct` » comme témoin.
+- [x] Rapport `docs/mcts/phase5-2026-10-22.md`, `ELO_LOG.md`, `README.md`.
 
 ## Gates
 
