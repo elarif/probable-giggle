@@ -52,6 +52,7 @@ fn search(pos: &Position, nodes: u64, threads: usize) -> Search {
         c_uct: std::f32::consts::SQRT_2,
         c_puct: mychess::mcts::DEFAULT_C_PUCT,
         root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
+        leaf_q: 0,
     };
     Search::new(*pos, vec![pos.zobrist], limits, 42).with_threads(threads)
 }
@@ -113,6 +114,7 @@ fn bench_parallel_throughput(c: &mut Criterion) {
                         c_uct: std::f32::consts::SQRT_2,
                         c_puct: mychess::mcts::DEFAULT_C_PUCT,
                         root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
+                        leaf_q: 0,
                     };
                     let s = Search::new(pos, vec![pos.zobrist], limits, 42).with_threads(threads);
                     let t0 = std::time::Instant::now();

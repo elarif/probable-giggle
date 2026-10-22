@@ -24,6 +24,7 @@ fn main() {
             c_uct: std::f32::consts::SQRT_2,
             c_puct: mychess::mcts::DEFAULT_C_PUCT,
             root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
+            leaf_q: 0,
         },
         seed,
     );

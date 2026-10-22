@@ -76,6 +76,7 @@ use std::time::{Duration, Instant};
 
 mod arena;
 pub mod policy;
+pub mod qsearch;
 
 use arena::{Arena, NO_CHILD, ROOT};
 use policy::priors;
@@ -145,6 +146,16 @@ pub struct Limits {
     /// parallel mode needs it — without diversity between the workers, the
     /// parallel search would collapse to the mono search at `N/T` nodes.
     pub root_noise: f32,
+    /// **Depth of the tactical resolution of the leaf** (phase 5). `0`
+    /// disables it: the leaf is then valued by the static evaluation
+    /// alone, exactly as in phase 4 (bit-for-bit).
+    ///
+    /// With `leaf_q = d > 0`, the leaf value is computed after resolving
+    /// the exchanges on `d` plies (`mcts::qsearch::qvalue`) — the
+    /// quiescence-lite. This is what removes the *horizon effect*: a leaf
+    /// that stands in the middle of an exchange is no longer scored as if
+    /// the exchange did not exist.
+    pub leaf_q: u32,
 }
 
 impl Default for Limits {
@@ -156,6 +167,7 @@ impl Default for Limits {
             c_uct: std::f32::consts::SQRT_2,
             c_puct: DEFAULT_C_PUCT,
             root_noise: DEFAULT_ROOT_NOISE,
+            leaf_q: 0,
         }
     }
 }
@@ -229,6 +241,18 @@ impl Search {
         self
     }
 
+    /// The depth of the **tactical resolution of the leaf** (phase 5).
+    ///
+    /// * `0` (the default) — the leaf is valued by the static evaluation
+    ///   alone: the behaviour of phase 4, **bit-for-bit** ;
+    /// * `d > 0` — the leaf value is computed after resolving the
+    ///   exchanges on `d` plies (`mcts::qsearch`), which removes the
+    ///   *horizon effect*.
+    pub fn with_leaf_q(mut self, leaf_q: u32) -> Search {
+        self.limits.leaf_q = leaf_q;
+        self
+    }
+
     /// Number of parallel root workers. `1` (the default) is the mono-thread
     /// engine, bit-for-bit identical to v1.
     ///
@@ -271,6 +295,7 @@ impl Search {
             // search is fully deterministic.
             root_noise: 0.0,
             policy: self.policy,
+            leaf_q: self.limits.leaf_q,
             max_playout_ply: self.limits.max_playout_ply,
             seed: self.seed,
         };
@@ -344,6 +369,7 @@ impl Search {
                 let c_puct = self.limits.c_puct;
                 let root_noise = self.limits.root_noise;
                 let policy = self.policy;
+                let leaf_q = self.limits.leaf_q;
                 let max_playout_ply = self.limits.max_playout_ply;
                 handles.push(scope.spawn(move || {
                     let worker = Worker {
@@ -353,6 +379,7 @@ impl Search {
                         c_puct,
                         root_noise,
                         policy,
+                        leaf_q,
                         max_playout_ply,
                         seed,
                     };
@@ -367,6 +394,7 @@ impl Search {
                 c_puct: self.limits.c_puct,
                 root_noise: self.limits.root_noise,
                 policy: self.policy,
+                leaf_q: self.limits.leaf_q,
                 max_playout_ply: self.limits.max_playout_ply,
                 seed: self.seed,
             };
@@ -456,6 +484,9 @@ struct Worker<'a> {
     root_noise: f32,
     /// The selection rule.
     policy: Policy,
+    /// The depth of the tactical resolution of the leaf (phase 5). `0` =
+    /// static evaluation only (the phase-4 behaviour, bit-for-bit).
+    leaf_q: u32,
     max_playout_ply: u32,
     seed: u64,
 }
@@ -559,7 +590,7 @@ fn search_once(w: &Worker, arena: &mut Arena, rng: &mut Rng, scratch: &mut Scrat
                 // A1 leaf: exact terminality first, else the static eval.
                 // Single source of truth (`mcts::leaf_value`) so the unit
                 // tests exercise the EXACT path the search takes.
-                let r = leaf_value(&p, &scratch.hist);
+                let r = leaf_value_q(&p, &scratch.hist, w.leaf_q);
                 backprop(arena, &scratch.path, r);
                 return;
             }
@@ -854,6 +885,34 @@ pub fn leaf_value(pos: &Position, hist: &[u64]) -> f32 {
     }
 }
 
+/// The **phase-5** leaf: terminality first (never replaced), then the
+/// value of the position *after the exchanges are resolved* when
+/// `leaf_q > 0`.
+///
+/// * `leaf_q == 0` — the **phase-4** behaviour, bit-for-bit: the static
+///   evaluation alone (`leaf_value`);
+/// * `leaf_q == d > 0` — the quiescence-lite (`mcts::qsearch::qvalue`):
+///   the exchanges standing on the leaf are resolved on `d` plies, which
+///   removes the *horizon effect*.
+///
+/// The terminality is checked **first** in both cases: a mate, a
+/// stalemate, a draw by the 50-move rule or by triple repetition keep
+/// their exact value — the tactical resolution never overrides them.
+#[inline(always)]
+pub fn leaf_value_q(pos: &Position, hist: &[u64], leaf_q: u32) -> f32 {
+    match terminal_value(pos, hist) {
+        Some(v) => v,
+        None => {
+            if leaf_q == 0 {
+                eval_normalized(pos)
+            } else {
+                let cp = qsearch::qvalue(pos, leaf_q) as f32;
+                (cp * EVAL_Q_CP_SCALE).clamp(-EVAL_Q_CLAMP, EVAL_Q_CLAMP)
+            }
+        }
+    }
+}
+
 /// Terminality of `pos` given the history of positions BEFORE it — the
 /// exported face of v1 terminality (tests); expansion uses the same logic.
 ///
@@ -892,6 +951,7 @@ mod tests {
             c_puct: DEFAULT_C_PUCT,
             root_noise: 0.0,
             policy: Policy::Uct,
+            leaf_q: 0,
             max_playout_ply: 100,
             seed,
         };
@@ -985,6 +1045,7 @@ mod tests {
             c_puct: DEFAULT_C_PUCT,
             root_noise: 0.0,
             policy: Policy::Uct,
+            leaf_q: 0,
             max_playout_ply: 100,
             seed: 3,
         };

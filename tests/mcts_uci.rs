@@ -261,3 +261,77 @@ fn uci_policy_option_switches_the_selection_rule() {
         assert_ne!(bm, "0000", "non-terminal position must move");
     }
 }
+
+/// Phase 5: the `LeafQ` option must be advertised — it is the knob that
+/// makes the tactical resolution of the leaf testable from the outside.
+#[test]
+fn uci_advertises_the_phase5_option() {
+    let mut s = UciSession::start();
+    s.send("uci");
+    let lines = s.wait_for("uciok", 5000);
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("option name LeafQ type spin")),
+        "the LeafQ option must be advertised: {lines:?}"
+    );
+}
+
+/// Phase 5: `setoption name LeafQ value 2` must be honoured — the `info`
+/// line reports the depth in force, and the search still returns a legal
+/// move.
+#[test]
+fn uci_leafq_option_switches_the_leaf_depth() {
+    let mut s = UciSession::start();
+    s.send("uci");
+    let _ = s.wait_for("uciok", 5000);
+    s.send("setoption name LeafQ value 2");
+    s.send("position startpos moves e2e4 e7e5");
+    s.send("isready");
+    let _ = s.wait_for("readyok", 30000);
+    s.send("go nodes 2000");
+    let lines = s.window_for_bestmove();
+    assert!(
+        lines.iter().any(|l| l.contains("leafq 2")),
+        "the info line must report the leaf depth: {lines:?}"
+    );
+    let bm = lines
+        .iter()
+        .find(|l| l.starts_with("bestmove"))
+        .and_then(|l| l.split_whitespace().nth(1))
+        .expect("bestmove line");
+    assert_eq!(bm.len(), 4, "bestmove token shape: {bm}");
+    assert_ne!(bm, "0000", "non-terminal position must move");
+}
+
+/// Phase 5 — **le budget temps est borné par le temps restant**.
+///
+/// La phase 4 avait un plancher de 50 ms : avec 20 ms de temps restant,
+/// le moteur réfléchissait 50 ms et se faisait **flaguer**. Ici, la
+/// réponse doit arriver **bien avant** l'échéance.
+///
+/// La borne est à 30 ms (et non 20) pour absorber la gigue de
+/// l'ordonnanceur : le budget interne est de 15 ms, la réponse mesurée
+/// est à ~16 ms, et le moteur de la phase 4 (plancher de 50 ms) mettait
+/// plus de 50 ms — le test **échouerait** sur le code de la phase 4.
+#[test]
+fn uci_wtime_is_respected() {
+    let mut s = UciSession::start();
+    s.send("uci");
+    let _ = s.wait_for("uciok", 5000);
+    s.send("position startpos");
+    s.send("isready");
+    let _ = s.wait_for("readyok", 30000);
+    let t0 = std::time::Instant::now();
+    s.send("go wtime 20");
+    let lines = s.window_for_bestmove();
+    let elapsed = t0.elapsed().as_millis() as u64;
+    assert!(
+        elapsed < 30,
+        "la reponse doit arriver avant l'echeance : {elapsed} ms pour 20 ms de temps"
+    );
+    assert!(
+        lines.iter().any(|l| l.starts_with("bestmove")),
+        "bestmove manquant : {lines:?}"
+    );
+}

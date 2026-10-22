@@ -3,7 +3,7 @@
 //!
 //! Supported: `uci`, `isready`, `ucinewgame`, `setoption` (accepted; knobs:
 //! `Seed`, `MaxPlayoutPly`, `UCTC`, `Threads`, `Cpuct`, `RootNoise`,
-//! `Policy`), `position [startpos|fen <fen>] [moves ...]`,
+//! `Policy`, `LeafQ`), `position [startpos|fen <fen>] [moves ...]`,
 //! `go [nodes N] [movetime T] [wtime W btime B winc I binc I] [infinite] [depth N]`,
 //! `stop`, `quit`; `debug`/`ponder`/other tolerated as no-ops.
 //!
@@ -28,6 +28,14 @@ const DEFAULT_SEED: u64 = 0x1F2E_3D4C_5B6A_7988;
 const DEFAULT_MAX_PLAYOUT_PLY: u32 = 100;
 const NODE_BUDGET_SENTINEL: u64 = u64::MAX / 4;
 
+/// **Phase 5 — marge de temps.** Le budget de réflexion est toujours
+/// *strictement* inférieur au temps annoncé, pour que la réponse (`bestmove`)
+/// et l'écriture sur stdout soient encore dans l'horloge quand le
+/// controleur l'attend. La phase 4 avait un plancher de 50 ms qui
+/// **dépassait** l'horloge (158/200 parties adjugées en TC 1+0.01) ; la
+/// phase 5 borne par le bas à 1 ms et retranche cette marge par le haut.
+const TIME_MARGIN_MS: u128 = 5;
+
 pub struct UciState {
     pos: Position,
     /// Zobrist of every position in the replayed game (UCI replay), the last
@@ -42,6 +50,10 @@ pub struct UciState {
     root_noise: f32,
     /// The selection rule (phase 4): `puct` (default) or `uct`.
     policy: Policy,
+    /// Quiescence-lite depth at the leaf (phase 5): `0` = static
+    /// evaluation only (phase-4 behaviour, bit-for-bit), `d > 0` = the
+    /// exchanges standing on the leaf are resolved on `d` plies.
+    leaf_q: u32,
     /// Number of parallel root workers (phase 3). 1 = mono-thread.
     threads: usize,
     worker: Option<std::thread::JoinHandle<()>>,
@@ -60,6 +72,7 @@ impl Default for UciState {
             c_puct: crate::mcts::DEFAULT_C_PUCT,
             root_noise: crate::mcts::DEFAULT_ROOT_NOISE,
             policy: Policy::default(),
+            leaf_q: 0,
             threads: 1,
             worker: None,
             stop: Arc::new(AtomicBool::new(false)),
@@ -128,6 +141,10 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                 st.root_noise
             ));
             out_line("option name Policy type string default puct");
+            out_line(&format!(
+                "option name LeafQ type spin default {} min 0 max 8",
+                st.leaf_q
+            ));
             out_line("uciok");
         }
         Some("isready") => {
@@ -150,6 +167,7 @@ fn handle(st: &mut UciState, line: &str) -> bool {
             let (seed, mpl, c_uct) = (st.seed, st.max_playout_ply, st.c_uct);
             let (c_puct, root_noise) = (st.c_puct, st.root_noise);
             let policy = st.policy;
+            let leaf_q = st.leaf_q;
             let threads = st.threads;
             st.worker = Some(std::thread::spawn(move || {
                 let search = Search::new(
@@ -162,6 +180,7 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                         c_uct,
                         c_puct,
                         root_noise,
+                        leaf_q,
                     },
                     seed,
                 )
@@ -174,7 +193,7 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                     o.nodes as f64
                 };
                 println!(
-                    "info depth {} score cp {} nodes {} nps {:.0} time {} string mcts-v1 policy {} threads {}",
+                    "info depth {} score cp {} nodes {} nps {:.0} time {} string mcts-v1 policy {} leafq {} threads {}",
                     pseudo_depth(o.nodes),
                     o.score_cp,
                     o.nodes,
@@ -184,6 +203,7 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                         Policy::Puct => "puct",
                         Policy::Uct => "uct",
                     },
+                    leaf_q,
                     threads
                 );
                 println!("bestmove {}", move_uci(o.best));
@@ -265,6 +285,12 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
                 _ => st.policy,
             }
         }
+        ("LeafQ", _) => {
+            st.leaf_q = v
+                .parse::<u64>()
+                .map(|x: u64| x.min(8) as u32)
+                .unwrap_or(st.leaf_q)
+        }
         ("Threads", _) => {
             st.threads = v
                 .parse::<usize>()
@@ -327,12 +353,26 @@ fn apply_move(p: &mut Position, hist: &mut Vec<u64>, tok: &str) {
     eprintln!("uci: unknown move {tok}"); // tolerated, no crash
 }
 
-struct GoLimits {
-    nodes: u64,
-    movetime_ms: Option<u128>,
+/// The budget decided by `go`: a node budget **or** a wall-clock budget.
+/// `movetime_ms == None` means "no wall-clock cap" (`go infinite`).
+///
+/// Public for the phase-5 tests: the time budget is a **contract** with
+/// the opponent's clock, and it must be testable without spawning a
+/// process.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GoLimits {
+    pub nodes: u64,
+    pub movetime_ms: Option<u128>,
 }
 
-fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
+/// Parse a `go` command into a budget.
+///
+/// **Phase 5 — le budget temps est borné par le temps restant.** Une
+/// marge de [`TIME_MARGIN_MS`] est réservée pour l'aller-retour UCI et
+/// la première allocation de l'arène ; le plancher de 50 ms de la phase 4
+/// (qui faisait réfléchir le moteur **plus longtemps que son horloge**)
+/// a disparu.
+pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
     let mut nodes: u64 = 10_000; // default budget (protocol: `go` must move)
     let mut movetime_ms: Option<u128> = None;
     let (mut my_time, mut my_inc): (u128, u128) = (0, 0);
@@ -405,16 +445,33 @@ fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
     if let Some(mt) = movetime_ms {
         return GoLimits {
             nodes: NODE_BUDGET_SENTINEL,
-            movetime_ms: Some(mt),
+            movetime_ms: Some(mt.saturating_sub(TIME_MARGIN_MS).max(1)),
         };
     }
     if my_time > 0 {
         // TC: my remaining time / 30 + 2/3 of my increment; capped at 10 s
-        // per move (safe margins under fastchess wtime/btime, no flagging).
-        let budget = my_time
+        // per move.
+        let raw = my_time
             .saturating_div(30)
-            .saturating_add(my_inc.saturating_mul(2) / 3)
-            .clamp(50, 10_000);
+            .saturating_add(my_inc.saturating_mul(2) / 3);
+        // **Phase 5 — correctif du budget temps.** Deux règles :
+        //
+        // 1. le budget ne doit **jamais** dépasser le temps qui reste
+        //    (moins la marge) : l'ancien plancher de 50 ms faisait
+        //    réfléchir le moteur plus longtemps que son horloge, et le
+        //    moteur se faisait flaguer (158/200 parties adjugées sur
+        //    dépassement en TC 1+0.01, cf.
+        //    `docs/mcts/phase4-2026-10-22.md`) ;
+        // 2. quand la formule TC ne donne **rien** (moins de 30 ms de
+        //    temps restant et pas d'incrément), on consomme le temps
+        //    restant plutôt que de se contenter de 1 ms : c'est le
+        //    régime où le moteur flaguait.
+        let available = my_time.saturating_sub(TIME_MARGIN_MS).max(1);
+        let budget = if raw == 0 {
+            available
+        } else {
+            raw.clamp(1, 10_000).min(available)
+        };
         return GoLimits {
             nodes: NODE_BUDGET_SENTINEL,
             movetime_ms: Some(budget),
