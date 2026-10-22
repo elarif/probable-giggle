@@ -155,3 +155,62 @@ impl UciSession {
         self.wait_for("bestmove", 30000)
     }
 }
+
+/// Phase 3: the `Threads` option must be advertised and accepted.
+#[test]
+fn uci_advertises_threads_option() {
+    let mut s = UciSession::start();
+    s.send("uci");
+    let lines = s.wait_for("uciok", 5000);
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("option name Threads type spin")),
+        "the Threads option must be advertised: {lines:?}"
+    );
+}
+
+/// Phase 3: `setoption name Threads value 4` then `go nodes N` must return a
+/// legal bestmove, and the `info` line must report the thread count.
+#[test]
+fn uci_threads_option_runs_a_parallel_search() {
+    let mut s = UciSession::start();
+    s.send("uci");
+    let _ = s.wait_for("uciok", 5000);
+    s.send("setoption name Threads value 4");
+    s.send("position startpos moves e2e4 e7e5");
+    s.send("isready");
+    let _ = s.wait_for("readyok", 30000);
+    s.send("go nodes 2000");
+    let lines = s.window_for_bestmove();
+    let bm = lines
+        .iter()
+        .find(|l| l.starts_with("bestmove"))
+        .and_then(|l| l.split_whitespace().nth(1))
+        .expect("bestmove line");
+    assert_eq!(bm.len(), 4, "bestmove token shape: {bm}");
+    assert_ne!(bm, "0000", "non-terminal position must move");
+    // The info line must report the thread count used.
+    assert!(
+        lines.iter().any(|l| l.contains("threads 4")),
+        "the info line must report the thread count: {lines:?}"
+    );
+    // Legality of the returned move.
+    let mut pos = mychess::Position::startpos();
+    for u in ["e2e4", "e7e5"] {
+        let mut list = mychess::movegen::MoveList::new();
+        mychess::movegen::generate(&pos, &mut list, mychess::types::GenKind::All);
+        for i in 0..list.len() {
+            if list.get(i).uci() == u {
+                pos.make(list.get(i));
+            }
+        }
+    }
+    let mut list = mychess::movegen::MoveList::new();
+    mychess::movegen::generate(&pos, &mut list, mychess::types::GenKind::All);
+    let known: Vec<String> = (0..list.len()).map(|i| list.get(i).uci()).collect();
+    assert!(
+        known.iter().any(|u| u == bm),
+        "bestmove {bm} illegal (legal: {known:?})"
+    );
+}

@@ -130,24 +130,43 @@ contrat API (`Position`, `generate`, `make`/`unmake`, Zobrist incrémental,
 | module | rôle |
 |---|---|
 | `eval` | matériel (100/300/300/500/900) + PST symétriques (Michniewski) ; `eval_white` (blanc+) / `eval_for_mover` (trait+) — **hook A1** (v1 ne l'utilise PAS encore : playouts aléatoires) |
-| `mcts` | UCT v1 : un nœud étendu par playout, sélection UCT (`C=1.414`), playout aléatoire → résultat {-1,0,1} ; terminalité complète : mat, pat, 50 coups, **triple répétition** (hash-history : UCI replay + chemin + playout), matériel insuffisant ; RNG xorshift64* seedé (déterminisme par seed) |
-| `uci` | UCI minimal (uci/isready/ucinewgame/setoption/position/go/stop/quit) ; `go nodes N` = contrôle fixe-nœuds des SPRT ; recherche threadée (stop = AtomicBool sondé toutes les 64 playouts) |
+| `mcts` | UCT v1 : un nœud étendu par playout, sélection UCT (`C=1.414`), terminalité complète : mat, pat, 50 coups, **triple répétition** (hash-history : UCI replay + chemin), matériel insuffisant ; RNG xorshift64* seedé (déterminisme par seed) ; **phase 3** : arène plate `Node`/`Edge` (enfant alloué au développement, statistiques de l'enfant portées par l'arête) et terminalité par `has_legal_move` (sans matérialiser de `MoveList`) |
+| `uci` | UCI minimal (uci/isready/ucinewgame/setoption/position/go/stop/quit) ; `go nodes N` = contrôle fixe-nœuds des SPRT ; **option `Threads`** (1 par défaut) : parallélisme **racine**, budget de nœuds réparti ou budget de temps partagé ; recherche threadée (stop = AtomicBool sondé toutes les 64 playouts) |
 
-### Structure de nœud (et hooks NN plus tard)
+### Structure de l'arbre (phase 3) et hooks NN plus tard
 
 ```
-Node { visits: u64, sum: f32 (valeur au trait du nœud), term: Option<f32>,
-       children: Vec<Child>, expanded: bool }    Child { mv: Move, node: u32 }
+Node { visits: u32, sum: f32 (valeur au trait du nœud), term: f32,
+       first_edge: u32, n_edges: u8, flags: u8 }                    // 20 o
+Edge { mv: Move, child: u32, visits: u32, sum: f32, prior: f32 }   // 20 o
 ```
 
+* **deux arènes plates** (`Vec<Node>`, `Vec<Edge>`) : les arêtes d'un nœud
+  sont contiguës, et le nœud enfant n'est alloué qu'au **développement**
+  (deuxième visite de l'arête) — l'arbre v1 allouait un nœud complet par
+  coup légal, enfants jamais joués compris ;
+* les statistiques de l'enfant vivent sur l'**arête** : `node.visits ==
+  edge.visits` et `node.sum == edge.sum` (invariant du miroir), et le scan
+  UCT ne lit qu'un tableau contigu ;
 * **sélection** : v1 = UCT `-(child.avg) + C·sqrt(ln N / n)` ; **A2** le
-  remplace par PUCT (le `Child::prior` + hook `prior(pos, mv)` apparaissent là) ;
+  remplace par PUCT (le `Edge::prior` + hook `prior(pos, mv)` apparaissent là) ;
 * **feuille** : depuis A1 = `eval::eval_for_mover` normalisé
   (`eval_normalized`, cp/1000 clamp [-1,1] — convention Q compatible PUCT/NN) ;
   la terminalité exacte {-1,0,1} reste prioritaire à la feuille. (Dans le
   tag `vmcts-v1` la feuille = playout aléatoire — point zéro du ladder.)
 * **D1** (NN): policy remplace le hook prior, value remplace le hook eval —
   mêmes surfaces d'appel, zéro refactoring MCTS.
+
+### Phase 3 — arène plate et parallélisme racine
+
+Le chemin mono est **bit-à-bit identique** au moteur v1 (même ordre de
+tirage du RNG) : l'échelle SPRT n'est pas invalidée, aucune série Elo n'est
+à refaire. Mesures (session unique, alternance v1 / phase 3, hôte Ryzen
+5 1600X) : débit **×1,47** (startpos) à **×1,67** (kiwipete), RSS **÷2,5**,
+parallélisme racine **×5,3** à 6 threads à budget de nœuds constant et
+**×6,4** en mode débit. Plan, décisions et rapport :
+`docs/superpowers/plans/2026-10-22-mcts-phase3-arene-parallelisme.md` et
+`docs/mcts/phase3-2026-10-22.md`.
 
 ### Mesure Elo (chaque amélioration = un SPRT)
 
