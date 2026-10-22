@@ -17,9 +17,14 @@
 //!   as the mono one, see `docs/mcts/phase3-2026-10-22.md`);
 //! * `nps/throughput_*` — a fixed wall-clock budget: the metric is the
 //!   number of nodes produced in that time.
+//!
+//! **Phase 4**: the mono group measures the two selection rules side by
+//! side (`uct` = the frozen v1 rule, `puct` = the phase-4 rule) in the
+//! same session, so the cost of the PUCT selection is measured on the
+//! same machine, at the same moment, as the rule it replaces.
 
 use criterion::{Criterion, Throughput, criterion_group, criterion_main};
-use mychess::mcts::{Limits, Search};
+use mychess::mcts::{Limits, Policy, Search};
 use mychess::position::Position;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
@@ -45,23 +50,27 @@ fn search(pos: &Position, nodes: u64, threads: usize) -> Search {
         movetime_ms: None,
         max_playout_ply: 100,
         c_uct: std::f32::consts::SQRT_2,
+        c_puct: mychess::mcts::DEFAULT_C_PUCT,
+        root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
     };
     Search::new(*pos, vec![pos.zobrist], limits, 42).with_threads(threads)
 }
 
-/// Mono-thread: the reference path (bit-for-bit the v1 engine).
+/// Mono-thread: the two selection rules, side by side.
 fn bench_mono(c: &mut Criterion) {
     let mut g = c.benchmark_group("nps");
     g.throughput(Throughput::Elements(BUDGET));
     for (name, fen) in FENS {
         let pos = Position::from_fen(fen).unwrap();
-        g.bench_function(format!("mono/{name}"), |b| {
-            b.iter(|| {
-                let s = search(&pos, BUDGET, 1);
-                let o = s.run(&AtomicBool::new(false));
-                std::hint::black_box(o.best)
-            })
-        });
+        for (label, policy) in [("uct", Policy::Uct), ("puct", Policy::Puct)] {
+            g.bench_function(format!("{label}/{name}"), |b| {
+                b.iter(|| {
+                    let s = search(&pos, BUDGET, 1).with_policy(policy);
+                    let o = s.run(&AtomicBool::new(false));
+                    std::hint::black_box(o.best)
+                })
+            });
+        }
     }
     g.finish();
 }
@@ -102,6 +111,8 @@ fn bench_parallel_throughput(c: &mut Criterion) {
                         movetime_ms: Some(1000),
                         max_playout_ply: 100,
                         c_uct: std::f32::consts::SQRT_2,
+                        c_puct: mychess::mcts::DEFAULT_C_PUCT,
+                        root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
                     };
                     let s = Search::new(pos, vec![pos.zobrist], limits, 42).with_threads(threads);
                     let t0 = std::time::Instant::now();

@@ -6,23 +6,27 @@
 //! idle, and an absolute number measured in another session is worthless.
 //!
 //! ```text
-//! cargo run --release --example mcts_probe -- <nodes> <threads> [fen] [time:<ms>]
+//! cargo run --release --example mcts_probe -- <nodes> <threads> [fen] [time:<ms>] [policy]
 //! ```
 //!
 //! With `time:<ms>`, the search runs on a **time** budget instead of a node
 //! budget: every worker runs until the shared deadline, so the total number
 //! of nodes is the throughput figure (the phase-3 parallel mode).
 //!
+//! `policy` is `puct` (the phase-4 default) or `uct` (the frozen v1
+//! selection); the two are measured **in the same session**, so the
+//! comparison is not polluted by a machine that drifted between runs.
+//!
 //! Output (one line, machine-readable):
 //!
 //! ```text
-//! PROBE|nodes|elapsed_ms|nps|vmhwm_kb|best|score|tree_nodes|tree_edges
+//! PROBE|nodes|elapsed_ms|nps|vmhwm_kb|best|score|tree_nodes|tree_edges|policy
 //! ```
 //!
 //! `vmhwm_kb` is the **peak** resident set of the process (`VmHWM` of
 //! `/proc/self/status`), which is the memory the search actually cost.
 
-use mychess::mcts::{Limits, Search};
+use mychess::mcts::{Limits, Policy, Search};
 use mychess::position::Position;
 use std::sync::atomic::AtomicBool;
 
@@ -50,6 +54,16 @@ fn main() {
         .get(4)
         .and_then(|s| s.strip_prefix("time:"))
         .and_then(|s| s.parse().ok());
+    // The selection rule: `puct` (phase 4, the default) or `uct` (the
+    // frozen v1 rule).
+    let policy = match args.get(5).map(String::as_str) {
+        Some("uct") => Policy::Uct,
+        _ => Policy::Puct,
+    };
+    let policy_name = match policy {
+        Policy::Uct => "uct",
+        Policy::Puct => "puct",
+    };
 
     let pos = Position::from_fen(fen).expect("valid FEN");
     let limits = Limits {
@@ -61,8 +75,10 @@ fn main() {
         movetime_ms,
         max_playout_ply: 100,
         c_uct: std::f32::consts::SQRT_2,
+        c_puct: mychess::mcts::DEFAULT_C_PUCT,
+        root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
     };
-    let search = Search::new(pos, vec![pos.zobrist], limits, 42);
+    let search = Search::new(pos, vec![pos.zobrist], limits, 42).with_policy(policy);
     let search = if threads > 1 {
         search.with_threads(threads)
     } else {
@@ -74,7 +90,7 @@ fn main() {
     let ms = elapsed.as_millis().max(1) as u64;
     let nps = o.nodes as f64 / (elapsed.as_secs_f64().max(1e-9));
     println!(
-        "PROBE|{}|{}|{:.0}|{}|{}|{}|{}|{}",
+        "PROBE|{}|{}|{:.0}|{}|{}|{}|{}|{}|{policy_name}",
         o.nodes,
         ms,
         nps,
