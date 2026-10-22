@@ -204,7 +204,63 @@ stickie Rustic — à documenter par mesure ; contrôle tiers = gauntlet).
 |---|---|---|---|---|---|---|
 | 2026-10-13 (post-M4: PENDING) | A1-uncommitted→ see commit | A1: playouts aléatoires remplacés par eval statique aux feuilles (eval_normalized = eval_for_mover/1000 clamp[-1,1]; terminalité exacte {-1,0,1} conservée AVANT l'eval; hooks PUCT/NN inchangés) | nœuds-fixes 10k (planifié) | PENDING | PENDING | **BLOQUÉ** — réconciliation M4 à 7/9 (voir plus haut) + fastchess absent de la machine |
 | 2026-10-20 | 8f52f16 (A1) | A1 commitée sur `main` ; le « see commit » de la ligne ci-dessus est résolu : `8f52f16` | — | — | — | inchangé (mesure A1 toujours bloquée) |
-| 2026-10-22 | phase 4 (A2) | A2 : sélection **PUCT** (`Q + c_puct·P·sqrt(N)/(1+n)`) + prior MVV-LVA (`mcts::policy`, stocké dans `Edge::prior`) ; la largeur reste le tirage uniforme v1, la profondeur change ; la règle UCT est **conservée et figée** (`Policy::Uct`) ; options UCI `Policy`/`Cpuct`/`RootNoise` | nœuds-fixes 2k/10k/40k (planifié) | PENDING | PENDING | **BLOQUÉ** — fastchess absent de la machine ; la **ligne de référence de la phase 3 est à rejouer** (le comportement mono par défaut a changé) |
+| 2026-10-22 | phase 4 (A2) | A2 : sélection **PUCT** (`Q + c_puct·P·sqrt(N)/(1+n)`) + prior MVV-LVA (`mcts::policy`, stocké dans `Edge::prior`) ; la largeur reste le tirage uniforme v1, la profondeur change ; la règle UCT est **conservée et figée** (`Policy::Uct`) ; options UCI `Policy`/`Cpuct`/`RootNoise` | nœuds-fixes 2k/10k/40k (mesuré) + TC 8+0.08 (mesuré) | **+399,7 ± 50,9 (2k)** ; **+596,5 ± 90,9 (10k)** ; **+450,4 ± 55,2 (40k)** | 324 / 304 / 316 (nœuds-fixes) | **ACCEPTÉ (H1 aux trois budgets)** — voir la section « Échelle Elo — phase 4 » ; écarts au protocole : book ECO lichess (3 863 positions) au lieu de l'UHO, hôte non EPYC |
+
+## Échelle Elo — phase 4 (A2), 2026-10-22
+
+Premier match joué par ce dépôt : `fastchess` a été **compilé depuis les
+sources** (`Disservin/fastchess`, commit `ebfd64cb7fac80d4822c50b07dca4fe934779d21`,
+installé dans `~/.local/bin`).
+
+* **candidat** : `main` phase 4 — PUCT par défaut ;
+* **référence** : phase 3 gelée (`719f983`) — UCT ;
+* protocole : SPRT `elo0=0 elo1=5 alpha=0.05 beta=0.05`, `-each proto=uci
+  nodes=N`, 200 rondes × 2 parties, concurrence 5, `-resign movecount=3
+  score=600`, `-draw movenumber=40 movecount=8 score=10`, ouvertures en
+  ordre aléatoire, book identique pour les deux moteurs.
+
+| budget | parties | V-N-D | score | Elo ± err | LLR | verdict |
+|---|---|---|---|---|---|---|
+| 2 000 nœuds | 324 | 269-4-51 | 90,90 % | **+399,7 ± 50,9** | 2,95 (100,2 %) | **H1 accepté** |
+| 10 000 nœuds | 304 | 287-2-15 | 96,88 % | **+596,5 ± 90,9** | 2,96 (100,7 %) | **H1 accepté** |
+| 40 000 nœuds | 316 | 274-2-40 | 93,04 % | **+450,4 ± 55,2** | 2,95 (100,2 %) | **H1 accepté** |
+
+**Symétrie** : orientation inverse (candidat = phase 3) → Elo −404,9 ±
+49,1, LLR −2,95, H0 accepté. L'écart ne vient pas du sens de
+l'appariement.
+
+**Contrôles** (sans eux le tableau ne vaut rien) :
+
+| contrôle | parties | V-N-D | score | LLR |
+|---|---|---|---|---|
+| phase 3 **contre** phase 3 (même binaire) | 80 | 23-23-34 | 50,00 % | −0,01 |
+| phase 4 forcé `Policy=uct` **contre** phase 3 | 400 | 98-98-204 | 50,00 % | −0,08 |
+
+Le second contrôle est le plus important : il prouve que **les deux
+binaires sont de force identique à règle de sélection égale** — l'écart
+de la phase 4 est imputable à la seule règle PUCT.
+
+### Écarts au protocole gelé (à citer avec les chiffres)
+
+1. **Livre d'ouvertures** : `uho_lichess_4852_v1.epd` n'était pas
+   téléchargeable depuis ce poste. Book de remplacement : jeu ECO lichess
+   (`lichess-org/chess-openings`), rejoué en EPD par
+   `tools/gen_epd_openings.py` → **3 863 positions** d'ouvertures
+   standard. Book **différent** de l'UHO (positions volontairement
+   déséquilibrées) : les Elo sont **relatifs** à ce book.
+2. **Hôte** : machine de mesure ≠ EPYC 7763 de référence. Valeurs
+   relatives, pas une référence absolue.
+3. **Contrôle temps-fixe** : le protocole prévoit TC 8+0.08 après un
+   passage en nœuds-fixes réussi. Un essai preliminary en **TC 1+0.01**
+   s'est révélé **invalide** (158/200 parties adjugées sur dépassement de
+   temps de 1 à 40 ms) : le budget de réflexion du moteur a un
+   **plancher de 50 ms** (`parse_go` dans `src/uci.rs`), donc le moteur
+   pense plus longtemps que son temps restant et se fait flaguer. C'est
+   un **défaut réel** de gestion du temps (à corriger hors échelle), pas
+   un artefact du harnais. En TC 8+0.08 l'horloge se stabilise (~810 ms
+   de point fixe) et plus aucune partie ne se termine sur un dépassement.
+
+Rapport complet : `docs/mcts/phase4-2026-10-22.md` (§3).
 
 Notes phase 4 (A2) : le gain mesuré est en **convergence en valeur** (erreur
 de score ÷ 4 à 7 contre une recherche de référence à 500–2 000 nœuds) et en
@@ -216,6 +272,11 @@ d'exploration. Le prior est livré comme crochet du pipeline
 « logits → softmax → prior » que la policy apprise de D1 branchera.
 Rapport : `docs/mcts/phase4-2026-10-22.md`.
 
+**Verdict A2 : ACCEPTÉ** sur l'échelle Elo (H1 aux trois budgets
+nœuds-fixes, voir plus haut). Les proxies des §2.3–2.4 de la phase 4
+allaient dans le même sens que l'Elo, ce qui est le premier cas où les
+deux familles de mesures concordent dans ce dépôt.
+
 Notes A1 : la valeur feuille = éval statique = le saut attendu le plus gros
 (Ramanujan 2010 shallow traps ; Monte-Carlo Chess 2012 ; lc0 par réseau).
 Budget sims/s : le playout aléatoire (~76 µs) disparaît ; une feuille =
@@ -223,14 +284,16 @@ make/unmake de descente (~22 ns/ply) + eval (~40-90 ns/position) → le
 dénominateur attendu de sims/s augmente d'un ordre de grandeur ; valeur
 exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
 
-## Instruments de mesure (état au 2026-10-20)
+## Instruments de mesure (état au 2026-10-22)
 
-Le journal ne peut pas encore être alimenté : deux maillons manquent.
+Le journal est **alimenté** : les maillons manquants ont été fournis.
 
 | instrument | rôle | état |
 |---|---|---|
-| `test.sh` (SPRT `elo0=0 elo1=5 alpha=0.05 beta=0.05`) | verdict **binaire** « le candidat est-il meilleur ? » | **gelé** (protocole figé, ne pas modifier) |
-| `tools/pr_sprt.py` (PR-SPRT) | **magnitude** Elo ± IC à partir du même log fastchess | **codé, 54 tests OK**, branche `feature/selfplay-instrumentation` (450a6ef) — non poussé |
+| `test.sh` (SPRT `elo0=0 elo1=5 alpha=0.05 beta=0.05`) | verdict **binaire** « le candidat est-il meilleur ? » | **gelé** (protocole figé, ne pas modifier) — **utilisé le 2026-10-22** pour l'échelle de la phase 4 |
+| `fastchess` | moteur de match | **compilé depuis les sources** le 2026-10-22 (`Disservin/fastchess`, `ebfd64c`), installé dans `~/.local/bin` |
+| `tools/gen_epd_openings.py` (nouveau) | book EPD de remplacement quand l'UHO n'est pas téléchargeable | **présent** ; produit 3 863 positions à partir du jeu ECO lichess |
+| `tools/pr_sprt.py` (PR-SPRT) | **magnitude** Elo ± IC à partir du même log fastchess | **codé, 54 tests OK**, branche `feature/selfplay-instrumentation` (450a6ef) — non poussé ; **validé sur les 5 logs réels de la phase 4** (mêmes chiffres que fastchess) |
 | `slaml/sims_abab.sh` | sims/s A/B/A/B (v1 vs A1) | script présent, **jamais exécuté** (pas de log `slaml/sims_abab_*.log`) |
 
 ### PR-SPRT — implémenté, mais un défaut ouvert et une validation manquante
@@ -246,26 +309,35 @@ Le journal ne peut pas encore être alimenté : deux maillons manquent.
                             "LLR: 0.000\nGames: 100\nW/L/D: 55 40 5\n")
   → verdict "accepted"
   ```
-* **Validation manquante** : `fastchess` **n'est pas installé** sur la
-  machine et `prt/` est vide → le parseur **n'a jamais vu un log réel**.
-  Tous ses comportements dérivent de la lecture du code source upstream
-  (fastchess `v1.8.2-alpha`), pas d'une capture. C'est le gate de crédibilité
-  de l'instrument, et il est **ouvert**.
+* **Validation (partielle) — FAIT le 2026-10-22** : `fastchess` **est**
+  installé (compilé depuis les sources) et `prt/` contient des logs réels.
+  `tools/pr_sprt.py` (branche `feature/selfplay-instrumentation`, non
+  poussée) a été passé sur les **cinq** logs de la phase 4 : il **reproduit
+  exactement** les lignes `Elo: X +/- Y` de fastchess
+  (+399,7 ± 50,9 ; −404,9 ± 49,1 ; +596,5 ± 90,9 ; +450,4 ± 55,2 ;
+  −0,0 ± 34,2) et rend le même verdict de LLR. Le gate de crédibilité
+  du parseur est donc **fermé sur le format fastchess** ; reste à le
+  fusionner sur `main` (la branche n'est pas poussée) et à le re-tester
+  dans le CI.
 
 ### Ce qu'il faut avant la première ligne Elo de ce journal
 
 1. ~~Trancher la réconciliation M4-d9~~ — **FAIT le 2026-10-21** : gate 8/8,
    exit 0, écart expliqué par convention (cf. plus haut).
-2. Installer `fastchess`, capturer un log réel dans `prt/`, valider
-   `tools/pr_sprt.py` dessus (Task 8 du plan d'instrumentation).
+2. ~~Installer `fastchess`, capturer un log réel dans `prt/`~~ — **FAIT le
+   2026-10-22** (compilation depuis les sources) ; logs réels dans `prt/`.
+   Reste à passer `tools/pr_sprt.py` dessus (Task 8 du plan
+   d'instrumentation) pour fermer le gate de crédibilité de l'instrument.
 3. ~~Fermer le défaut `alpha`/`beta` de PR-SPRT~~ — **FAIT**
    (`c7f88f6`), avec deux correctifs de suite (`4a9698d`, `5a3fe92`) et un
    troisième sur la lecture des taux (`a64f59b`) ; 108 tests, contrat
    d'exit-code vérifié. Reste à re-reviewer la vague finale.
 4. Reprendre la re-mesure des benches sur l'hôte EPYC de référence.
 5. Exécuter `slaml/sims_abab.sh` (A1 vs v1) pour chiffrer le saut sims/s.
-6. SPRT A1 vs v1 (`test.sh`, nœuds-fixes 10k), puis PR-SPRT sur le log
-   pour la magnitude.
+6. ~~SPRT A1 vs v1 (`test.sh`, nœuds-fixes 10k)~~ — **remplacé** : la
+   première ligne Elo jouée est **phase 4 vs phase 3** (nœuds-fixes
+   2k/10k/40k), cf. la section « Échelle Elo — phase 4 ». La ligne A1 vs v1
+   reste à jouer pour l'historique de l'échelle.
 
 > Rappel SELFPLAY.md §1.5 : l'unité de plafond est **ΔElo par heure-CPU**,
 > pas « nombre de parties ». PR-SPRT donne l'Elo ; la CPU-hour reste à
