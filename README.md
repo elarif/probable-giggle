@@ -265,6 +265,24 @@ en 16,3 ms au pire. Plan et rapport :
 `docs/superpowers/plans/2026-10-22-mcts-phase5-feuille-quiescence.md` et
 `docs/mcts/phase5-2026-10-22.md`.
 
+### Niveau Elo absolu (calibration contre Stockfish)
+
+L'échelle SPRT ci-dessus mesure des **écarts** entre versions. Pour situer
+le moteur sur une échelle reconnue, `tools/elo_estimate.sh` le calibre
+contre **Stockfish en force limitée** (`UCI_LimitStrength` + `UCI_Elo`) :
+on cherche le niveau de Stockfish où le moteur fait 50 %.
+
+```bash
+tools/elo_estimate.sh target/release/mychess <stockfish> \
+    --levels 1320,1350,1400,1425,1450 --games 200 --nodes 40000
+```
+
+**Résultat mesuré le 2026-10-22** : `mychess` ≈ **1417 ± 19 Elo**
+(échelle `UCI_Elo` de Stockfish), à **40 000 nœuds/move pour les deux
+moteurs**, book de remplacement ECO lichess. Détail, protocole et réserves
+(dont le fait que ce chiffre est **protocol-dependent**) :
+`docs/elo_estimation.md` et `docs/elo/`.
+
 ### Mesure Elo (chaque amélioration = un SPRT)
 `./test.sh <cand_bin> <base_bin> [nodes] [rounds]` lance fastchess
 (SPTRT elo0=0/elo1=5 α=β=0.05 ; tc=nodes=N ; openings EPD déséquilibrées

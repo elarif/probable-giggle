@@ -1,0 +1,272 @@
+Indexing opening suite...
+Started game 1 of 100 (cand vs sf)
+Started game 3 of 100 (cand vs sf)
+Started game 5 of 100 (cand vs sf)
+Started game 2 of 100 (sf vs cand)
+Started game 4 of 100 (sf vs cand)
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+Finished game 3 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 6 of 100 (sf vs cand)
+Finished game 4 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 7 of 100 (cand vs sf)
+Finished game 6 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 8 of 100 (sf vs cand)
+Finished game 7 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 9 of 100 (cand vs sf)
+Finished game 5 (cand vs sf): 0-1 {Black mates}
+Started game 10 of 100 (sf vs cand)
+Finished game 2 (sf vs cand): 1/2-1/2 {Draw by insufficient mating material}
+Started game 11 of 100 (cand vs sf)
+Finished game 9 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 12 of 100 (sf vs cand)
+Warning; Bestmove does not match beginning of last PV - move g2f1 from sf
+Info; info depth 245 seldepth 2 multipv 1 score mate 1 nodes 27570 nps 1060384 hashfull 32 tbhits 0 time 26 pv g2b2
+Position; fen rnbqkb1r/pppp1ppp/4pn2/6B1/3P4/8/PPP1PPPP/RN1QKBNR w KQkq - 0 1
+Moves; b1c3 f8b4 g1f3 b8c6 e2e4 d7d5 e4d5 e6d5 f1b5 h7h6 b5c6 b7c6 g5d2 e8g8 c3e2 a7a5 e1g1 b4d6 f1e1 f6e4 d2f4 g7g5 f4d6 c7d6 d1d3 f7f5 a1d1 c8a6 c2c4 d5c4 d3e3 f8e8 d1c1 e4c5 e3c3 c5a4 c3c2 a4b6 c2f5 d8d7 f5a5 b6d5 e2g3 e8f8 f3d2 a6b5 d2c4 a8a5 c4a5 f8f7 a5b3 b5a6 g3e4 g5g4 a2a3 a6b5 e1d1 g8h8 b3d2 b5a6 d1e1 d5f4 d2b3 f4d3 e1f1 h6h5 c1c2 c6c5 d4c5 d7a4 e4d6 f7e7 b3a1 a4c6 d6f5 e7e4 a1b3 c6e8 f5d6 e8c6 d6e4 c6e4 b3d2 e4d5 a3a4 h5h4 f1a1 h4h3 f2f3 d5d4 g1h1 d4e3 f3g4 a6b7 d2c4 h3g2 c2g2 b7g2 h1g2 e3e4 g2g1 e4d4 g1h1 d4e4 h1g1 e4c4 c5c6 c4g4 g1f1 g4f3 f1g1 f3e3 g1g2 e3e4 g2g1 e4e3 g1g2 d3f4 g2f1 e3h3 f1f2 f4d3 f2g1 h3g4 g1f1 g4f4 f1g1 f4d4 g1h1 d4f4 b2b3 f4e4 h1g1 e4d4 g1g2 d4f2 g2h1 f2c5 c6c7 c5c7 a4a5 c7f4 a5a6 d3c1 h1g1 f4d4 g1g2 d4e4 g2g1 e4g4 g1f2 g4d4 f2e1 d4a1 e1d1 c1d3 d1d2 d3e5 d2e3 h8h7 e3f4 e5d3 f4e3 d3b2 e3d2 b2d1 a6a7 a1d4 d2e1 d4g1 e1e2 g1e3 e2d1 e3e4 d1c1 e4g2 c1b1 g2b7 a7a8q b7a8 b1b2 h7h6 b2b1 h6h7 b1b2 a8g2 b2a1 g2f1 a1b2 f1a6 b2b1 h7g7 h2h4 g7h6 b1b2 a6c8 b2a2 h6h5 a2a1 c8h8 a1a2 h8c8 a2a1 c8h8 a1a2 h8c3 a2a3 c3a1 a3b4 a1a6 b4c3 h5g4 c3b2 a6a5 b2c1 a5a2 b3b4 a2a3 c1b1 a3d3 b1b2 g4g3 h4h5 d3f3 h5h6 f3a8 b4b5 g3f3 b2b1 f3e3 b5b6 a8a3 h6h7 a3c3 b6b7 c3b3 b1a1 b3c3 a1a2 c3h8 a2a3 e3d2 a3b3 d2d3 b3a2 d3c4 b7b8b h8h7 b8e5 h7f7 e5g3 f7d5 g3f4 d5h1 a2b2 h1h7 b2a1 h7h3 a1a2 h3h4 f4e5 h4g5 e5c7 g5g2 a2b1 c4b3 c7g3
+Warning; Bestmove does not match beginning of last PV - move f1h1 from sf
+Info; info depth 245 seldepth 2 multipv 1 score mate 1 nodes 25918 nps 1178090 hashfull 23 tbhits 0 time 22 pv f1e1
+Position; fen rnbqkb1r/pppp1ppp/4pn2/6B1/3P4/8/PPP1PPPP/RN1QKBNR w KQkq - 0 1
+Moves; b1c3 f8b4 g1f3 b8c6 e2e4 d7d5 e4d5 e6d5 f1b5 h7h6 b5c6 b7c6 g5d2 e8g8 c3e2 a7a5 e1g1 b4d6 f1e1 f6e4 d2f4 g7g5 f4d6 c7d6 d1d3 f7f5 a1d1 c8a6 c2c4 d5c4 d3e3 f8e8 d1c1 e4c5 e3c3 c5a4 c3c2 a4b6 c2f5 d8d7 f5a5 b6d5 e2g3 e8f8 f3d2 a6b5 d2c4 a8a5 c4a5 f8f7 a5b3 b5a6 g3e4 g5g4 a2a3 a6b5 e1d1 g8h8 b3d2 b5a6 d1e1 d5f4 d2b3 f4d3 e1f1 h6h5 c1c2 c6c5 d4c5 d7a4 e4d6 f7e7 b3a1 a4c6 d6f5 e7e4 a1b3 c6e8 f5d6 e8c6 d6e4 c6e4 b3d2 e4d5 a3a4 h5h4 f1a1 h4h3 f2f3 d5d4 g1h1 d4e3 f3g4 a6b7 d2c4 h3g2 c2g2 b7g2 h1g2 e3e4 g2g1 e4d4 g1h1 d4e4 h1g1 e4c4 c5c6 c4g4 g1f1 g4f3 f1g1 f3e3 g1g2 e3e4 g2g1 e4e3 g1g2 d3f4 g2f1 e3h3 f1f2 f4d3 f2g1 h3g4 g1f1 g4f4 f1g1 f4d4 g1h1 d4f4 b2b3 f4e4 h1g1 e4d4 g1g2 d4f2 g2h1 f2c5 c6c7 c5c7 a4a5 c7f4 a5a6 d3c1 h1g1 f4d4 g1g2 d4e4 g2g1 e4g4 g1f2 g4d4 f2e1 d4a1 e1d1 c1d3 d1d2 d3e5 d2e3 h8h7 e3f4 e5d3 f4e3 d3b2 e3d2 b2d1 a6a7 a1d4 d2e1 d4g1 e1e2 g1e3 e2d1 e3e4 d1c1 e4g2 c1b1 g2b7 a7a8q b7a8 b1b2 h7h6 b2b1 h6h7 b1b2 a8g2 b2a1 g2f1 a1b2 f1a6 b2b1 h7g7 h2h4 g7h6 b1b2 a6c8 b2a2 h6h5 a2a1 c8h8 a1a2 h8c8 a2a1 c8h8 a1a2 h8c3 a2a3 c3a1 a3b4 a1a6 b4c3 h5g4 c3b2 a6a5 b2c1 a5a2 b3b4 a2a3 c1b1 a3d3 b1b2 g4g3 h4h5 d3f3 h5h6 f3a8 b4b5 g3f3 b2b1 f3e3 b5b6 a8a3 h6h7 a3c3 b6b7 c3b3 b1a1 b3c3 a1a2 c3h8 a2a3 e3d2 a3b3 d2d3 b3a2 d3c4 b7b8b h8h7 b8e5 h7f7 e5g3 f7d5 g3f4 d5h1 a2b2 h1h7 b2a1 h7h3 a1a2 h3h4 f4e5 h4g5 e5c7 g5g2 a2b1 c4b3 c7g3 g2f1 g3e1
+Finished game 1 (cand vs sf): 0-1 {Black mates}
+Started game 13 of 100 (cand vs sf)
+Finished game 10 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 14 of 100 (sf vs cand)
+Finished game 12 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 15 of 100 (cand vs sf)
+Finished game 13 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 16 of 100 (sf vs cand)
+Finished game 8 (sf vs cand): 1-0 {White mates}
+Started game 17 of 100 (cand vs sf)
+Finished game 16 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 18 of 100 (sf vs cand)
+Finished game 11 (cand vs sf): 0-1 {Black mates}
+Started game 19 of 100 (cand vs sf)
+Finished game 14 (sf vs cand): 1-0 {White mates}
+Started game 20 of 100 (sf vs cand)
+Finished game 15 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 21 of 100 (cand vs sf)
+Finished game 17 (cand vs sf): 0-1 {Black mates}
+Started game 22 of 100 (sf vs cand)
+Finished game 18 (sf vs cand): 1-0 {White mates}
+Started game 23 of 100 (cand vs sf)
+Finished game 20 (sf vs cand): 1-0 {White mates}
+Started game 24 of 100 (sf vs cand)
+Finished game 21 (cand vs sf): 1-0 {White mates}
+Started game 25 of 100 (cand vs sf)
+Finished game 24 (sf vs cand): 1-0 {White mates}
+Started game 26 of 100 (sf vs cand)
+Finished game 25 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 27 of 100 (cand vs sf)
+Finished game 23 (cand vs sf): 0-1 {Black mates}
+Started game 28 of 100 (sf vs cand)
+Finished game 19 (cand vs sf): 0-1 {Black mates}
+--------------------------------------------------
+Results of cand vs sf (40000 nodes, 1t, NULL - 16MB, eco_lichess.epd):
+Elo: -15.80 +/- 166.57, nElo: -14.84 +/- 145.18
+LOS: 42.06 %, DrawRatio: 36.36 %, PairsRatio: 0.75
+Games: 22, Wins: 10, Losses: 11, Draws: 1, Points: 10.5 (47.73 %)
+Ptnml(0-2): [3, 1, 4, 0, 3], WL/DD Ratio: inf
+--------------------------------------------------
+Started game 29 of 100 (cand vs sf)
+Finished game 22 (sf vs cand): 1-0 {White mates}
+Started game 30 of 100 (sf vs cand)
+Finished game 26 (sf vs cand): 1-0 {White mates}
+Started game 31 of 100 (cand vs sf)
+Finished game 31 (cand vs sf): 1-0 {White mates}
+Started game 32 of 100 (sf vs cand)
+Finished game 27 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 33 of 100 (cand vs sf)
+Finished game 30 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 34 of 100 (sf vs cand)
+Finished game 29 (cand vs sf): 0-1 {Black mates}
+Started game 35 of 100 (cand vs sf)
+Finished game 28 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 36 of 100 (sf vs cand)
+Finished game 34 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 37 of 100 (cand vs sf)
+Finished game 33 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 38 of 100 (sf vs cand)
+Finished game 36 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 39 of 100 (cand vs sf)
+Finished game 38 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 40 of 100 (sf vs cand)
+Finished game 39 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 41 of 100 (cand vs sf)
+Finished game 35 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 42 of 100 (sf vs cand)
+Finished game 32 (sf vs cand): 1-0 {White mates}
+Started game 43 of 100 (cand vs sf)
+Finished game 37 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 44 of 100 (sf vs cand)
+Finished game 40 (sf vs cand): 0-1 {Black wins by adjudication}
+--------------------------------------------------
+Results of cand vs sf (40000 nodes, 1t, NULL - 16MB, eco_lichess.epd):
+Elo: 79.53 +/- 120.02, nElo: 77.26 +/- 107.67
+LOS: 92.02 %, DrawRatio: 40.00 %, PairsRatio: 2.00
+Games: 40, Wins: 24, Losses: 15, Draws: 1, Points: 24.5 (61.25 %)
+Ptnml(0-2): [3, 1, 8, 0, 8], WL/DD Ratio: inf
+--------------------------------------------------
+Started game 45 of 100 (cand vs sf)
+Finished game 41 (cand vs sf): 0-1 {Black mates}
+Started game 46 of 100 (sf vs cand)
+Finished game 43 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 47 of 100 (cand vs sf)
+Finished game 47 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 48 of 100 (sf vs cand)
+Finished game 42 (sf vs cand): 1-0 {White mates}
+Started game 49 of 100 (cand vs sf)
+Finished game 44 (sf vs cand): 1-0 {White mates}
+Started game 50 of 100 (sf vs cand)
+Warning; Bestmove does not match beginning of last PV - move h3h2 from sf
+Info; info depth 245 seldepth 5 multipv 1 score mate -2 nodes 35197 nps 1353730 hashfull 12 tbhits 0 time 26 pv h3h4 e5f6 h4h5 g3h3
+Position; fen r1bqkbnr/pp1ppppp/2n5/1Bp5/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1
+Moves; g8f6 b5c6 d7c6 e4e5 f6d5 d2d3 c8g4 b1d2 e7e6 h2h3 g4f3 d2f3 f8e7 a1b1 d8a5 f3d2 a5a2 d1f3 d5b4 e1g1 b4c2 f3d1 c2d4 b2b3 e8g8 b1b2 a2a1 d2c4 f8e8 d1g4 d4b5 c1h6 a1f1 g1f1 e7f8 h6g5 f8e7 g5c1 a8d8 c1h6 e7f8 h6g5 d8d3 g2g3 d3c3 h3h4 b5c7 c4a3 c7d5 g5d2 c3d3 h4h5 f7f5 g4e2 d3d4 b2a2 f8e7 a3c2 d4e4 e2f3 e4e5 f3d1 a7a6 f1g2 e7d6 a2b2 e5e4 c2e1 d6e5 d1b1 e5b2 e1d3 b2d4 h5h6 e4e2 b1c1 g7h6 d2h6 e8c8 g2f3 e2a2 c1g5 g8h8 g5h5 a2a3 f3g2 a3b3 d3f4 d5f4 h6f4 b3b2 g2h3 b2f2 f4g5 h8g8 g5h6 c5c4 h5g5 g8h8 g5e7 c8g8 e7e6 c4c3 e6d6 c6c5 h6e3 f2f3 e3f4 c3c2 f4e5 d4e5 d6c5 f3g3
+Warning; Bestmove does not match beginning of last PV - move h2h1 from sf
+Info; info depth 245 seldepth 3 multipv 1 score mate -1 nodes 1469 nps 146900 hashfull 8 tbhits 0 time 10 pv h2h3 g2h2
+Position; fen r1bqkbnr/pp1ppppp/2n5/1Bp5/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1
+Moves; g8f6 b5c6 d7c6 e4e5 f6d5 d2d3 c8g4 b1d2 e7e6 h2h3 g4f3 d2f3 f8e7 a1b1 d8a5 f3d2 a5a2 d1f3 d5b4 e1g1 b4c2 f3d1 c2d4 b2b3 e8g8 b1b2 a2a1 d2c4 f8e8 d1g4 d4b5 c1h6 a1f1 g1f1 e7f8 h6g5 f8e7 g5c1 a8d8 c1h6 e7f8 h6g5 d8d3 g2g3 d3c3 h3h4 b5c7 c4a3 c7d5 g5d2 c3d3 h4h5 f7f5 g4e2 d3d4 b2a2 f8e7 a3c2 d4e4 e2f3 e4e5 f3d1 a7a6 f1g2 e7d6 a2b2 e5e4 c2e1 d6e5 d1b1 e5b2 e1d3 b2d4 h5h6 e4e2 b1c1 g7h6 d2h6 e8c8 g2f3 e2a2 c1g5 g8h8 g5h5 a2a3 f3g2 a3b3 d3f4 d5f4 h6f4 b3b2 g2h3 b2f2 f4g5 h8g8 g5h6 c5c4 h5g5 g8h8 g5e7 c8g8 e7e6 c4c3 e6d6 c6c5 h6e3 f2f3 e3f4 c3c2 f4e5 d4e5 d6c5 f3g3 h3h2 g3g2
+Finished game 46 (sf vs cand): 0-1 {Black mates}
+Started game 51 of 100 (cand vs sf)
+Finished game 50 (sf vs cand): 0-1 {Black mates}
+Started game 52 of 100 (sf vs cand)
+Finished game 49 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 53 of 100 (cand vs sf)
+Finished game 52 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 54 of 100 (sf vs cand)
+Finished game 45 (cand vs sf): 0-1 {Black mates}
+Started game 55 of 100 (cand vs sf)
+Finished game 48 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 56 of 100 (sf vs cand)
+Finished game 55 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 57 of 100 (cand vs sf)
+Finished game 51 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 58 of 100 (sf vs cand)
+Finished game 53 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 59 of 100 (cand vs sf)
+Finished game 58 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 60 of 100 (sf vs cand)
+Finished game 57 (cand vs sf): 0-1 {Black mates}
+Started game 61 of 100 (cand vs sf)
+Finished game 60 (sf vs cand): 1-0 {White mates}
+Started game 62 of 100 (sf vs cand)
+Finished game 59 (cand vs sf): 1-0 {White wins by adjudication}
+--------------------------------------------------
+Results of cand vs sf (40000 nodes, 1t, NULL - 16MB, eco_lichess.epd):
+Elo: 82.15 +/- 98.24, nElo: 81.41 +/- 91.00
+LOS: 96.02 %, DrawRatio: 42.86 %, PairsRatio: 2.20
+Games: 56, Wins: 34, Losses: 21, Draws: 1, Points: 34.5 (61.61 %)
+Ptnml(0-2): [4, 1, 12, 0, 11], WL/DD Ratio: inf
+--------------------------------------------------
+Started game 63 of 100 (cand vs sf)
+Finished game 54 (sf vs cand): 0-1 {Black mates}
+Started game 64 of 100 (sf vs cand)
+Finished game 56 (sf vs cand): 1-0 {White mates}
+Started game 65 of 100 (cand vs sf)
+Finished game 64 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 66 of 100 (sf vs cand)
+Finished game 63 (cand vs sf): 1-0 {White mates}
+Started game 67 of 100 (cand vs sf)
+Finished game 61 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 68 of 100 (sf vs cand)
+Finished game 65 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 69 of 100 (cand vs sf)
+Finished game 67 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 70 of 100 (sf vs cand)
+Finished game 68 (sf vs cand): 1-0 {White mates}
+Started game 71 of 100 (cand vs sf)
+Finished game 66 (sf vs cand): 1-0 {White mates}
+Started game 72 of 100 (sf vs cand)
+Finished game 62 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 73 of 100 (cand vs sf)
+Finished game 70 (sf vs cand): 0-1 {Black mates}
+Started game 74 of 100 (sf vs cand)
+Finished game 69 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 75 of 100 (cand vs sf)
+Finished game 73 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 76 of 100 (sf vs cand)
+Finished game 74 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 77 of 100 (cand vs sf)
+Finished game 76 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 78 of 100 (sf vs cand)
+Finished game 72 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 79 of 100 (cand vs sf)
+Finished game 75 (cand vs sf): 0-1 {Black mates}
+Started game 80 of 100 (sf vs cand)
+Finished game 79 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 81 of 100 (cand vs sf)
+Finished game 80 (sf vs cand): 1-0 {White mates}
+--------------------------------------------------
+Results of cand vs sf (40000 nodes, 1t, NULL - 16MB, eco_lichess.epd):
+Elo: 108.54 +/- 82.74, nElo: 111.92 +/- 78.11
+LOS: 99.75 %, DrawRatio: 44.74 %, PairsRatio: 3.20
+Games: 76, Wins: 49, Losses: 26, Draws: 1, Points: 49.5 (65.13 %)
+Ptnml(0-2): [4, 1, 17, 0, 16], WL/DD Ratio: inf
+--------------------------------------------------
+Started game 82 of 100 (sf vs cand)
+Finished game 78 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 83 of 100 (cand vs sf)
+Finished game 81 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 84 of 100 (sf vs cand)
+Finished game 77 (cand vs sf): 1/2-1/2 {Draw by adjudication}
+Started game 85 of 100 (cand vs sf)
+Finished game 71 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 86 of 100 (sf vs cand)
+Finished game 83 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 87 of 100 (cand vs sf)
+Warning; Bestmove does not match beginning of last PV - move e8e7 from sf
+Info; info depth 245 seldepth 5 multipv 1 score mate -2 nodes 17158 nps 1143866 hashfull 0 tbhits 0 time 15 pv g6g8 h8g8 e8e7 g8d8
+Position; fen rnb1k1nr/p4ppp/1qp1p3/1p6/PbpP4/2N1PN2/1P1B1PPP/R2QKB1R w KQkq - 0 1
+Moves; c3e4 b4d2 d1d2 g8f6 e4f6 g7f6 a4a5 b6b7 e3e4 b7e7 e1c1 a7a6 c1b1 h8g8 d2h6 c8b7 h6h7 g8g4 f3d2 e7f8 h7h3 g4g7 h3h6 c6c5 h6f6 b8c6 d4c5 a8d8 b1c2 g7g6 f6c3 f8c5 f2f4 c6d4 c2b1 d4b3 f1c4 b3d2 d1d2 c5c4 c3h8
+Finished game 85 (cand vs sf): 1-0 {White mates}
+Started game 88 of 100 (sf vs cand)
+Finished game 88 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 89 of 100 (cand vs sf)
+Finished game 87 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 90 of 100 (sf vs cand)
+Finished game 84 (sf vs cand): 1-0 {White mates}
+Started game 91 of 100 (cand vs sf)
+Finished game 89 (cand vs sf): 1-0 {White wins by adjudication}
+Started game 92 of 100 (sf vs cand)
+Warning; Bestmove does not match beginning of last PV - move h7h3 from sf
+Info; info depth 245 seldepth 4 multipv 1 score mate 2 nodes 33944 nps 1475826 hashfull 20 tbhits 0 time 23 pv h7h4 g8f8 h4h8
+Position; fen rnbqkbnr/pppp2pp/5p2/4P3/8/8/PPP1PPPP/RNBQKBNR w KQkq - 0 1
+Moves; c1f4 f6e5 f4e5 b8c6 e5c3 g8f6 b1d2 f6d5 d2e4 d5c3 b2c3 d7d5 e4g3 f8c5 e2e3 e8g8 g1f3 c8g4 a2a3 g4f3 g2f3 d8g5 h2h4 g5e5 f1d3 e5c3 e1f1 c6e5 d3e2 a8d8 f3f4 e5c6 a1b1 b7b6 f1g2 c3a3 e2b5 c6e7 d1g4 a3a5 h1d1 f8f7 g3e4 c5a3 g4e6 g8f8 e4g5 f8g8 g5f7 d8f8 f7h6 g8h8 h6f7 h8g8 f7h6 g8h8 h6g4 d5d4 g2h3 d4e3 g4e5 e3f2 h3g2 e7g6 e5f7 h8g8 f7d8 g8h8 d8f7 h8g8 f7d8 g8h8 g2f1 g6f4 e6d7 a7a6 d8c6 a5c3 b5d3 f4d3 d1d3 c3c2 b1a1 a3c1 c6d8 c2c4 d8f7 h8g8 f7e5 c4c5 d7d5 c5d5 d3d5 c1f4 h4h5 f4e5 d5e5 a6a5 a1a4 f8f3 e5e7 c7c5 h5h6 g7h6 e7e6 c5c4 e6b6 c4c3 b6c6 h6h5 a4a5 h5h4 a5g5 g8f7 g5b5 f7g8 b5g5 g8f7 g5a5 f7g8 a5a8 g8f7 a8a4 h4h3 c6c5 f7g8 a4g4 g8f8 g4h4 f8g7 h4c4 g7g8 c4b4 h7h6 b4a4 g8h8 a4h4 h8h7 h4g4 h7h8 c5c7 f3f6 g4h4 f6f3 h4g4 f3f6 c7c3 h3h2 c3h3 h2h1q h3h1 h8h7 h1h4 f6f8 h4h5 f8f6 h5b5 h7h8 b5b7 f6f5 b7b6 h8h7 b6b8 f5f3 b8b7 h7h8 b7b8 h8h7 b8b6 f3f8 g4g6 h6h5 b6e6 h5h4 e6c6 f8f3 g6h6 h7g8 h6h4 f3f8 h4g4 g8h7 c6c5 f8f6 c5c7 h7h8 c7c4 f6f7 g4g3 f7c7 c4h4 c7h7 h4d4 h7f7 d4b4 f7b7 g3h3 b7h7 b4b8 h8g7 b8b7 g7h8 h3h7 h8g8
+Finished game 82 (sf vs cand): 1-0 {White mates}
+Started game 93 of 100 (cand vs sf)
+Finished game 90 (sf vs cand): 1-0 {White mates}
+Started game 94 of 100 (sf vs cand)
+Warning; Bestmove does not match beginning of last PV - move g7g8r from sf
+Info; info depth 245 seldepth 2 multipv 1 score mate 1 nodes 37217 nps 1200548 hashfull 23 tbhits 0 time 31 pv g7g8q
+Position; fen rnb1k1nr/p4ppp/1qp1p3/1p6/PbpP4/2N1PN2/1P1B1PPP/R2QKB1R w KQkq - 0 1
+Moves; f3e5 g8f6 f1e2 e8g8 e2f3 c8b7 d1e2 b5a4 c3a4 b4d2 e2d2 b6a6 e1g1 f8e8 a1a3 e8c8 f1a1 b8d7 e5d7 f6d7 a4c5 d7c5 a3a6 c5a6 d2c3 a6c7 c3c4 c7b5 h2h4 c8d8 a1a4 d8b8 c4c5 b8d8 g2g4 b5c7 a4a5 a7a6 a5a3 c7b5 a3d3 d8d7 g4g5 d7d8 f3h1 a8b8 h1g2 b8c8 d3b3 g7g6 b3d3 b5d6 d3c3 d6f5 g1h2 f5h4 g2e4 h4f5 e4g2 c8a8 c5e5 d8d7 g2c6 b7c6 c3c6 f5e7 c6c7 d7c7 e5c7 e7f5 b2b4 a8f8 c7b6 f8a8 e3e4 f5g7 h2g3 g7h5 g3h3 h5f4 h3g3 f4d3 f2f3 e6e5 b6d6 e5d4 d6d4 d3e1 d4d1 e1f3 g3f3 a8e8 d1d5 e8b8 d5d6 b8b5 d6a6 b5b4 a6d6 b4b5 d6e7 b5b2 e7d8 g8g7 d8d4 g7f8 d4d8 f8g7 d8d4 g7f8 e4e5 b2a2 e5e6 f7e6 d4h8 f8e7 h8f6 e7d6 f6c3 e6e5 c3c4 a2h2 c4a6 d6e7 a6c6 h2h5 c6c7 e7e6 f3g4 h5h2 c7c1 e6d7 c1c5 h2g2 g4h4 e5e4 c5c3 g2e2 c3d4 d7e8 d4h8 e8d7 h8h7 d7c8 h7g8 c8b7 g8h7 b7b8 h7h8 b8b7 h8g7 b7b8 g7g6 b8b7 g6f7 b7a8 f7g8 a8a7 g8f7 a7a8 f7g8 a8a7 g8b3 a7a8 b3d5 a8a7 d5a5 a7b7 a5b5 b7c7 b5e2 e4e3 e2c2 c7b6 c2b3 b6a7 b3a4 a7b7 a4b4 b7c7 b4c4 c7b6 g5g6 b6a5 c4c5 a5a6 c5d6 a6b7 d6e7 b7a8 g6g7 e3e2
+Finished game 86 (sf vs cand): 1-0 {White mates}
+Started game 95 of 100 (cand vs sf)
+Finished game 92 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 96 of 100 (sf vs cand)
+Finished game 94 (sf vs cand): 0-1 {Black wins by adjudication}
+Started game 97 of 100 (cand vs sf)
+Finished game 93 (cand vs sf): 1-0 {White mates}
+Started game 98 of 100 (sf vs cand)
+Finished game 96 (sf vs cand): 1-0 {White mates}
+Started game 99 of 100 (cand vs sf)
+Finished game 95 (cand vs sf): 0-1 {Black mates}
+Started game 100 of 100 (sf vs cand)
+Finished game 97 (cand vs sf): 0-1 {Black mates}
+Finished game 98 (sf vs cand): 1-0 {White mates}
+Finished game 91 (cand vs sf): 0-1 {Black mates}
+Finished game 99 (cand vs sf): 0-1 {Black mates}
+Finished game 100 (sf vs cand): 1/2-1/2 {Draw by insufficient mating material}
+--------------------------------------------------
+Results of cand vs sf (40000 nodes, 1t, NULL - 16MB, eco_lichess.epd):
+Elo: 88.74 +/- 70.22, nElo: 91.30 +/- 68.10
+LOS: 99.57 %, DrawRatio: 44.00 %, PairsRatio: 2.50
+Games: 100, Wins: 61, Losses: 36, Draws: 3, Points: 62.5 (62.50 %)
+Ptnml(0-2): [6, 2, 22, 1, 19], WL/DD Ratio: inf
+--------------------------------------------------
+Finished match
+Total Time: 00:02:17 (hours:minutes:seconds)
+
