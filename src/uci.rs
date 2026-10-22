@@ -2,7 +2,8 @@
 //! engine for SPRT matches.
 //!
 //! Supported: `uci`, `isready`, `ucinewgame`, `setoption` (accepted; knobs:
-//! `Seed`, `MaxPlayoutPly`, `UCTC`, `Threads`), `position [startpos|fen <fen>] [moves ...]`,
+//! `Seed`, `MaxPlayoutPly`, `UCTC`, `Threads`, `Cpuct`, `RootNoise`,
+//! `Policy`), `position [startpos|fen <fen>] [moves ...]`,
 //! `go [nodes N] [movetime T] [wtime W btime B winc I binc I] [infinite] [depth N]`,
 //! `stop`, `quit`; `debug`/`ponder`/other tolerated as no-ops.
 //!
@@ -15,7 +16,7 @@
 //!   playout counts as one node);
 //! * tree is rebuilt per `go` (B2 adds reuse).
 
-use crate::mcts::{Limits, Search};
+use crate::mcts::{Limits, Policy, Search};
 use crate::movegen;
 use crate::position::Position;
 use crate::types::{Color, GenKind, Move};
@@ -35,6 +36,12 @@ pub struct UciState {
     seed: u64,
     max_playout_ply: u32,
     c_uct: f32,
+    /// PUCT exploration constant (phase 4).
+    c_puct: f32,
+    /// Scale of the root perturbation in the parallel mode (phase 4).
+    root_noise: f32,
+    /// The selection rule (phase 4): `puct` (default) or `uct`.
+    policy: Policy,
     /// Number of parallel root workers (phase 3). 1 = mono-thread.
     threads: usize,
     worker: Option<std::thread::JoinHandle<()>>,
@@ -50,6 +57,9 @@ impl Default for UciState {
             seed: DEFAULT_SEED,
             max_playout_ply: DEFAULT_MAX_PLAYOUT_PLY,
             c_uct: std::f32::consts::SQRT_2,
+            c_puct: crate::mcts::DEFAULT_C_PUCT,
+            root_noise: crate::mcts::DEFAULT_ROOT_NOISE,
+            policy: Policy::default(),
             threads: 1,
             worker: None,
             stop: Arc::new(AtomicBool::new(false)),
@@ -109,6 +119,15 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                 "option name Threads type spin default {} min 1 max 64",
                 st.threads
             ));
+            out_line(&format!(
+                "option name Cpuct type string default {}",
+                st.c_puct
+            ));
+            out_line(&format!(
+                "option name RootNoise type string default {}",
+                st.root_noise
+            ));
+            out_line("option name Policy type string default puct");
             out_line("uciok");
         }
         Some("isready") => {
@@ -129,6 +148,8 @@ fn handle(st: &mut UciState, line: &str) -> bool {
             let pos = st.pos;
             let hist = st.history.clone();
             let (seed, mpl, c_uct) = (st.seed, st.max_playout_ply, st.c_uct);
+            let (c_puct, root_noise) = (st.c_puct, st.root_noise);
+            let policy = st.policy;
             let threads = st.threads;
             st.worker = Some(std::thread::spawn(move || {
                 let search = Search::new(
@@ -139,10 +160,13 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                         movetime_ms: go.movetime_ms,
                         max_playout_ply: mpl,
                         c_uct,
+                        c_puct,
+                        root_noise,
                     },
                     seed,
                 )
-                .with_threads(threads);
+                .with_threads(threads)
+                .with_policy(policy);
                 let o = search.run(&stop);
                 let nps = if o.elapsed_ms > 0 {
                     o.nodes as f64 / (o.elapsed_ms as f64 / 1000.0)
@@ -150,12 +174,16 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                     o.nodes as f64
                 };
                 println!(
-                    "info depth {} score cp {} nodes {} nps {:.0} time {} string mcts-v1 UCT threads {}",
+                    "info depth {} score cp {} nodes {} nps {:.0} time {} string mcts-v1 policy {} threads {}",
                     pseudo_depth(o.nodes),
                     o.score_cp,
                     o.nodes,
                     nps,
                     o.elapsed_ms,
+                    match policy {
+                        Policy::Puct => "puct",
+                        Policy::Uct => "uct",
+                    },
                     threads
                 );
                 println!("bestmove {}", move_uci(o.best));
@@ -228,6 +256,15 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
                 .unwrap_or(st.max_playout_ply)
         }
         ("UCTC", _) => st.c_uct = v.parse().unwrap_or(st.c_uct),
+        ("Cpuct", _) => st.c_puct = v.parse().unwrap_or(st.c_puct),
+        ("RootNoise", _) => st.root_noise = v.parse().unwrap_or(st.root_noise),
+        ("Policy", _) => {
+            st.policy = match v.trim().to_ascii_lowercase().as_str() {
+                "uct" => Policy::Uct,
+                "puct" => Policy::Puct,
+                _ => st.policy,
+            }
+        }
         ("Threads", _) => {
             st.threads = v
                 .parse::<usize>()

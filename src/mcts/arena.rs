@@ -105,18 +105,20 @@ pub(crate) struct Edge {
     pub visits: u32,
     /// Accumulated value **for the side to move in the child**.
     pub sum: f32,
-    /// Policy prior (hook A2). Unused for now: the selection is plain UCT.
+    /// Policy prior (hook A2, câblé en phase 4): la probabilité du coup
+    /// dans la distribution de prior du nœud parent. Utilisé par la
+    /// sélection PUCT ; vaut 0 sur le chemin UCT (qui l'ignore).
     pub prior: f32,
 }
 
 impl Edge {
-    fn new(mv: Move) -> Edge {
+    fn new(mv: Move, prior: f32) -> Edge {
         Edge {
             mv,
             child: NO_CHILD,
             visits: 0,
             sum: 0.0,
-            prior: 0.0,
+            prior,
         }
     }
 }
@@ -170,13 +172,14 @@ impl Arena {
         (self.nodes.len() - 1) as u32
     }
 
-    /// Attach `moves` to `node` as its edges. The edges are appended at the
-    /// end of the edge arena, so the range stays contiguous.
-    pub fn add_edges<I: IntoIterator<Item = Move>>(&mut self, node: u32, moves: I) {
+    /// Attach `moves` to `node` as its edges, each with its **policy
+    /// prior**. The edges are appended at the end of the edge arena, so the
+    /// range stays contiguous.
+    pub fn add_edges<I: IntoIterator<Item = (Move, f32)>>(&mut self, node: u32, moves: I) {
         let first = self.edges.len() as u32;
         let mut n = 0u8;
-        for mv in moves {
-            self.edges.push(Edge::new(mv));
+        for (mv, prior) in moves {
+            self.edges.push(Edge::new(mv, prior));
             n += 1;
         }
         let nd = &mut self.nodes[node as usize];
