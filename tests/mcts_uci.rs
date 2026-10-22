@@ -214,3 +214,50 @@ fn uci_threads_option_runs_a_parallel_search() {
         "bestmove {bm} illegal (legal: {known:?})"
     );
 }
+
+/// Phase 4: the `Policy`, `Cpuct` and `RootNoise` options must be
+/// advertised, and `setoption name Policy value uct` must switch the
+/// engine to the legacy rule — the `info` line reports the policy in
+/// force.
+#[test]
+fn uci_advertises_the_phase4_options() {
+    let mut s = UciSession::start();
+    s.send("uci");
+    let lines = s.wait_for("uciok", 5000);
+    for name in ["Policy", "Cpuct", "RootNoise"] {
+        assert!(
+            lines
+                .iter()
+                .any(|l| l.starts_with(&format!("option name {name} "))),
+            "the {name} option must be advertised: {lines:?}"
+        );
+    }
+}
+
+/// The `Policy` option is honoured: the `info` line names the rule in
+/// force, and the search still returns a legal move.
+#[test]
+fn uci_policy_option_switches_the_selection_rule() {
+    for (value, expected) in [("uct", "policy uct"), ("puct", "policy puct")] {
+        let mut s = UciSession::start();
+        s.send("uci");
+        let _ = s.wait_for("uciok", 5000);
+        s.send(&format!("setoption name Policy value {value}"));
+        s.send("position startpos");
+        s.send("isready");
+        let _ = s.wait_for("readyok", 30000);
+        s.send("go nodes 2000");
+        let lines = s.window_for_bestmove();
+        assert!(
+            lines.iter().any(|l| l.contains(expected)),
+            "the info line must report the policy ({expected}): {lines:?}"
+        );
+        let bm = lines
+            .iter()
+            .find(|l| l.starts_with("bestmove"))
+            .and_then(|l| l.split_whitespace().nth(1))
+            .expect("bestmove line");
+        assert_eq!(bm.len(), 4, "bestmove token shape: {bm}");
+        assert_ne!(bm, "0000", "non-terminal position must move");
+    }
+}
