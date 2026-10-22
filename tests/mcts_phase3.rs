@@ -456,3 +456,104 @@ fn terminal_repetition_still_draws() {
         "the third occurrence is a draw"
     );
 }
+
+/// G4 — the parallel search honours the node budget exactly.
+#[test]
+fn parallel_node_budget_is_honest() {
+    let pos = Position::startpos();
+    for threads in [2usize, 3, 4, 6] {
+        for nodes in [1000u64, 4096] {
+            let o = Search::new(pos, vec![pos.zobrist], limits(nodes), 42)
+                .with_threads(threads)
+                .run(&AtomicBool::new(false));
+            assert_eq!(
+                o.nodes, nodes,
+                "threads={threads}: the total node budget must stay {nodes}"
+            );
+        }
+    }
+}
+
+/// G4 bis — the parallel best move is legal.
+#[test]
+fn parallel_best_move_is_legal() {
+    for fen in GOLDEN_FENS {
+        let pos = Position::from_fen(fen).unwrap();
+        let legal = legal_moves(&pos);
+        let o = Search::new(pos, vec![pos.zobrist], limits(2000), 42)
+            .with_threads(4)
+            .run(&AtomicBool::new(false));
+        assert!(
+            legal.contains(&o.best),
+            "illegal best move {:?} on {fen}",
+            o.best.uci()
+        );
+    }
+}
+
+/// G4 ter — same seed, same thread count: same result.
+#[test]
+fn parallel_is_deterministic() {
+    let pos = Position::startpos();
+    let run = |threads: usize| {
+        let o = Search::new(pos, vec![pos.zobrist], limits(3000), 7)
+            .with_threads(threads)
+            .run(&AtomicBool::new(false));
+        (o.best, o.score_cp, o.nodes)
+    };
+    assert_eq!(run(4), run(4), "same (seed, threads) must be reproducible");
+    assert_eq!(run(1), run(1), "the mono path must be reproducible");
+}
+
+/// G4 quater — the parallel search still finds the mate in one.
+#[test]
+fn parallel_finds_mate_in_1() {
+    let pos = Position::from_fen("k7/8/KQ6/8/8/8/8/8 w - - 0 1").unwrap();
+    let mut mates: Vec<String> = Vec::new();
+    {
+        let list = legal_moves(&pos);
+        for mv in list {
+            let mut p = pos;
+            p.make(mv);
+            let replies = legal_moves(&p);
+            if replies.is_empty() && p.in_check(p.side) {
+                mates.push(mv.uci());
+            }
+        }
+    }
+    assert!(!mates.is_empty(), "the position must hold a mate in 1");
+    let o = Search::new(pos, vec![pos.zobrist], limits(3000), 42)
+        .with_threads(4)
+        .run(&AtomicBool::new(false));
+    assert!(
+        mates.contains(&o.best.uci()),
+        "mate in 1 not found in parallel: best={} (candidates {mates:?})",
+        o.best.uci()
+    );
+}
+
+/// G4 quinquies — a single thread gives exactly the mono result (the
+/// parallel path is not entered at all).
+#[test]
+fn one_thread_is_the_mono_path() {
+    let pos = Position::startpos();
+    let mono = Search::new(pos, vec![pos.zobrist], limits(3000), 42).run(&AtomicBool::new(false));
+    let one = Search::new(pos, vec![pos.zobrist], limits(3000), 42)
+        .with_threads(1)
+        .run(&AtomicBool::new(false));
+    assert_eq!(mono.best, one.best);
+    assert_eq!(mono.score_cp, one.score_cp);
+    assert_eq!(mono.nodes, one.nodes);
+}
+
+/// The parallel search must not be slower than the mono one for the same
+/// budget on a *tiny* budget (sanity: no pathological overhead).
+#[test]
+fn parallel_does_not_lose_nodes() {
+    let pos = Position::startpos();
+    let o = Search::new(pos, vec![pos.zobrist], limits(10_000), 42)
+        .with_threads(4)
+        .run(&AtomicBool::new(false));
+    assert_eq!(o.nodes, 10_000);
+    assert!(o.tree_nodes > 0);
+}

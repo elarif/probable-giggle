@@ -2,7 +2,7 @@
 //! engine for SPRT matches.
 //!
 //! Supported: `uci`, `isready`, `ucinewgame`, `setoption` (accepted; knobs:
-//! `Seed`, `MaxPlayoutPly`, `UCTC`), `position [startpos|fen <fen>] [moves ...]`,
+//! `Seed`, `MaxPlayoutPly`, `UCTC`, `Threads`), `position [startpos|fen <fen>] [moves ...]`,
 //! `go [nodes N] [movetime T] [wtime W btime B winc I binc I] [infinite] [depth N]`,
 //! `stop`, `quit`; `debug`/`ponder`/other tolerated as no-ops.
 //!
@@ -35,6 +35,8 @@ pub struct UciState {
     seed: u64,
     max_playout_ply: u32,
     c_uct: f32,
+    /// Number of parallel root workers (phase 3). 1 = mono-thread.
+    threads: usize,
     worker: Option<std::thread::JoinHandle<()>>,
     stop: Arc<AtomicBool>,
 }
@@ -48,6 +50,7 @@ impl Default for UciState {
             seed: DEFAULT_SEED,
             max_playout_ply: DEFAULT_MAX_PLAYOUT_PLY,
             c_uct: std::f32::consts::SQRT_2,
+            threads: 1,
             worker: None,
             stop: Arc::new(AtomicBool::new(false)),
         }
@@ -102,6 +105,10 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                 "option name UCTC type string default {}",
                 st.c_uct
             ));
+            out_line(&format!(
+                "option name Threads type spin default {} min 1 max 64",
+                st.threads
+            ));
             out_line("uciok");
         }
         Some("isready") => {
@@ -122,6 +129,7 @@ fn handle(st: &mut UciState, line: &str) -> bool {
             let pos = st.pos;
             let hist = st.history.clone();
             let (seed, mpl, c_uct) = (st.seed, st.max_playout_ply, st.c_uct);
+            let threads = st.threads;
             st.worker = Some(std::thread::spawn(move || {
                 let search = Search::new(
                     pos,
@@ -133,7 +141,8 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                         c_uct,
                     },
                     seed,
-                );
+                )
+                .with_threads(threads);
                 let o = search.run(&stop);
                 let nps = if o.elapsed_ms > 0 {
                     o.nodes as f64 / (o.elapsed_ms as f64 / 1000.0)
@@ -141,12 +150,13 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                     o.nodes as f64
                 };
                 println!(
-                    "info depth {} score cp {} nodes {} nps {:.0} time {} string mcts-v1 UCT random-playouts",
+                    "info depth {} score cp {} nodes {} nps {:.0} time {} string mcts-v1 UCT threads {}",
                     pseudo_depth(o.nodes),
                     o.score_cp,
                     o.nodes,
                     nps,
-                    o.elapsed_ms
+                    o.elapsed_ms,
+                    threads
                 );
                 println!("bestmove {}", move_uci(o.best));
             }));
@@ -218,6 +228,12 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
                 .unwrap_or(st.max_playout_ply)
         }
         ("UCTC", _) => st.c_uct = v.parse().unwrap_or(st.c_uct),
+        ("Threads", _) => {
+            st.threads = v
+                .parse::<usize>()
+                .map(|x: usize| x.clamp(1, 64))
+                .unwrap_or(st.threads)
+        }
         (name, value) => eprintln!("uci: ignored option {name:?} = {value:?}"),
     }
 }

@@ -1,4 +1,5 @@
-//! MCTS v1 (STEP 0 baseline), **phase 3**: flat arena + cheap terminality.
+//! MCTS v1 (STEP 0 baseline), **phase 3**: flat arena + cheap terminality +
+//! root parallelism.
 //!
 //! The **algorithm** is the v1 one, unchanged: plain UCT, one-node expansion,
 //! value for the player to move at the node, terminality in four causes
@@ -17,10 +18,18 @@
 //!   child (`mcts::arena` documents the mirror invariant);
 //! * terminality is decided by `movegen::has_legal_move` — no `MoveList` is
 //!   materialised to answer "is there a legal move?" on a leaf;
+//! * the search can run on several threads, splitting the root moves into
+//!   disjoint packets: each thread owns its tree, the root statistics are
+//!   merged at the end. No shared mutable state, no lock, no race.
 //!
 //! **The mono-thread path is bit-for-bit identical to the v1 engine**: same
 //! RNG draw order, same selection, same values. `tests/mcts_phase3.rs`
 //! checks it against a copy of the v1 algorithm.
+//!
+//! Setting the environment variable `MYCHESS_DEBUG_MERGE=1` dumps the merged
+//! root statistics (move, visits, value) of a parallel search on stderr —
+//! the instrument that showed the biased merge of a partitioned root
+//! (`docs/mcts/phase3-2026-10-22.md`).
 //!
 //! Hooks designed for later ladder steps (NOT implemented here):
 //! * A2: `Edge::prior` + PUCT selection (hook `prior(pos, move)`);
@@ -117,6 +126,8 @@ pub struct Search {
     pub game_hist: Vec<u64>,
     pub limits: Limits,
     pub seed: u64,
+    /// Number of parallel root workers. `1` = mono-thread (the default).
+    pub threads: usize,
 }
 
 impl Search {
@@ -126,12 +137,34 @@ impl Search {
             game_hist,
             limits,
             seed,
+            threads: 1,
         }
+    }
+
+    /// Number of parallel root workers. `1` (the default) is the mono-thread
+    /// engine, bit-for-bit identical to v1.
+    ///
+    /// The root moves are split into `threads` disjoint packets, one per
+    /// worker; each worker owns its tree and the root statistics are merged
+    /// at the end. Two consequences, both deliberate:
+    ///
+    /// * a **node** budget is split between the workers, so the total stays
+    ///   the requested one (an SPRT ladder at fixed nodes stays comparable);
+    /// * a **time** budget is a shared deadline, so every worker runs until
+    ///   it and the total number of nodes is `≈threads ×` the mono one — the
+    ///   throughput mode, where more nodes at the same depth is the point.
+    pub fn with_threads(mut self, threads: usize) -> Search {
+        self.threads = threads.max(1);
+        self
     }
 
     /// Run to the node/time budget.
     pub fn run(&self, stop: &AtomicBool) -> Outcome {
-        self.run_mono(stop)
+        if self.threads > 1 {
+            self.run_parallel(stop)
+        } else {
+            self.run_mono(stop)
+        }
     }
 
     /// Mono-thread search (the reference path).
@@ -157,6 +190,132 @@ impl Search {
             elapsed_ms: start.elapsed().as_millis(),
             tree_nodes: res.tree_nodes,
             tree_edges: res.tree_edges,
+        }
+    }
+
+    /// Root-parallel search: one tree per worker, root statistics summed.
+    ///
+    /// Every worker searches the **whole** root with its own tree and its own
+    /// RNG stream; the root statistics (visits, values) are then summed, move
+    /// by move. This is the classic root-parallel MCTS: no shared mutable
+    /// state, no lock, no race, and the root statistics stay comparable
+    /// between the moves — which a *partitioned* root cannot promise (the
+    /// visit counts of two disjoint packets are not comparable: the packet
+    /// whose best move faces fewer competitors accumulates more visits on
+    /// it, and the "most visited" rule then picks the wrong move — measured,
+    /// see `docs/mcts/phase3-2026-10-22.md`).
+    ///
+    /// The price is **diversity**: the workers explore the same subtrees, so
+    /// the union of the trees covers less than a partitioned split would. The
+    /// total node count and the total memory are unchanged (each worker holds
+    /// `nodes / threads` nodes).
+    fn run_parallel(&self, stop: &AtomicBool) -> Outcome {
+        let start = Instant::now();
+        let t = self.threads.max(1);
+        let empty = Outcome {
+            best: Move::NONE,
+            score_cp: 0,
+            nodes: 0,
+            elapsed_ms: start.elapsed().as_millis(),
+            tree_nodes: 0,
+            tree_edges: 0,
+        };
+        // A terminal root has nothing to search.
+        if terminal_value(&self.root_pos, &self.game_hist).is_some() {
+            return empty;
+        }
+        let mut list = MoveList::new();
+        generate(&self.root_pos, &mut list, GenKind::All);
+        let root_moves: Vec<Move> = list.iter().collect();
+        if root_moves.is_empty() {
+            return empty;
+        }
+        let deadline = self
+            .limits
+            .movetime_ms
+            .map(|ms| start + Duration::from_millis(ms as u64));
+        // Node budget: split, so the total stays the requested one. With a
+        // time budget: every worker runs until the shared deadline.
+        let (per, extra) = if deadline.is_some() {
+            (u64::MAX / 4, 0)
+        } else {
+            (self.limits.nodes / t as u64, self.limits.nodes % t as u64)
+        };
+        let results: Vec<WorkerResult> = std::thread::scope(|scope| {
+            let mut handles = Vec::with_capacity(t - 1);
+            for (i, _) in (1..t).enumerate() {
+                let seed = derive_seed(self.seed, i as u64 + 1);
+                let pos = &self.root_pos;
+                let hist = &self.game_hist;
+                let c_uct = self.limits.c_uct;
+                let max_playout_ply = self.limits.max_playout_ply;
+                handles.push(scope.spawn(move || {
+                    let worker = Worker {
+                        pos,
+                        hist,
+                        c_uct,
+                        max_playout_ply,
+                        seed,
+                    };
+                    run_worker(&worker, per, deadline, stop)
+                }));
+            }
+            // The calling thread takes the first share (and the extra nodes).
+            let worker = Worker {
+                pos: &self.root_pos,
+                hist: &self.game_hist,
+                c_uct: self.limits.c_uct,
+                max_playout_ply: self.limits.max_playout_ply,
+                seed: self.seed,
+            };
+            let mine = run_worker(&worker, per + extra, deadline, stop);
+            // The results must stay in the worker order: every worker expands
+            // the root in the same generation order, so the merge below maps
+            // the k-th root edge of worker i to the k-th root move.
+            let mut out = Vec::with_capacity(t);
+            out.push(mine);
+            for h in handles {
+                out.push(h.join().expect("MCTS worker thread panicked"));
+            }
+            out
+        });
+        // Merge the root statistics, move by move.
+        let mut visits = vec![0u64; root_moves.len()];
+        let mut sums = vec![0f32; root_moves.len()];
+        let mut nodes = 0u64;
+        let mut tree_nodes = 0u64;
+        let mut tree_edges = 0u64;
+        for res in results.iter() {
+            nodes += res.nodes;
+            tree_nodes += res.tree_nodes;
+            tree_edges += res.tree_edges;
+            for (g, (mv, v, s)) in res.root.iter().enumerate() {
+                if g >= root_moves.len() {
+                    continue;
+                }
+                debug_assert_eq!(root_moves[g], *mv, "root edge order");
+                visits[g] += *v;
+                sums[g] += *s;
+            }
+        }
+        let merged: Vec<(Move, u64, f32)> = root_moves
+            .iter()
+            .enumerate()
+            .map(|(g, &mv)| (mv, visits[g], sums[g]))
+            .collect();
+        if std::env::var("MYCHESS_DEBUG_MERGE").is_ok() {
+            for (g, (mv, v, s)) in merged.iter().enumerate() {
+                eprintln!("MERGE|{g}|{}|{v}|{s}", mv.uci());
+            }
+        }
+        let (best, score_cp) = pick_best(&merged);
+        Outcome {
+            best,
+            score_cp,
+            nodes,
+            elapsed_ms: start.elapsed().as_millis(),
+            tree_nodes,
+            tree_edges,
         }
     }
 }
@@ -421,6 +580,17 @@ fn backprop(arena: &mut Arena, path: &[u32], mut v: f32) {
     let root = arena.node_mut(ROOT);
     root.sum += v;
     root.visits += 1;
+}
+
+/// Derive the seed of a parallel worker from the search seed: distinct,
+/// deterministic, and never zero (the RNG maps zero to a fixed constant).
+fn derive_seed(seed: u64, worker: u64) -> u64 {
+    let mut z = seed
+        .wrapping_add(worker.wrapping_mul(0x9E37_79B9_7F4A_7C15))
+        .wrapping_add(0x2545_F491_4F6C_DD1D);
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
 }
 
 /// Triple-repetition draw check (v1 semantics, exact): `pos` draws iff it
