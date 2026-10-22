@@ -1,24 +1,28 @@
-//! Phase 3 quality probe — **at a constant node budget**, how many mates does
-//! the engine still find?
+//! Phase 4 quality probe — **at a constant node budget**, what does the
+//! selection rule change?
 //!
-//! The root-parallel mode splits the root moves into disjoint packets: at the
-//! same total node budget, each root move is explored with `1/threads` of the
-//! nodes, so the estimates are noisier. The mean score is a bad metric for
-//! that (the engine reports the *max* over noisy estimates, which is biased
-//! upward), so this probe measures something binary and unambiguous:
+//! The probe measures the same thing as the phase-3 one, but for the two
+//! **selection rules** of the engine:
 //!
-//! * for each position of the battery, the set of **mating moves** is
-//!   computed by an oracle (generate the legal moves, play them, and look for
-//!   a position with no legal reply and the mover in check);
-//! * the engine is run with a fixed node budget, in mono and in parallel;
-//! * the probe reports the fraction of positions where the engine's best
-//!   move is a mate.
+//! * `uct` — the frozen v1 rule (uniform draw among the unvisited
+//!   children, UCT among the visited ones);
+//! * `puct` — the phase-4 rule (PUCT with the MVV-LVA priors).
+//!
+//! For each position of the battery, the set of **mating moves** is
+//! computed by an oracle (generate the legal moves, play them, and look for
+//! a position with no legal reply and the mover in check); the engine is
+//! then run with a fixed node budget, in mono and in parallel, and the
+//! probe reports the fraction of positions where the engine's best move is
+//! a mate, plus the score.
+//!
+//! Both policies run **in the same session**, so the comparison is not
+//! polluted by a machine that drifted between two runs.
 //!
 //! ```text
 //! cargo run --release --example mcts_quality -- <nodes> [threads...]
 //! ```
 
-use mychess::mcts::{Limits, Search};
+use mychess::mcts::{Limits, Policy, Search};
 use mychess::movegen::{MoveList, generate};
 use mychess::position::Position;
 use mychess::types::{GenKind, Move};
@@ -65,6 +69,13 @@ fn mating_moves(pos: &Position) -> Vec<Move> {
     mates
 }
 
+fn policy_name(p: Policy) -> &'static str {
+    match p {
+        Policy::Uct => "uct",
+        Policy::Puct => "puct",
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let nodes: u64 = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(50_000);
@@ -79,23 +90,29 @@ fn main() {
     for fen in BATTERY {
         let pos = Position::from_fen(fen).expect("valid FEN");
         let mates = mating_moves(&pos);
-        let mut line = format!("{fen} | {} |", mates.len());
-        for t in &threads {
-            let limits = Limits {
-                nodes,
-                movetime_ms: None,
-                max_playout_ply: 100,
-                c_uct: std::f32::consts::SQRT_2,
-            };
-            let search = Search::new(pos, vec![pos.zobrist], limits, 42).with_threads(*t);
-            let o = search.run(&AtomicBool::new(false));
-            let found = !mates.is_empty() && mates.contains(&o.best);
-            line += &format!(
-                " T={t}:{} ({})",
-                if found { "MATE" } else { "----" },
-                o.score_cp
-            );
+        for policy in [Policy::Uct, Policy::Puct] {
+            let mut line = format!("{fen} | {} | {}", mates.len(), policy_name(policy));
+            for t in &threads {
+                let limits = Limits {
+                    nodes,
+                    movetime_ms: None,
+                    max_playout_ply: 100,
+                    c_uct: std::f32::consts::SQRT_2,
+                    c_puct: mychess::mcts::DEFAULT_C_PUCT,
+                    root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
+                };
+                let search = Search::new(pos, vec![pos.zobrist], limits, 42)
+                    .with_threads(*t)
+                    .with_policy(policy);
+                let o = search.run(&AtomicBool::new(false));
+                let found = !mates.is_empty() && mates.contains(&o.best);
+                line += &format!(
+                    " T={t}:{} ({})",
+                    if found { "MATE" } else { "----" },
+                    o.score_cp
+                );
+            }
+            println!("{line}");
         }
-        println!("{line}");
     }
 }

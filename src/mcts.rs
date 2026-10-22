@@ -1,7 +1,7 @@
 //! MCTS v1 (STEP 0 baseline), **phase 3**: flat arena + cheap terminality +
-//! root parallelism.
+//! root parallelism, **phase 4**: PUCT selection + heuristic policy priors.
 //!
-//! The **algorithm** is the v1 one, unchanged: plain UCT, one-node expansion,
+//! The **algorithm** is the v1 one: plain UCT, one-node expansion,
 //! value for the player to move at the node, terminality in four causes
 //! (checkmate, stalemate, 50-move, triple repetition) plus insufficient
 //! material, deterministic xorshift64* seeded per search.
@@ -26,20 +26,46 @@
 //! RNG draw order, same selection, same values. `tests/mcts_phase3.rs`
 //! checks it against a copy of the v1 algorithm.
 //!
+//! What phase 4 changes is the **selection rule**:
+//!
+//! * the selection is **PUCT** (`Policy::Puct`, the default):
+//!   `s(a) = Q(a) + c_puct·P(a)·sqrt(N)/(1+n(a))`, where `P(a)` is the
+//!   **policy prior** of the move — an MVV-LVA heuristic computed once per
+//!   developed node (`mcts::policy`) and stored in `Edge::prior`;
+//! * the legacy **UCT** rule is kept intact (`Policy::Uct`): it is the
+//!   frozen oracle of the phase-3 differential test and the A/B
+//!   counter-measure of the phase 4;
+//! * the PUCT rule keeps the **breadth** of the v1 rule (a uniform draw
+//!   among the unvisited children) and changes the **depth** rule (the
+//!   exploration bonus decays as `1/(1+n)` instead of `1/sqrt(n)`), which
+//!   is what makes the search converge much faster in value — measured,
+//!   see `docs/mcts/phase4-2026-10-22.md`;
+//! * the root-parallel mode **perturbs the root priors** (Gumbel noise,
+//!   `mcts::policy::perturb`): the amorce of C1 (the full Dirichlet
+//!   noise). It is *neutral* in the current measurements — the workers
+//!   already diverge through their independent RNG streams.
+//!
+//! The mono PUCT path consumes the RNG (the breadth draw), so it is
+//! **reproducible for a given seed**, like the v1 path.
+//!
 //! Setting the environment variable `MYCHESS_DEBUG_MERGE=1` dumps the merged
 //! root statistics (move, visits, value) of a parallel search on stderr —
 //! the instrument that showed the biased merge of a partitioned root
 //! (`docs/mcts/phase3-2026-10-22.md`).
 //!
 //! Hooks designed for later ladder steps (NOT implemented here):
-//! * A2: `Edge::prior` + PUCT selection (hook `prior(pos, move)`);
-//! * A1: leaf value = `eval_for_mover(pos)` instead of the random playout;
+//! * A3: FPU (first-play urgency) — the PUCT uses `Q = 0` for an unvisited
+//!   child (AlphaZero convention);
 //! * B1: **tree**-parallel (shared arena + atomic stats + virtual loss) — the
 //!   phase 3 parallelism is root-parallel, which is race-free but does not
 //!   share the depth between threads;
 //! * B2: tree reuse between `go`s (arena persists, root shifts);
 //! * B3: transpositions (hash→node map);
-//! * D1: NN policy/value replace prior hook + eval hook (same call shapes).
+//! * C1: the full Dirichlet noise (the phase 4 Gumbel perturbation of the
+//!   root is only the diversity the root-parallel mode needs);
+//! * D1: NN policy/value replace the prior hook + eval hook (same call
+//!   shapes). The prior module is already a "logits → softmax → prior"
+//!   pipeline: the NN policy will feed the same softmax.
 
 use crate::eval;
 use crate::movegen::{MoveList, generate, has_legal_move};
@@ -49,8 +75,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 mod arena;
+pub mod policy;
 
 use arena::{Arena, NO_CHILD, ROOT};
+use policy::priors;
 
 // ---- A1 value bridge (TUNABLE AU LOT C3) ------------------------------------
 /// Fixed cp→Q calibration chosen for A1: linear `/1000` clamped to
@@ -103,6 +131,51 @@ pub struct Limits {
     pub max_playout_ply: u32,
     /// UCT exploration constant.
     pub c_uct: f32,
+    /// PUCT exploration constant (phase 4). Only used by `Policy::Puct`.
+    ///
+    /// The PUCT score is `Q + c_puct · P · sqrt(N) / (1 + n)`: the bonus
+    /// decays with the number of visits of the child, so a large `c_puct`
+    /// keeps exploring the moves the prior likes, a small one trusts the
+    /// values faster. AlphaZero uses ~1.5 on chess.
+    pub c_puct: f32,
+    /// Scale of the Gumbel perturbation applied to the **root** priors in
+    /// the root-parallel mode (phase 4). `0` disables it.
+    ///
+    /// The mono path never perturbs: it stays clean and deterministic. The
+    /// parallel mode needs it — without diversity between the workers, the
+    /// parallel search would collapse to the mono search at `N/T` nodes.
+    pub root_noise: f32,
+}
+
+impl Default for Limits {
+    fn default() -> Limits {
+        Limits {
+            nodes: 10_000,
+            movetime_ms: None,
+            max_playout_ply: 100,
+            c_uct: std::f32::consts::SQRT_2,
+            c_puct: DEFAULT_C_PUCT,
+            root_noise: DEFAULT_ROOT_NOISE,
+        }
+    }
+}
+
+/// The PUCT exploration constant used by default (phase 4).
+pub const DEFAULT_C_PUCT: f32 = 1.5;
+
+/// The default scale of the root perturbation in the parallel mode.
+pub const DEFAULT_ROOT_NOISE: f32 = 1.0;
+
+/// The selection rule of the search (phase 4).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Policy {
+    /// The legacy v1 rule: a uniform draw among the unvisited children,
+    /// UCT among the visited ones. **Frozen** — it is the oracle of the
+    /// phase-3 differential test and the A/B counter-measure of phase 4.
+    Uct,
+    /// PUCT with a heuristic policy prior (phase 4, the default).
+    #[default]
+    Puct,
 }
 
 pub struct Outcome {
@@ -128,6 +201,8 @@ pub struct Search {
     pub seed: u64,
     /// Number of parallel root workers. `1` = mono-thread (the default).
     pub threads: usize,
+    /// The selection rule (phase 4). `Policy::Puct` by default.
+    pub policy: Policy,
 }
 
 impl Search {
@@ -138,7 +213,20 @@ impl Search {
             limits,
             seed,
             threads: 1,
+            policy: Policy::default(),
         }
+    }
+
+    /// The selection rule (phase 4).
+    ///
+    /// * `Policy::Puct` (the default) — PUCT with the MVV-LVA priors of
+    ///   `mcts::policy`; the mono path is then **deterministic**;
+    /// * `Policy::Uct` — the legacy v1 rule, kept frozen as the oracle of
+    ///   the phase-3 differential test and as the A/B counter-measure of
+    ///   the phase 4.
+    pub fn with_policy(mut self, policy: Policy) -> Search {
+        self.policy = policy;
+        self
     }
 
     /// Number of parallel root workers. `1` (the default) is the mono-thread
@@ -178,6 +266,11 @@ impl Search {
             pos: &self.root_pos,
             hist: &self.game_hist,
             c_uct: self.limits.c_uct,
+            c_puct: self.limits.c_puct,
+            // The mono path is clean: no root perturbation, so the PUCT
+            // search is fully deterministic.
+            root_noise: 0.0,
+            policy: self.policy,
             max_playout_ply: self.limits.max_playout_ply,
             seed: self.seed,
         };
@@ -248,12 +341,18 @@ impl Search {
                 let pos = &self.root_pos;
                 let hist = &self.game_hist;
                 let c_uct = self.limits.c_uct;
+                let c_puct = self.limits.c_puct;
+                let root_noise = self.limits.root_noise;
+                let policy = self.policy;
                 let max_playout_ply = self.limits.max_playout_ply;
                 handles.push(scope.spawn(move || {
                     let worker = Worker {
                         pos,
                         hist,
                         c_uct,
+                        c_puct,
+                        root_noise,
+                        policy,
                         max_playout_ply,
                         seed,
                     };
@@ -265,6 +364,9 @@ impl Search {
                 pos: &self.root_pos,
                 hist: &self.game_hist,
                 c_uct: self.limits.c_uct,
+                c_puct: self.limits.c_puct,
+                root_noise: self.limits.root_noise,
+                policy: self.policy,
                 max_playout_ply: self.limits.max_playout_ply,
                 seed: self.seed,
             };
@@ -348,6 +450,12 @@ struct Worker<'a> {
     pos: &'a Position,
     hist: &'a [u64],
     c_uct: f32,
+    /// PUCT exploration constant (phase 4).
+    c_puct: f32,
+    /// Scale of the Gumbel perturbation of the root priors (phase 4).
+    root_noise: f32,
+    /// The selection rule.
+    policy: Policy,
     max_playout_ply: u32,
     seed: u64,
 }
@@ -491,52 +599,44 @@ fn search_once(w: &Worker, arena: &mut Arena, rng: &mut Rng, scratch: &mut Scrat
                 backprop(arena, &scratch.path, tv);
                 return;
             }
-            arena.add_edges(idx, list.iter());
+            // EXPAND: the edges are created with their **policy prior**
+            // (phase 4). The prior is computed ONCE, here: the MVV-LVA
+            // heuristic of each legal move, turned into a probability
+            // distribution. The legacy UCT path does not compute it (it
+            // would not use it) — its RNG draw order stays untouched.
+            match w.policy {
+                Policy::Uct => {
+                    arena.add_edges(idx, list.iter().map(|m| (m, 0.0)));
+                }
+                Policy::Puct => {
+                    let mut pr = priors(&p, list.as_slice());
+                    // The root of a *parallel* search is perturbed: the
+                    // workers must not explore the same tree, otherwise
+                    // the parallel search collapses to the mono search at
+                    // N/T nodes. The mono path keeps a clean root.
+                    if idx == ROOT && w.root_noise > 0.0 {
+                        policy::perturb(&mut pr, rng, w.root_noise);
+                    }
+                    arena.add_edges(idx, list.iter().zip(pr));
+                }
+            }
             node_idx = Some(idx);
         }
 
         // --- selection --------------------------------------------------------
         //
-        // The unvisited children are counted in a single pass; the chosen
-        // one is then located with a second pass over the *unvisited*
-        // children only (the counter `k` advances on unvisited entries
-        // alone, so the two passes agree by construction).
+        // Two rules live here (phase 4):
+        //
+        // * `Policy::Uct` — the frozen v1 rule: a uniform draw among the
+        //   unvisited children, UCT among the visited ones. Same RNG draw
+        //   order as v1, so this path is bit-for-bit the v1 engine.
+        // * `Policy::Puct` — `Q + c_puct·P·sqrt(N)/(1+n)`: the prior `P`
+        //   decides which subtree is explored first, and how long it is
+        //   kept. No RNG draw: the path is deterministic.
         let idx = node_idx.expect("the node has just been developed");
-        let (edge_idx, mv) = {
-            let edges = arena.edges_of(idx);
-            let unv_count = edges.iter().filter(|e| e.visits == 0).count() as u64;
-            if unv_count > 0 {
-                // v1: uniform over unvisited.
-                let pick = (rng.next_u64() % unv_count) as usize;
-                let mut k = 0usize;
-                let mut chosen = None;
-                for (i, e) in edges.iter().enumerate() {
-                    if e.visits == 0 {
-                        if k == pick {
-                            chosen = Some(i);
-                            break;
-                        }
-                        k += 1;
-                    }
-                }
-                let i = chosen.expect("the unvisited count and the unvisited scan agree");
-                (arena.node(idx).first_edge + i as u32, edges[i].mv)
-            } else {
-                // UCT argmax: q(child for parent's mover) + C*sqrt(ln N / n).
-                let pv = arena.node(idx).visits as f32;
-                let log_pv = (pv as f64 + 1.0).ln() as f32;
-                let mut bi = 0usize;
-                let mut bs = f32::MIN;
-                for (i, e) in edges.iter().enumerate() {
-                    let u =
-                        -(e.sum / e.visits as f32) + w.c_uct * (log_pv / e.visits as f32).sqrt();
-                    if u > bs {
-                        bs = u;
-                        bi = i;
-                    }
-                }
-                (arena.node(idx).first_edge + bi as u32, edges[bi].mv)
-            }
+        let (edge_idx, mv) = match w.policy {
+            Policy::Uct => select_uct(arena, idx, rng, w.c_uct),
+            Policy::Puct => select_puct(arena, idx, w.c_puct, rng),
         };
         p.make(mv);
         scratch.hist.push(p.zobrist);
@@ -557,6 +657,120 @@ struct Scratch {
     /// The edges walked by the current descent (the root has no incoming
     /// edge, so the path is one shorter than the node path).
     path: Vec<u32>,
+}
+
+/// The **frozen v1 selection**: a uniform draw among the unvisited
+/// children, UCT argmax among the visited ones.
+///
+/// The code is the one of the v1 engine, moved verbatim: the RNG draw
+/// order (`next_u64()` exactly once per selection, and only when an
+/// unvisited child exists) is what makes the `Policy::Uct` path
+/// bit-for-bit identical to v1 — the oracle of the phase-3 differential
+/// test.
+fn select_uct(arena: &Arena, idx: u32, rng: &mut Rng, c_uct: f32) -> (u32, Move) {
+    let edges = arena.edges_of(idx);
+    let unv_count = edges.iter().filter(|e| e.visits == 0).count() as u64;
+    if unv_count > 0 {
+        // v1: uniform over unvisited.
+        let pick = (rng.next_u64() % unv_count) as usize;
+        let mut k = 0usize;
+        let mut chosen = None;
+        for (i, e) in edges.iter().enumerate() {
+            if e.visits == 0 {
+                if k == pick {
+                    chosen = Some(i);
+                    break;
+                }
+                k += 1;
+            }
+        }
+        let i = chosen.expect("the unvisited count and the unvisited scan agree");
+        (arena.node(idx).first_edge + i as u32, edges[i].mv)
+    } else {
+        // UCT argmax: q(child for parent's mover) + C*sqrt(ln N / n).
+        let pv = arena.node(idx).visits as f32;
+        let log_pv = (pv as f64 + 1.0).ln() as f32;
+        let mut bi = 0usize;
+        let mut bs = f32::MIN;
+        for (i, e) in edges.iter().enumerate() {
+            let u = -(e.sum / e.visits as f32) + c_uct * (log_pv / e.visits as f32).sqrt();
+            if u > bs {
+                bs = u;
+                bi = i;
+            }
+        }
+        (arena.node(idx).first_edge + bi as u32, edges[bi].mv)
+    }
+}
+
+/// The **PUCT selection** (phase 4):
+///
+/// ```text
+/// s(a) = Q(a) + c_puct · P(a) · sqrt(N) / (1 + n(a))
+/// ```
+///
+/// * `Q(a)` — the value of the child **for the mover of the parent**:
+///   the sum of the edge is accumulated on the child's side (zero-sum
+///   backpropagation), hence the minus sign (same convention as the UCT
+///   path).
+/// * `P(a)` — the policy prior of the move, computed once at the
+///   expansion of the node (`mcts::policy`).
+/// * `N` — the number of playouts that went through the node, `n(a)` the
+///   number that went through the child.
+///
+/// The selection runs in **two phases**:
+///
+/// 1. **breadth** — as long as a child has never been visited, one of
+///    them is drawn **uniformly at random** (the v1 rule, one RNG draw).
+///    The tree therefore keeps the shape of the v1 tree: every child is
+///    tried once before any child is deepened.
+/// 2. **depth** — every child has been visited: the PUCT argmax decides.
+///
+/// The two rules together are what makes the phase 4 search converge
+/// faster than the v1 one: the **breadth** is unchanged (the tree covers
+/// the same moves), but the **exploration bonus decays as `1/(1+n)`**
+/// instead of `1/sqrt(n)`, so the values are trusted sooner — measured,
+/// see `docs/mcts/phase4-2026-10-22.md`.
+///
+/// The formal PUCT (which would compare the `Q = 0` of the unvisited
+/// children against the values of the visited ones) is *not* used: with
+/// a heuristic prior whose dynamic range is small, its exploration term
+/// stays far below the noise of a leaf value, and the search degenerates
+/// into a greedy descent — measured, the hit rate of the tactics battery
+/// fell from 22/22 to 18/22 at 200 nodes.
+fn select_puct(arena: &Arena, idx: u32, c_puct: f32, rng: &mut Rng) -> (u32, Move) {
+    let edges = arena.edges_of(idx);
+    // Phase 1 — breadth: a **uniform draw among the unvisited children**
+    // (the v1 rule). The tree therefore keeps the shape of the UCT tree:
+    // every child is tried once before any child is deepened.
+    let unv_count = edges.iter().filter(|e| e.visits == 0).count() as u64;
+    if unv_count > 0 {
+        let pick = (rng.next_u64() % unv_count) as usize;
+        let mut k = 0usize;
+        for (i, e) in edges.iter().enumerate() {
+            if e.visits == 0 {
+                if k == pick {
+                    return (arena.node(idx).first_edge + i as u32, edges[i].mv);
+                }
+                k += 1;
+            }
+        }
+        unreachable!("the unvisited count and the unvisited scan agree");
+    }
+    // Phase 2 — depth: the PUCT argmax.
+    let sqrt_pv = (arena.node(idx).visits as f32).sqrt();
+    let mut bi = 0usize;
+    let mut bs = f32::MIN;
+    for (i, e) in edges.iter().enumerate() {
+        let n = e.visits as f32;
+        let q = -(e.sum / n);
+        let s = q + c_puct * e.prior * sqrt_pv / (1.0 + n);
+        if s > bs {
+            bs = s;
+            bi = i;
+        }
+    }
+    (arena.node(idx).first_edge + bi as u32, edges[bi].mv)
 }
 
 /// Retropropagate `v` (the value for the side to move at the leaf) along the
@@ -675,6 +889,9 @@ mod tests {
             pos,
             hist,
             c_uct: std::f32::consts::SQRT_2,
+            c_puct: DEFAULT_C_PUCT,
+            root_noise: 0.0,
+            policy: Policy::Uct,
             max_playout_ply: 100,
             seed,
         };
@@ -765,6 +982,9 @@ mod tests {
             pos: &pos,
             hist: &[pos.zobrist],
             c_uct: std::f32::consts::SQRT_2,
+            c_puct: DEFAULT_C_PUCT,
+            root_noise: 0.0,
+            policy: Policy::Uct,
             max_playout_ply: 100,
             seed: 3,
         };

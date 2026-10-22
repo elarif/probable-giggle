@@ -16,7 +16,7 @@
 //! paresseuse, contiguïté des arêtes) sont vérifiés par les tests unitaires
 //! de `src/mcts.rs`, qui ont accès aux structures privées.
 
-use mychess::mcts::{Limits, Search, leaf_value, terminal_value};
+use mychess::mcts::{Limits, Policy, Search, leaf_value, terminal_value};
 use mychess::movegen::{MoveList, generate};
 use mychess::position::Position;
 use mychess::types::{GenKind, Move};
@@ -38,6 +38,8 @@ fn limits(nodes: u64) -> Limits {
         movetime_ms: None,
         max_playout_ply: 100,
         c_uct: std::f32::consts::SQRT_2,
+        c_puct: mychess::mcts::DEFAULT_C_PUCT,
+        root_noise: mychess::mcts::DEFAULT_ROOT_NOISE,
     }
 }
 
@@ -340,12 +342,20 @@ mod v1_ref {
 }
 
 /// G1 — the phase-3 mono path is the v1 engine, bit for bit.
+///
+/// **Phase 4:** the default policy of the engine is now PUCT (the phase-4
+/// selection), which changes the mono behaviour *on purpose*. The frozen
+/// v1 comparison is therefore **pinned on `Policy::Uct`**, the legacy
+/// selection kept verbatim in the engine: it is the proof that the phase-3
+/// remaniement (flat arena, `has_legal_move`) had not changed the
+/// algorithm, and it stays the A/B counter-measure of the phase 4.
 #[test]
 fn v1_ref_mono_matches_engine() {
     for fen in GOLDEN_FENS {
         for (seed, nodes) in SEEDS {
             let pos = Position::from_fen(fen).unwrap();
             let got = Search::new(pos, vec![pos.zobrist], limits(*nodes), *seed)
+                .with_policy(Policy::Uct)
                 .run(&AtomicBool::new(false));
             let want = v1_ref::run(
                 &pos,
