@@ -232,6 +232,34 @@ tests de non-régression — et le dépassement récurrent du budget temps
 (7 parties sur 660) — **signalé, non corrigé** : le corriger changerait
 l'échelle gelée des phases 4 et 5.
 
+### Phase AB — l'alpha-beta de référence, et ce que le duel contrôlé a montré (2026-10-22)
+
+L'affirmation « le MCTS ne peut battre l'alpha-beta qu'avec un réseau de
+neurones et un GPU » n'était **pas mesurable** ici : toutes les mesures
+du projet passaient par Stockfish, à 950 Elo de distance. La phase AB
+construit l'alpha-beta du dépôt (negamax + table de transposition +
+profondeur itérative + PVS/killers/historique, option UCI `Search=alpha`,
+**core gelé**, chemin MCTS inchangé) et le **duel contrôlé** — même
+binaire, même évaluation, même budget de temps : 80 parties, **0
+victoire pour l'alpha-beta**, 18 défaites, 60 nulles, soit **−80 Elo**.
+
+Le diagnostic (`examples/eval_error`, 200 positions) : l'erreur de
+l'évaluation statique est de **≈ 490 cp** (≈ 5 pions) et l'instabilité
+de la recherche de **104 cp par deux plies**. L'alpha-beta prend le
+**maximum** sur un arbre — il **amplifie** le bruit de l'évaluation ; le
+MCTS **moyenne** ses feuilles — il l'**amortit**. Avec une évaluation
+aussi bruyante, le MCTS gagne le duel.
+
+L'affirmation est donc **confirmée mais déplacée** : le goulot
+d'étranglement du projet n'est pas l'algorithme de recherche, c'est la
+**fonction de valeur** — et elle gêne les deux algorithmes, différemment.
+La phase NN (valeur apprise) passe donc **devant** l'optimisation de la
+recherche : creuser dans un arbre bruité est un gain de profondeur, pas
+de force.
+
+Plan : `docs/ab/plan-alpha-beta-2026-10-22.md` · rapport :
+`docs/ab/phase1-2026-10-22.md`.
+
 ### Phase 5 — feuille tactiquement résolue (quiescence-lite) : **mesurée, revertie**
 
 La phase 5 attaque l'**effet horizon** de la feuille : depuis A1, la

@@ -208,6 +208,7 @@ stickie Rustic — à documenter par mesure ; contrôle tiers = gauntlet).
 | 2026-10-22 | phase 5 (A5) | A5 : **feuille tactiquement résolue** — `mcts::qsearch::qvalue` (quiescence-lite captures-seulement, stand-pat, terminalité prioritaire), `Limits.leaf_q`, option UCI `LeafQ` (défaut 0 = phase 4) ; **plus** le correctif du budget temps (plancher de 50 ms supprimé, budget borné par le temps restant − 5 ms) | nœuds-fixes 2k/10k/40k contre la **phase 4 gelée** (`0abdff2`) | **−177,2 ± 26,4 (q1, 2k)** ; **−118,1 ± 23,3 (q2, 2k)** ; **−240,8 ± 26,7 (q1, 10k)** ; **−154,5 ± 24,9 (q2, 10k)** | 400 / 400 / 370 / 400 | **REVERTIE (H0)** — la quiescence-lite est **négative** (−118 à −241 Elo) : le `max` de la quiescence est optimiste et double compte les échanges que l'arbre explorera ; `LeafQ` reste à **0**, le module est conservé comme expérience documentée ; le **correctif du budget temps est conservé** (0 partie adjugée sur dépassement en TC 1+0.01) |
 | 2026-10-22 | `f44abf5` | **niveau absolu** : calibration contre Stockfish 19 en force limitée (`UCI_LimitStrength` + `UCI_Elo`), budget **40 000 nœuds/move identique pour les deux moteurs**, book ECO lichess, 100 à 200 parties par niveau, 9 niveaux | nœuds-fixes 40k (les deux moteurs) | **≈ 1417 ± 19** (échelle `UCI_Elo` de Stockfish) | 900 (100 à 200 × 9 niveaux) | **mesuré** — méthode et preuves : `docs/elo/`, `docs/elo_estimation.md` ; l'estimation est **relative au book de remplacement** et au protocole (40k nœuds/move) ; le ± 19 est statistique, il ne couvre pas le biais de calibration de l'échelle `UCI_Elo` |
 | 2026-10-22 | `ce3650e` + ce commit | **niveau absolu, refait** : tournoi **round-robin de 11 moteurs** (`mychess` + **Reckless v0.1.0** + l'échelle Stockfish 1320 → 3190), 660 parties, 12 par paire, budget **temps** `movetime 200 ms/coup` — Reckless n'implémente pas `go nodes`, c'est le seul budget commun ; 3 paires de contrôle | `movetime 200 ms` (les 11 moteurs) | **mychess ≈ 1296** ; **Reckless ≈ 2249** (échelle `UCI_Elo` de Stockfish, interpolation locale entre les ancrages encadrants) | 660 (12 par paire) | **mesuré** — sous un budget **de temps**, l'échelle `UCI_Elo` est **monotone** (0 inversion significative sur 15 paires) alors qu'elle ne l'est pas sous un budget de nœuds : le « 1417 » reste **annulé** (autre protocole, ancre invalide) ; **deux défauts trouvés** : `0000` sur une position jouable (**corrigé**) et dépassement du budget temps (7/660, **signalé, non corrigé** — le corriger changerait l'échelle gelée) ; détails : `docs/elo/README.md` |
+| 2026-10-22 | ce commit | **phase AB — l'alpha-beta de référence** : negamax + table de transposition + profondeur itérative + PVS/killers/historique dans `src/ab/` (le core reste gelé), option UCI `Search=alpha` (le défaut reste `mcts`) ; **duel contrôlé** AB vs MCTS (même binaire, même évaluation, même temps) | `movetime 200 ms` (les deux) | **l'alpha-beta perd** : 0 victoire, 18 défaites, 60 nulles sur 80 parties ⇒ **−80 Elo** pour l'AB ; et la **valeur** est le goulot : erreur de l'évaluation **≈ 490 cp**, instabilité de la recherche **104 cp / 2 plies** | 80 (40 + 40) | **mesuré** — à évaluation identique, le MCTS l'emporte parce qu'il **amortit** le bruit de l'évaluation (moyenne des feuilles) alors que l'alpha-beta l'**amplifie** (le minimax prend le maximum) ; l'affirmation « il faut une valeur apprise » est **confirmée mais déplacée** : le goulot est la fonction de valeur, pour les deux algorithmes ; détails : `docs/ab/phase1-2026-10-22.md` |
 
 ## Échelle Elo — phase 5 (feuille tactiquement résolue), 2026-10-22
 
@@ -404,6 +405,37 @@ exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
      que tous les 64 playouts. **Signalé, non corrigé** : le corriger
      changerait le comportement de la recherche, donc l'échelle gelée
      des phases 4 et 5 — c'est une décision de phase, pas un bugfix.
+
+## Phase AB — l'alpha-beta de référence (2026-10-22)
+
+* **but** : l'affirmation « le MCTS est plafonné par sa valeur de feuille,
+  seul un réseau de neurones le débloque » n'était **pas mesurable** dans
+  ce dépôt (toutes les mesures passaient par Stockfish, à 950 Elo de
+  distance). La phase construit l'**opposant local** qui manquait ;
+* **implémentation** : `src/ab/` — negamax fail-soft, quiescence, nulles
+  (50 coups + répétition), mat/pat, élagage par distance au mat, table
+  de transposition mappée (2^19 entrées, clé complète), profondeur
+  itérative (une itération interrompue est **jetée**), PVS, killer moves,
+  heuristique d'historique, table PV ; option UCI `Search` (`mcts` par
+  défaut : les mesures gelées des phases 3–5 sont intactes) ;
+* **protocole du duel** : **contrôlé** — même binaire, même évaluation
+  (`eval::eval_for_mover`), même budget (`movetime 200 ms`), book ECO
+  lichess, graine 20261022, aucune adjudication ;
+* **résultat** : 80 parties, **0 victoire de l'alpha-beta**, 18
+  défaites, 60 nulles ⇒ **−80 Elo** pour l'AB (−93,6 ± 50,4 avant
+  PVS/killers/historique ; −70,4 ± 46,6 après) ;
+* **le diagnostic** (`examples/eval_error`, 200 positions du livre) :
+  l'erreur de l'évaluation est de **≈ 490 cp** (≈ 5 pions) et
+  l'instabilité de la recherche de **104 cp par deux plies** — l'alpha-
+  beta prend le **maximum** sur un arbre, il **amplifie** le bruit ;
+  le MCTS **moyenne** ses feuilles, il l'**amortit** ;
+* **ce que ça change** : le goulot d'étranglement n'est pas l'algorithme
+  mais la **fonction de valeur**, et elle gêne les deux différemment. La
+  phase NN (valeur apprise) passe **devant** l'optimisation de la
+  recherche : creuser dans un arbre bruité est un gain de profondeur,
+  pas de force ;
+* **rapport** : `docs/ab/phase1-2026-10-22.md` — plan :
+  `docs/ab/plan-alpha-beta-2026-10-22.md`.
 
 ## Instruments de mesure (état au 2026-10-22)
 
