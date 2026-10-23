@@ -285,6 +285,22 @@ Deux résultats :
   donc **mécaniquement** la fonction de valeur : sans valeur fiable,
   l'alpha-beta n'élague plus, donc n'approfondit plus.
 
+Le **duel AB-vs-AB** (phase AB8b : le même binaire, une seule option qui
+change, `movetime 200 ms`, 40 parties) a été joué pour le null-move et
+pour le LMR : null-move **−43,7 ± 100,3 Elo** (17 V – 22 D – 1 N),
+LMR **+34,9 ± 95,3 Elo** (21 V – 17 D – 2 N). **Les deux sont non
+concluants** — à 40 parties la précision réelle est ± 100 Elo, pas
+± 45 Elo : le null-move est un **gain de débit** (−27 % de nœuds) dont
+la profondeur **ne se convertit pas en force** tant que la valeur est
+bruyante, et le LMR garde son verdict (**reverti**).
+
+Au passage, un défaut d'instrument a été trouvé et corrigé :
+`tools/duel_ab.sh` passait `--time 200` à `fastchess -each st=`, or
+fastchess lit **`st=` en secondes** — le budget était 1000× trop long
+et le journal annonçait 200 ms. Le duel fautif a été tué, son journal
+conservé marqué **INVALIDE**, et le script convertit désormais les
+millisecondes en secondes.
+
 Plan : `docs/ab/plan-heuristiques-2026-10-23.md` · rapport :
 `docs/ab/phase8-2026-10-23.md`.
 

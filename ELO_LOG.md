@@ -468,6 +468,23 @@ exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
   490 cp) ; sur une position du livre, une recherche à profondeur 3
   coûte **1 159 093 540 nœuds** avec du bruit contre ≈ 10 000 sans
   (facteur **100 000×**) ;
+* **les deux duels AB-vs-AB** (phase AB8b, joués le 2026-10-23 à
+  07:00) : null-move=1 contre null-move=0 → 17 V – 22 D – 1 N
+  (43,75 %) ⇒ **−43,7 ± 100,3 Elo** (LOS 18,7 %) ; LMR=1 contre
+  LMR=0 → 21 V – 17 D – 2 N (55,00 %) ⇒ **+34,9 ± 95,3 Elo** (LOS
+  77,0 %). **Les deux sont non concluants** : à 40 parties la
+  précision réelle est **± 100 Elo**, pas les ± 45 Elo qu'un calcul
+  « 50 % de nulles » ferait croire. Le null-move reste un **gain de
+  débit** (−27 % de nœuds), pas un gain de force démontré ; le LMR
+  reste **reverti** (aucun gain de force, +16 % de nœuds) ;
+* **un défaut d'instrument corrigé en passant** : `tools/duel_ab.sh`
+  passait `--time 200` à `fastchess -each st=`, or fastchess lit
+  **`st=` en secondes** (« st=N — Movetime in seconds ») : le budget
+  était **1000× trop long** (200 s/coup au lieu de 200 ms) et le
+  journal annonçait 200 ms. Le premier duel (03:00) a été **tué** à
+  06:54 avec 4/40 parties ; son journal est conservé marqué
+  **INVALIDE** (`prt/rr/ab-nullmove.INVALIDE-st200s.log`). Le script
+  convertit désormais les ms en secondes et journalise la conversion ;
 * **décision** : le goulot est **la fonction de valeur**, et cette fois
   c'est *mécanique* : sans valeur fiable, l'alpha-beta n'élague plus et
   ne peut donc pas approfondir. La porte du plan AB tranche vers

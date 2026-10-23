@@ -1,0 +1,123 @@
+# duel AB vs AB — 2026-10-23T06:56:00+02:00
+# A : AbNullMove=1
+# B : AbNullMove=0
+# book : /tmp/openings_src/eco_lichess.epd (ordre aleatoire, graine 20261023)
+# rondes : 20 x 2 couleurs par paire
+# temps : 200 ms par coup (fastchess st=0.200s, timemargin=200 ms) ; adjudication : aucune
+# hote : Linux 6.18.54.1-microsoft-standard-WSL2 x86_64 — 12 coeurs
+# command : fastchess option.AbNullMove=1 vs option.AbNullMove=0
+Indexing opening suite...
+Started game 1 of 40 (a vs b)
+Started game 3 of 40 (a vs b)
+Started game 2 of 40 (b vs a)
+Started game 4 of 40 (b vs a)
+Started game 5 of 40 (a vs b)
+[[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+Finished game 3 (a vs b): 0-1 {Black mates}
+Started game 6 of 40 (b vs a)
+Finished game 1 (a vs b): 0-1 {Black mates}
+Started game 7 of 40 (a vs b)
+Finished game 5 (a vs b): 0-1 {Black mates}
+Started game 8 of 40 (b vs a)
+Finished game 4 (b vs a): 0-1 {Black mates}
+Started game 9 of 40 (a vs b)
+Finished game 7 (a vs b): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 10 of 40 (b vs a)
+Finished game 9 (a vs b): 1-0 {White mates}
+Started game 11 of 40 (a vs b)
+Finished game 2 (b vs a): 0-1 {Black mates}
+Started game 12 of 40 (b vs a)
+Finished game 6 (b vs a): 1-0 {White mates}
+Started game 13 of 40 (a vs b)
+Finished game 8 (b vs a): 1-0 {White mates}
+Started game 14 of 40 (b vs a)
+Finished game 12 (b vs a): 1-0 {White mates}
+Started game 15 of 40 (a vs b)
+Finished game 10 (b vs a): 1-0 {White mates}
+Started game 16 of 40 (b vs a)
+Finished game 11 (a vs b): 1-0 {White mates}
+Started game 17 of 40 (a vs b)
+Finished game 13 (a vs b): 1-0 {White mates}
+Started game 18 of 40 (b vs a)
+Finished game 15 (a vs b): 0-1 {Black mates}
+Started game 19 of 40 (a vs b)
+Finished game 16 (b vs a): 1-0 {White mates}
+Started game 20 of 40 (b vs a)
+Finished game 14 (b vs a): 0-1 {Black mates}
+Started game 21 of 40 (a vs b)
+Finished game 17 (a vs b): 0-1 {Black mates}
+Started game 22 of 40 (b vs a)
+Finished game 18 (b vs a): 0-1 {Black mates}
+Started game 23 of 40 (a vs b)
+Finished game 19 (a vs b): 0-1 {Black mates}
+Started game 24 of 40 (b vs a)
+Finished game 20 (b vs a): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -88.74 +/- 148.35, nElo: -102.01 +/- 152.27
+LOS: 9.46 %, DrawRatio: 50.00 %, PairsRatio: 0.25
+Games: 20, Wins: 7, Losses: 12, Draws: 1, Points: 7.5 (37.50 %)
+Ptnml(0-2): [3, 1, 5, 0, 1], WL/DD Ratio: inf
+--------------------------------------------------
+Started game 25 of 40 (a vs b)
+Finished game 22 (b vs a): 0-1 {Black mates}
+Started game 26 of 40 (b vs a)
+Finished game 23 (a vs b): 0-1 {Black mates}
+Started game 27 of 40 (a vs b)
+Finished game 21 (a vs b): 0-1 {Black mates}
+Started game 28 of 40 (b vs a)
+Finished game 24 (b vs a): 1-0 {White mates}
+Started game 29 of 40 (a vs b)
+Finished game 25 (a vs b): 0-1 {Black mates}
+Started game 30 of 40 (b vs a)
+Finished game 26 (b vs a): 0-1 {Black mates}
+Started game 31 of 40 (a vs b)
+Finished game 29 (a vs b): 1-0 {White mates}
+Started game 32 of 40 (b vs a)
+Finished game 28 (b vs a): 1-0 {White mates}
+Started game 33 of 40 (a vs b)
+Finished game 32 (b vs a): 1-0 {White mates}
+Started game 34 of 40 (b vs a)
+Finished game 30 (b vs a): 0-1 {Black mates}
+Started game 35 of 40 (a vs b)
+Finished game 35 (a vs b): 1-0 {White mates}
+Started game 36 of 40 (b vs a)
+Finished game 31 (a vs b): 1-0 {White mates}
+Started game 37 of 40 (a vs b)
+Finished game 27 (a vs b): 1-0 {White mates}
+Started game 38 of 40 (b vs a)
+Finished game 36 (b vs a): 1-0 {White mates}
+Started game 39 of 40 (a vs b)
+Finished game 34 (b vs a): 1-0 {White mates}
+Started game 40 of 40 (b vs a)
+Finished game 33 (a vs b): 0-1 {Black mates}
+Finished game 37 (a vs b): 1-0 {White mates}
+Finished game 39 (a vs b): 1-0 {White mates}
+Finished game 40 (b vs a): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -64.74 +/- 98.14, nElo: -76.75 +/- 110.47
+LOS: 8.66 %, DrawRatio: 57.89 %, PairsRatio: 0.33
+Games: 38, Wins: 15, Losses: 22, Draws: 1, Points: 15.5 (40.79 %)
+Ptnml(0-2): [5, 1, 11, 0, 2], WL/DD Ratio: inf
+--------------------------------------------------
+Finished game 38 (b vs a): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -43.66 +/- 100.27, nElo: -48.75 +/- 107.67
+LOS: 18.74 %, DrawRatio: 55.00 %, PairsRatio: 0.50
+Games: 40, Wins: 17, Losses: 22, Draws: 1, Points: 17.5 (43.75 %)
+Ptnml(0-2): [5, 1, 11, 0, 3], WL/DD Ratio: inf
+--------------------------------------------------
+Finished match
+Total Time: 00:02:41 (hours:minutes:seconds)
+

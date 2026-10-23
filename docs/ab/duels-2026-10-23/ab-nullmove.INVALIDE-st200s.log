@@ -1,0 +1,35 @@
+# ATTENTION — ce journal est INVALIDE : "st=200" est lu par fastchess en SECONDES par coup (au lieu de 200 ms).
+# Lancement 2026-10-23 03:00, interrompu 2026-10-23 06:54 ; 4 parties finies sur 40, résultat non exploitable.
+# --- journal d'origine ---
+# duel AB vs AB — 2026-10-23T03:00:13+02:00
+# A : AbNullMove=1
+# B : AbNullMove=0
+# book : /tmp/openings_src/eco_lichess.epd (ordre aleatoire, graine 20261023)
+# rondes : 20 x 2 couleurs par paire
+# temps : 200 ms par coup ; adjudication : aucune
+# hote : Linux 6.18.54.1-microsoft-standard-WSL2 x86_64 — 12 coeurs
+# command : fastchess option.AbNullMove=1 vs option.AbNullMove=0
+Indexing opening suite...
+Started game 1 of 40 (a vs b)
+Started game 5 of 40 (a vs b)
+Started game 4 of 40 (b vs a)
+Started game 2 of 40 (b vs a)
+Started game 3 of 40 (a vs b)
+[[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+Finished game 3 (a vs b): 1-0 {White mates}
+Started game 6 of 40 (b vs a)
+Finished game 6 (b vs a): 1-0 {White mates}
+Started game 7 of 40 (a vs b)
+Finished game 2 (b vs a): 1-0 {White mates}
+Started game 8 of 40 (b vs a)
+Finished game 1 (a vs b): 1-0 {White mates}
+Started game 9 of 40 (a vs b)
