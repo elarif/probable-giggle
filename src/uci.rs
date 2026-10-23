@@ -33,6 +33,13 @@ const DEFAULT_MAX_PLAYOUT_PLY: u32 = 100;
 const DEFAULT_NN_FILE: &str = "models/value_v1.bin";
 const NODE_BUDGET_SENTINEL: u64 = u64::MAX / 4;
 
+/// Le budget de nœuds **par défaut** d'un `go` sans budget explicite.
+///
+/// C'est le même que celui du MCTS (10 000 nœuds) : un `go` nu doit
+/// faire jouer le moteur, mais **borné** — un `go` nu ne doit pas
+/// transformer l'alpha-beta en recherche infinie.
+const DEFAULT_NODE_BUDGET: u64 = 10_000;
+
 /// **Phase 5 — marge de temps.** Le budget de réflexion est toujours
 /// *strictement* inférieur au temps annoncé, pour que la réponse (`bestmove`)
 /// et l'écriture sur stdout soient encore dans l'horloge quand le
@@ -40,6 +47,16 @@ const NODE_BUDGET_SENTINEL: u64 = u64::MAX / 4;
 /// **dépassait** l'horloge (158/200 parties adjugées en TC 1+0.01) ; la
 /// phase 5 borne par le bas à 1 ms et retranche cette marge par le haut.
 const TIME_MARGIN_MS: u128 = 5;
+
+/// Le **plafond temporel** d'un `go depth N`.
+///
+/// `go depth N` n'est pas un budget de temps : c'est un budget de
+/// *profondeur*. Mais la profondeur est traduite en un budget de nœuds
+/// (30 000 par ply pour le MCTS), et `go depth 1000` demandait 30 M de
+/// nœuds — ~25 s mesurés, sans réponse. Le plafond est celui du budget
+/// TC (10 s par coup) : il ne mord pas sur les usages normaux
+/// (`go depth 4`, `go depth 5`) et borne les depths absurdes.
+const DEPTH_TIME_CAP_MS: u128 = 10_000;
 
 /// L'algorithme de recherche piloté par l'option UCI `Search`.
 ///
@@ -254,17 +271,39 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                 // ci-dessous est **inchangé** : c'est lui qui porte les
                 // mesures gelées des phases 3 à 5.
                 if kind == SearchKind::Alpha {
+                    // Le budget de l'alpha-beta est **toujours borné**.
+                    //
+                    // Avant, un `go` **sans budget** (ni temps, ni nœuds,
+                    // ni profondeur) transmettait `u64::MAX` de nœuds et
+                    // une profondeur de 64 : la recherche ne s'arrêtait
+                    // jamais (mesuré : 100 M de nœuds, 25 s, et toujours
+                    // pas de `bestmove`). Le MCTS, lui, applique un budget
+                    // par défaut de 10 000 nœuds : les deux moteurs
+                    // doivent obéir au **même** contrat — `go` sans
+                    // budget = budget par défaut.
+                    //
+                    // `go depth N` reste un budget **de profondeur** (les
+                    // tests de la phase AB s'appuient dessus), mais la
+                    // profondeur est plafonnée par `MAX_PLY` : au-delà,
+                    // la recherche rend l'évaluation statique sans
+                    // regarder la position (les itérations 97+ sont
+                    // vides).
+                    let depth_req = go.depth.filter(|d| *d > 0);
                     let limits = ab::Limits {
-                        max_depth: go.depth.unwrap_or(0),
+                        max_depth: depth_req.map(|d| d.min(ab::MAX_PLY as u32)).unwrap_or(0),
                         movetime_ms: go.movetime_ms,
                         // The node budget is only used when it was
                         // **explicitly** requested (`go nodes N`): the
                         // depth -> nodes mapping of the MCTS must not
-                        // become the alpha-beta's node limit.
-                        nodes: if go.nodes_given && go.nodes < NODE_BUDGET_SENTINEL {
+                        // become the alpha-beta's node limit. When a
+                        // *time* budget is given, the time is the bound
+                        // and the node count is free.
+                        nodes: if go.movetime_ms.is_some() || depth_req.is_some() {
+                            u64::MAX
+                        } else if go.nodes_given && go.nodes < NODE_BUDGET_SENTINEL {
                             go.nodes
                         } else {
-                            u64::MAX
+                            DEFAULT_NODE_BUDGET
                         },
                     };
                     let search = ab::Search::with_options(pos, hist, limits, ab_options);
@@ -282,10 +321,33 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                         o.nodes as f64
                     };
                     let pv: Vec<String> = o.pv.iter().map(|m| m.uci()).collect();
+                    // **Un mat s'annonce `score mate N`**, pas `score cp
+                    // 29999` : un client UCI (un GUI, un analyseur)
+                    // lit `cp 29999` comme « +299 990 centipions » et
+                    // affiche une finale de trois siècles au lieu de
+                    // « mat en 1 ». La conversion est celle de la norme
+                    // UCI : le nombre de **coups** (plies arrondies) qui
+                    // séparent du mat.
+                    //
+                    // Et quand **aucune itération n'a pu être complétée**
+                    // (budget de nœuds nul, temps expiré avant la
+                    // première itération), le score rendu n'est pas
+                    // « 0 » — ce serait mentir sur la position : c'est
+                    // l'évaluation statique de la racine, qui est
+                    // exactement ce que le moteur sait.
+                    let score = if o.depth == 0 {
+                        crate::eval::eval_for_mover(&pos)
+                    } else {
+                        o.score_cp
+                    };
+                    let score_str = match mate_in_moves(score) {
+                        Some(m) => format!("mate {m}"),
+                        None => format!("cp {score}"),
+                    };
                     println!(
-                        "info depth {} score cp {} nodes {} nps {:.0} time {} pv {}",
+                        "info depth {} score {} nodes {} nps {:.0} time {} pv {}",
                         o.depth,
-                        o.score_cp,
+                        score_str,
                         o.nodes,
                         nps,
                         o.elapsed_ms,
@@ -429,9 +491,7 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
     }
     match (n.as_str(), v.as_str()) {
         ("Seed", _) => {
-            st.seed = u64::from_str_radix(v.trim_start_matches("0x"), 16)
-                .or_else(|_| v.parse())
-                .unwrap_or(st.seed)
+            st.seed = parse_seed(&v).unwrap_or(st.seed)
         }
         ("MaxPlayoutPly", _) => {
             st.max_playout_ply = v
@@ -470,16 +530,20 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
             crate::eval::set_noise(st.noise_cp, st.noise_seed);
         }
         ("EvalNoiseSeed", _) => {
-            st.noise_seed = u64::from_str_radix(v.trim_start_matches("0x"), 16)
-                .or_else(|_| v.parse())
-                .unwrap_or(st.noise_seed);
+            st.noise_seed = parse_seed(&v).unwrap_or(st.noise_seed);
             crate::eval::set_noise(st.noise_cp, st.noise_seed);
         }
         // L'alpha-beta de référence (`docs/ab/plan-alpha-beta-2026-10-22.md`).
         ("Search", _) => {
+            // Une valeur **inconnue** ne doit pas changer le moteur
+            // **en silence** : `setoption name Search value bogus`
+            // faisait retomber sur le MCTS, quel que soit le moteur
+            // actif — un changement de moteur non demandé, et non
+            // signalé. La valeur courante est **conservée**.
             st.search = match v.trim().to_ascii_lowercase().as_str() {
                 "alpha" | "alphabeta" | "alpha-beta" => SearchKind::Alpha,
-                _ => SearchKind::Mcts,
+                "mcts" | "montecarlo" | "mcts-v1" => SearchKind::Mcts,
+                _ => st.search,
             }
         }
         // Phase AB8 : les options de recherche de l'alpha-beta. Elles
@@ -516,6 +580,25 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
     }
 }
 
+/// Le nombre de **coups** qui séparent du mat, si le score est un score
+/// de mat ; `None` sinon.
+///
+/// La conversion est celle de la norme UCI : le score de mat du moteur
+/// est `MATE - n` où `n` est le **ply** du mat, et l'UCI compte les
+/// **coups** (une paire de plies). `+29999` est donc « mat en 1 »,
+/// `-29997` est « mat en 2 ».
+fn mate_in_moves(score: i32) -> Option<i32> {
+    let mate = ab::MATE;
+    let max_ply = ab::MAX_PLY as i32;
+    if score >= mate - max_ply {
+        Some((mate - score + 1) / 2)
+    } else if score <= -mate + max_ply {
+        Some(-((mate + score + 1) / 2))
+    } else {
+        None
+    }
+}
+
 /// Un booléen d'option UCI : `0`/`1`, `false`/`true`, `non`/`oui`.
 /// Une valeur illisible **laisse l'option inchangée** (elle n'est pas
 /// appliquée silencieusement à l'inverse de ce qui est demandé).
@@ -527,6 +610,27 @@ fn parse_bool(v: &str, current: bool) -> bool {
     }
 }
 
+/// Lit une **graine** (`Seed`, `EvalNoiseSeed`).
+///
+/// La convention annoncée par l'option est hexadécimale (`0x…`), mais
+/// une valeur **décimale** doit être lue comme telle : l'ancien code
+/// essayait l'hexadécimal **d'abord**, donc `setoption name Seed value
+/// 42` valait `0x42` — 66 — sans le dire. La lecture est donc :
+///
+/// * `0x…` → hexadécimal (la convention de l'option) ;
+/// * sinon **décimal** ;
+/// * sinon hexadécimal (une graine en hexadécimal sans préfixe).
+pub fn parse_seed(v: &str) -> Option<u64> {
+    let t = v.trim();
+    if let Some(hex) = t.strip_prefix("0x").or_else(|| t.strip_prefix("0X")) {
+        return u64::from_str_radix(hex, 16).ok();
+    }
+    if let Ok(d) = t.parse::<u64>() {
+        return Some(d);
+    }
+    u64::from_str_radix(t, 16).ok()
+}
+
 fn position(st: &mut UciState, toks: &[&str]) {
     let mut pos: Option<Position> = None;
     let mut moves_from = None;
@@ -536,21 +640,41 @@ fn position(st: &mut UciState, toks: &[&str]) {
             moves_from = Some(3);
         }
     } else if toks.get(1) == Some(&"fen") {
+        // **Un FEN absent ne doit pas paniquer** : `position fen` (sans
+        // FEN) faisait panic le moteur (`toks[2..3]` sur un slice de
+        // longueur 2). Un panic dans la boucle UCI tue le moteur : pas
+        // de `bestmove`, et l'arbitre attend indéfiniment.
+        if toks.len() < 3 {
+            eprintln!("uci: `position fen` sans FEN — la position est inchangée");
+            return;
+        }
         let fen_end = toks
             .iter()
             .position(|&t| t == "moves")
             .unwrap_or(toks.len());
         // FEN = piece placement + side + castling + ep (+ optional counters
         // which the engine core tolerates as missing).
-        let fen = toks[2..fen_end.max(3)].join(" ");
+        let fen = toks[2..fen_end.max(3).min(toks.len())].join(" ");
         match Position::from_fen(&fen) {
-            Ok(p) => pos = Some(p),
+            Ok(p) => {
+                // **Un roi par camp** : le protocole UCI exige une
+                // position *jouable*. Le core définit et tolère une
+                // position sans roi (tests/malformed_fen.rs), mais le
+                // moteur ne peut pas y jouer : la recherche y appelle
+                // `king_sq` (un `debug_assert` paniquait en build de
+                // debug) et le repli renvoie `0000` — un coup illégal
+                // sur une position que l'arbitre croyait jouable.
+                if !p.has_king(crate::types::Color::White) || !p.has_king(crate::types::Color::Black) {
+                    eprintln!("uci: FEN sans roi — la position est inchangée");
+                    return;
+                }
+                pos = Some(p)
+            }
             Err(e) => {
                 eprintln!("uci: invalid fen ({e:?})");
                 return;
             }
-        }
-        if fen_end < toks.len() {
+        }        if fen_end < toks.len() {
             moves_from = Some(fen_end + 1);
         }
     }
@@ -617,6 +741,12 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
     let mut depth: Option<u32> = None;
     let mut nodes_given = false;
     let (mut my_time, mut my_inc): (u128, u128) = (0, 0);
+    // L'horloge a-t-elle été **fournie** ? `go wtime 0` est un budget
+    // (le moteur n'a plus de temps), pas une absence de budget : sans
+    // ce drapeau, `wtime 0` retombait sur le budget par défaut
+    // (10 000 nœuds, ~80 ms mesurés) — un dépassement d'horloge
+    // assuré.
+    let mut clock_given = false;
     let mut is_white = *side == Color::White;
     let mut infinite = false;
     let mut i = 1;
@@ -640,12 +770,14 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
                 if is_white {
                     my_time = val.unwrap_or(0);
                 }
+                clock_given = true;
                 i += 2;
             }
             "btime" => {
                 if !is_white {
                     my_time = val.unwrap_or(0);
                 }
+                clock_given = true;
                 i += 2;
             }
             "winc" => {
@@ -674,10 +806,21 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
             }
             "depth" => {
                 if let Some(v) = val {
-                    // generous mapping, v1: ~30k playouts per "ply depth"
-                    nodes = v.min(1_000_000).saturating_mul(30_000) as u64;
-                    // The alpha-beta path takes the depth at face value.
-                    depth = Some(v.min(128) as u32);
+                    // **La profondeur nulle n'est pas une profondeur** :
+                    // `go depth 0` est un `go` **sans budget de
+                    // profondeur** — le budget par défaut s'applique
+                    // (10 000 nœuds). Avant, la profondeur nulle était
+                    // traduite en un budget de nœuds **nul** pour le
+                    // MCTS (le moteur ne cherchait pas du tout) et en
+                    // « profondeur 64 » pour l'alpha-beta (une recherche
+                    // de plusieurs secondes). Les deux moteurs doivent
+                    // obéir au **même** contrat.
+                    if v > 0 {
+                        // generous mapping, v1: ~30k playouts per "ply depth"
+                        nodes = v.min(1_000_000).saturating_mul(30_000) as u64;
+                        // The alpha-beta path takes the depth at face value.
+                        depth = Some(v.min(128) as u32);
+                    }
                 }
                 i += 2;
             }
@@ -694,7 +837,7 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
             nodes_given,
         };
     }
-    if my_time > 0 {
+    if my_time > 0 || clock_given {
         // TC: my remaining time / 30 + 2/3 of my increment; capped at 10 s
         // per move.
         let raw = my_time
@@ -734,9 +877,19 @@ pub fn parse_go(toks: &[&str], side: &Color) -> GoLimits {
             nodes_given,
         };
     }
+    // `go depth N` : le MCTS mappe la profondeur à un budget de nœuds
+    // (30 000 par ply), donc `go depth 1000` = 30 M de nœuds, ~25 s
+    // mesurés. Un **plafond temporel** borne la course : le moteur
+    // doit répondre dans un temps raisonnable, quel que soit le
+    // budget demandé. (Le plafond de 10 s est celui du budget TC.)
+    let movetime_ms = if depth.is_some() {
+        Some(DEPTH_TIME_CAP_MS)
+    } else {
+        None
+    };
     GoLimits {
         nodes,
-        movetime_ms: None,
+        movetime_ms,
         depth,
         nodes_given,
     }
