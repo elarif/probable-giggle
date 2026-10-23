@@ -72,6 +72,84 @@ impl Default for Limits {
     }
 }
 
+/// Les **options de recherche** de l'alpha-beta (phase AB8,
+/// `docs/ab/plan-heuristiques-2026-10-23.md`).
+///
+/// Les trois premières briques — PVS, killer moves, heuristique
+/// d'historique — sont celles de la phase AB gelée : elles sont
+/// **actives par défaut**, et le chemin par défaut est donc celui de la
+/// phase AB (PVS + killers + historique).
+///
+/// Les trois suivantes — null-move, razoring/futility, LMR — sont
+/// **nouvelles** et **inactives par défaut** : chacune doit gagner sa
+/// place sur des **mesures** (débit, profondeur, score, amplification
+/// du bruit), pas sur une réputation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Options {
+    /// **PVS** (principal variation search) : les coups suivants la
+    /// racine sont cherchés à fenêtre nulle, puis re-cherchés si le
+    /// coup dépasse `alpha`.
+    pub pvs: bool,
+    /// **Killer moves** : les deux coups qui ont causé une coupe à
+    /// cette profondeur sont essayés en tête de l'ordre.
+    pub killers: bool,
+    /// **Heuristique d'historique** : un bonus incrémental par
+    /// couple (départ, arrivée).
+    pub history: bool,
+    /// **Null-move** : un coup gratuit (`R = 2`) est offert à
+    /// l'adversaire ; s'il ne peut pas gagner, la position est
+    /// gagnante à cette profondeur.
+    pub null_move: bool,
+    /// **Razoring** : à faible profondeur, un score statique très bas
+    /// est vérifié à profondeur réduite avant d'être rendu.
+    pub razoring: bool,
+    /// **Futility** : à faible profondeur, un score statique très haut
+    /// est rendu sans chercher les coups.
+    pub futility: bool,
+    /// **LMR** (late move reductions) : les coups tranquilles, loin dans
+    /// l'ordre, sont cherchés à profondeur réduite, puis re-cherchés à
+    /// pleine profondeur si le coup promet.
+    pub lmr: bool,
+}
+
+impl Default for Options {
+    /// Le **défaut** est le chemin de la phase AB gelée : PVS + killers
+    /// + historique, et rien de nouveau. Les mesures déjà publiées
+    /// (duel de la phase AB, `examples/eval_error`) restent donc
+    /// reproductibles.
+    fn default() -> Self {
+        Options {
+            pvs: true,
+            killers: true,
+            history: true,
+            null_move: false,
+            razoring: false,
+            futility: false,
+            lmr: false,
+        }
+    }
+}
+
+/// La profondeur minimale du **null-move** : en dessous, un coup gratuit
+/// n'apporte rien à l'élagage.
+const NULL_MIN_DEPTH: i32 = 3;
+/// La réduction appliquée au null-move (`R = 2`).
+const NULL_REDUCTION: i32 = 2;
+/// La profondeur maximale à laquelle le **razoring** et la **futility**
+/// s'appliquent.
+const SHALLOW_MAX_DEPTH: i32 = 2;
+/// La marge du **razoring** : sous `alpha − marge`, le score statique est
+/// si bas qu'une vérification à profondeur réduite suffit.
+const RAZOR_MARGIN: i32 = 300;
+/// La marge de la **futility** : au-dessus de `beta + marge`, le score
+/// statique est si haut que les coups tranquilles ne peuvent pas le
+/// faire perdre.
+const FUTILITY_MARGIN: i32 = 200;
+/// La **zone sûre** du LMR : au-delà de cette marge (en centipions), la
+/// position est si favorable — ou si défavorable — que la profondeur
+/// gagnée ne change plus la décision. Le LMR n'y réduit pas.
+const LMR_SAFE_LIMIT: i32 = 1000;
+
 /// Le résultat d'une recherche.
 #[derive(Debug, Clone)]
 pub struct Outcome {
@@ -97,14 +175,32 @@ pub struct Search {
     /// racine) — le matériel de la règle de répétition.
     game_hist: Vec<u64>,
     limits: Limits,
+    /// Les **options de recherche** (phase AB8) : chaque heuristique est
+    /// activable **seule**, pour être mesurée seule.
+    options: Options,
 }
 
 impl Search {
     pub fn new(pos: Position, game_hist: Vec<u64>, limits: Limits) -> Self {
+        Search::with_options(pos, game_hist, limits, Options::default())
+    }
+
+    /// La même recherche, avec des **options de recherche** explicites
+    /// (phase AB8, `docs/ab/plan-heuristiques-2026-10-23.md`).
+    ///
+    /// C'est le point d'entrée des mesures : le reste du moteur est
+    /// inchangé, seule la liste des briques actives change.
+    pub fn with_options(
+        pos: Position,
+        game_hist: Vec<u64>,
+        limits: Limits,
+        options: Options,
+    ) -> Self {
         Search {
             pos,
             game_hist,
             limits,
+            options,
         }
     }
 
@@ -126,6 +222,7 @@ impl Search {
             deadline: None,
             stop,
             aborted: false,
+            opts: self.options,
         };
         if let Some(ms) = self.limits.movetime_ms {
             let budget = ms.saturating_sub(TIME_MARGIN_MS).max(1);
@@ -209,6 +306,14 @@ struct Ctx<'a> {
     /// L'**heuristique d'historique** : un bonus par couple
     /// (départ, arrivée), incrémenté quand le coup cause une coupe
     /// (AB4). `history[from * 64 + to]`.
+    ///
+    /// L'échelle est calibrée pour que le bonus soit **visible** dans
+    /// l'ordre des coups : l'incrément vaut `profondeur² × 4` et le
+    /// bonus lu est divisé par 8. (Avant la phase AB8, le bonus était
+    /// divisé par 1024 : à la profondeur atteinte — 4 à 5 plies — le
+    /// bonus valait **toujours zéro**, et l'heuristique d'historique
+    /// était du code mort. C'est la décomposition d'AB4 qui l'a
+    /// révélé.)
     history: Vec<u32>,
     /// La **table PV** (ligne principale) : `pv_table[ply]` est la
     /// meilleure ligne connue depuis la profondeur `ply`. Elle est
@@ -220,6 +325,8 @@ struct Ctx<'a> {
     deadline: Option<Instant>,
     stop: &'a AtomicBool,
     aborted: bool,
+    /// Les options de recherche (phase AB8).
+    opts: Options,
 }
 
 impl<'a> Ctx<'a> {
@@ -248,6 +355,17 @@ impl<'a> Ctx<'a> {
         if ply + 2 >= MAX_PLY {
             return eval::eval_for_mover(&self.pos);
         }
+
+        // Une fenêtre **nulle** (largeur 1) ne donne qu'une **borne** : le
+        // score qui en sort ne peut pas être stocké comme `Exact`.
+        //
+        // C'est la correction qui rend le **LMR** et le **razoring**
+        // utilisables : une recherche à fenêtre nulle qui dépasse `beta`
+        // donne une borne *inférieure*, pas la valeur exacte de la
+        // position. Stocker cette borne comme exacte ferait falsifier
+        // les transpositions Ultérieures.
+        let null_window = beta == alpha + 1;
+        let beta_orig = beta;
 
         // La ligne principale de ce nœud est reconstruite : le nœud
         // enfant la remplira à son tour.
@@ -314,18 +432,144 @@ impl<'a> Ctx<'a> {
             // The frontier node is **stored too**: the PV is extracted from
             // the chain of TT entries, and a frontier that is not stored
             // truncates the PV to a single move.
-            let (sc, bm) = self.quiescence(alpha, beta, ply);
+            let (sc, bm, fl) = self.quiescence(alpha, beta, ply);
             self.tt
-                .store(key, 0, score_to_tt(sc, ply) as i16, Flag::Exact, bm);
+                .store(key, 0, score_to_tt(sc, ply) as i16, fl, bm);
             return sc;
+        }
+
+        // ---- les élagages « de surface » (phase AB8) ----
+        //
+        // L'indicateur « en échec » est un test d'attaque : il n'est
+        // calculé que si une heuristique en a besoin.
+        let in_check = if self.opts.null_move
+            || self.opts.razoring
+            || self.opts.futility
+            || self.opts.lmr
+        {
+            self.pos.in_check(self.pos.side)
+        } else {
+            false
+        };
+
+        // **Futility** : le score statique est si haut que, même en
+        // donnant une pièce, la position resterait au-dessus de `beta`.
+        // On rend `beta` sans chercher les coups.
+        //
+        // **Garde-fou « capture »** : une heuristique qui élague sur
+        // l'évaluation statique ne doit pas s'appliquer quand une
+        // **capture** est disponible : l'évaluation statique compte les
+        // pièces *comme si elles étaient vivantes*, et c'est
+        // précisément là qu'elle se trompe le plus. Sur une position
+        // comme « une dame sous les yeux mais non encore prise », la
+        // futilité rendrait `beta` et perdrait la dame.
+        //
+        // **Garde-fou « fenêtre de mat »** : un score de mat n'est pas
+        // comparable à une marge en centipions. Élaguer sur
+        // l'évaluation dans une fenêtre de mat fait **perdre le mat** :
+        // le razoring rendrait `alpha` (un score de mat) sans jamais
+        // voir la séquence qui le produit.
+        let mate_window =
+            alpha.abs() >= MATE - MAX_PLY as i32 || beta.abs() >= MATE - MAX_PLY as i32;
+        if self.opts.futility
+            && depth <= SHALLOW_MAX_DEPTH
+            && !in_check
+            && !mate_window
+            && !self.has_capture()
+        {
+            let stand = eval::eval_for_mover(&self.pos);
+            if stand - FUTILITY_MARGIN >= beta {
+                // La borne n'est **pas** stockée : elle repose sur
+                // l'évaluation statique, pas sur une recherche. La
+                // stocker comme exacte tronquerait les transpositions
+                // ultérieures. (Le coût : la position est re-cherchée
+                // quand elle est atteinte à nouveau.)
+                return beta;
+            }
+        }
+
+        // **Razoring** : le score statique est si bas qu'il vaut la peine
+        // de le vérifier à profondeur réduite avant de le rendre. Si la
+        // vérification échoue (`fail low`), l.eval est confirmé : la
+        // position est mauvaise pour le trait, on rend `alpha`.
+        //
+        // Mêmes garde-fous que pour la futilité (« capture » et
+        // « fenêtre de mat »).
+        if self.opts.razoring
+            && depth <= SHALLOW_MAX_DEPTH
+            && !in_check
+            && !mate_window
+            && !self.has_capture()
+        {
+            let stand = eval::eval_for_mover(&self.pos);
+            if stand + RAZOR_MARGIN < alpha {
+                let s = self.negamax(alpha, alpha + 1, depth - 1, ply);
+                if self.aborted {
+                    return 0;
+                }
+                if s <= alpha {
+                    // La borne est stockée à la **profondeur réduite** :
+                    // c'est le seul niveau où elle a été prouvée.
+                    self.tt.store(
+                        key,
+                        (depth - 1) as i16,
+                        score_to_tt(alpha, ply) as i16,
+                        Flag::Upper,
+                        Move::NONE,
+                    );
+                    return alpha;
+                }
+            }
+        }
+
+        // **Null-move** : on offre un coup gratuit à l'adversaire. Si la
+        // position reste bonne pour le trait malgré ce cadeau, elle est
+        // gagnante à cette profondeur : on rend `beta`.
+        //
+        // Deux garde-fous : la position ne doit pas être en échec (un
+        // échec rend le coup gratuit illegal), et le trait doit avoir
+        // autre chose que des pions (sinon la partie de pions est un
+        // **zugzwang** : « passer » y est un perte).
+        if self.opts.null_move
+            && depth >= NULL_MIN_DEPTH
+            && !in_check
+            && self.pos.ep == crate::types::NO_EP
+            && self.has_non_pawn_material()
+        {
+            let saved_ep = self.make_null();
+            let s = -self.negamax(-beta, -beta + 1, depth - 1 - NULL_REDUCTION, ply + 1);
+            self.unmake_null(saved_ep);
+            if self.aborted {
+                return 0;
+            }
+            if s >= beta {
+                // La borne est stockée à la **profondeur réduite** : c'est
+                // le seul niveau où la recherche a été faite.
+                self.tt.store(
+                    key,
+                    (depth - 1 - NULL_REDUCTION) as i16,
+                    score_to_tt(beta, ply) as i16,
+                    Flag::Lower,
+                    Move::NONE,
+                );
+                return beta;
+            }
         }
 
         // L'ordre des coups (AB4) : coup de la TT, puis MVV-LVA, puis
         // les killer moves, puis les coups tranquilles classés par
         // l'heuristique d'historique. L'ordre **est** le premier levier
         // de débit d'un alpha-beta.
-        let killer0 = self.killers[ply][0];
-        let killer1 = self.killers[ply][1];
+        let killer0 = if self.opts.killers {
+            self.killers[ply][0]
+        } else {
+            Move::NONE
+        };
+        let killer1 = if self.opts.killers {
+            self.killers[ply][1]
+        } else {
+            Move::NONE
+        };
         let mut moves: Vec<(i32, Move)> = Vec::with_capacity(list.len());
         for i in 0..list.len() {
             let mv = list.get(i);
@@ -334,8 +578,8 @@ impl<'a> Ctx<'a> {
                 sc += 1_000_000;
             } else if mv == killer0 || mv == killer1 {
                 sc += 50_000;
-            } else if !mv.is_capture() {
-                sc += (self.history[history_index(mv)] as i32) / 1024;
+            } else if self.opts.history && !mv.is_capture() {
+                sc += (self.history[history_index(mv)] as i32) / 8;
             }
             moves.push((sc, mv));
         }
@@ -356,15 +600,56 @@ impl<'a> Ctx<'a> {
             // résultat dépasse `alpha`, la recherche est relancée avec la
             // fenêtre pleine. C'est le gain de débit le plus rentable de
             // l'alpha-beta.
-            let score = if index == 0 {
-                -self.negamax(-beta, -alpha, depth - 1, ply + 1)
+            //
+            // **LMR** (phase AB8) : un coup **tranquille**, loin dans
+            // l'ordre, est d'abord cherché à **profondeur réduite** ;
+            // s'il promet (il dépasse `alpha`), il est rejoué à pleine
+            // profondeur. Le gain de profondeur est donc **payé** seulement
+            // quand le coup le mérite.
+            let full_depth = depth - 1;
+            // **LMR** : un coup **tranquille**, loin dans l'ordre, est
+            // d'abord cherché à **profondeur réduite** ; s'il promet (il
+            // dépasse `alpha`), il est rejoué à pleine profondeur. Le
+            // gain de profondeur est donc **payé** seulement quand le
+            // coup le mérite.
+            //
+            // Deux garde-fous : le LMR ne réduit pas dans une **fenêtre
+            // de mat** (il perdrait le mat) ni dans une position où le
+            // trait est **largement devant** (la zone « sûre » : à ce
+            // niveau, la profondeur gagnée ne change pas la décision).
+            let can_reduce = self.opts.lmr
+                && index > 0
+                && !in_check
+                && !mv.is_capture()
+                && !mv.is_promotion()
+                && alpha.abs() < LMR_SAFE_LIMIT
+                && beta.abs() < LMR_SAFE_LIMIT;
+            let reduced = if can_reduce {
+                (full_depth - self.lmr_reduction(depth, index)).max(1)
             } else {
-                let narrow = -self.negamax(-alpha - 1, -alpha, depth - 1, ply + 1);
-                if narrow > alpha && narrow < beta {
-                    -self.negamax(-beta, -alpha, depth - 1, ply + 1)
+                full_depth
+            };
+            let score = if index == 0 {
+                -self.negamax(-beta, -alpha, reduced, ply + 1)
+            } else if reduced < full_depth {
+                // **LMR** : le coup est cherché à profondeur réduite, à
+                // fenêtre nulle. S'il promet, il est rejoué à pleine
+                // profondeur, avec la fenêtre pleine.
+                let narrow = -self.negamax(-alpha - 1, -alpha, reduced, ply + 1);
+                if narrow > alpha {
+                    -self.negamax(-beta, -alpha, full_depth, ply + 1)
                 } else {
                     narrow
                 }
+            } else if self.opts.pvs {
+                let narrow = -self.negamax(-alpha - 1, -alpha, full_depth, ply + 1);
+                if narrow > alpha && narrow < beta {
+                    -self.negamax(-beta, -alpha, full_depth, ply + 1)
+                } else {
+                    narrow
+                }
+            } else {
+                -self.negamax(-beta, -alpha, full_depth, ply + 1)
             };
             self.path.pop();
             self.pos.unmake(mv, undo);
@@ -390,16 +675,30 @@ impl<'a> Ctx<'a> {
                 // l'historique : les deux heuristiques apprennent des
                 // coups qui ont fait gagner du matériel.
                 if !mv.is_capture() {
-                    self.killers[ply] = [mv, self.killers[ply][0]];
-                    let idx = history_index(mv);
-                    self.history[idx] =
-                        self.history[idx].saturating_add(depth as u32 * depth as u32);
+                    if self.opts.killers {
+                        self.killers[ply] = [mv, self.killers[ply][0]];
+                    }
+                    if self.opts.history {
+                        let idx = history_index(mv);
+                        self.history[idx] =
+                            self.history[idx]
+                                .saturating_add(depth as u32 * depth as u32 * 4);
+                    }
                 }
                 break;
             }
         }
 
-        if best_score <= alpha_orig {
+        // Le drapeau de la TT : une fenêtre **nulle** ne donne qu'une
+        // **borne** (inférieure si la recherche a dépassé `beta`,
+        // supérieure sinon) — jamais la valeur exacte.
+        if null_window {
+            flag = if best_score >= beta_orig {
+                Flag::Lower
+            } else {
+                Flag::Upper
+            };
+        } else if best_score <= alpha_orig {
             flag = Flag::Upper;
         } else if flag != Flag::Lower {
             flag = Flag::Exact;
@@ -420,30 +719,34 @@ impl<'a> Ctx<'a> {
     /// L'évaluation n'est **jamais** lue sur une position « agitée » :
     /// c'est l'effet horizon que la phase 5 du MCTS a voulu corriger
     /// (et qui a coûté −118 à −241 Elo).
-    fn quiescence(&mut self, mut alpha: i32, beta: i32, ply: usize) -> (i32, Move) {
+    fn quiescence(&mut self, mut alpha: i32, beta: i32, ply: usize) -> (i32, Move, Flag) {
         if self.aborted {
-            return (0, Move::NONE);
+            return (0, Move::NONE, Flag::Upper);
         }
         if self.nodes >= self.node_limit {
             self.aborted = true;
-            return (0, Move::NONE);
+            return (0, Move::NONE, Flag::Upper);
         }
         self.nodes += 1;
         if self.nodes & NODE_CHECK_MASK == 0 {
             if self.stop.load(Ordering::Relaxed) {
                 self.aborted = true;
-                return (0, Move::NONE);
+                return (0, Move::NONE, Flag::Upper);
             }
             if let Some(d) = self.deadline
                 && Instant::now() >= d
             {
                 self.aborted = true;
-                return (0, Move::NONE);
+                return (0, Move::NONE, Flag::Upper);
             }
         }
         if ply + 2 >= MAX_PLY {
-            return (eval::eval_for_mover(&self.pos), Move::NONE);
+            return (eval::eval_for_mover(&self.pos), Move::NONE, Flag::Exact);
         }
+
+        // L'alpha d'entrée : il sert à distinguer un **échec** (le score
+        // rendu est une borne *supérieure*) d'une valeur exacte.
+        let alpha_orig = alpha;
 
         let in_check = self.pos.in_check(self.pos.side);
         let mut list = MoveList::new();
@@ -454,7 +757,7 @@ impl<'a> Ctx<'a> {
         }
         if list.is_empty() {
             let v = if in_check { -(MATE - ply as i32) } else { 0 };
-            return (v, Move::NONE);
+            return (v, Move::NONE, Flag::Exact);
         }
 
         // The best move of the quiescence (for the PV). A stand-pat that
@@ -464,7 +767,7 @@ impl<'a> Ctx<'a> {
         if !in_check {
             let stand = eval::eval_for_mover(&self.pos);
             if stand >= beta {
-                return (stand, Move::NONE);
+                return (stand, Move::NONE, Flag::Lower);
             }
             if stand > alpha {
                 alpha = stand;
@@ -480,20 +783,30 @@ impl<'a> Ctx<'a> {
 
         for (_, mv) in moves {
             let undo = self.pos.make(mv);
-            let (score, _) = self.quiescence(-beta, -alpha, ply + 1);
+            let (score, _, _) = self.quiescence(-beta, -alpha, ply + 1);
             self.pos.unmake(mv, undo);
             if self.aborted {
-                return (0, Move::NONE);
+                return (0, Move::NONE, Flag::Upper);
             }
             if score >= beta {
-                return (score, mv);
+                return (score, mv, Flag::Lower);
             }
             if score > alpha {
                 alpha = score;
                 best_move = mv;
             }
         }
-        (alpha, best_move)
+        // Un échec (le score rendu est l'alpha d'entrée) n'est qu'une
+        // **borne supérieure** : le stocker comme exact ferait
+        // sous-estimer la position dans toutes les transpositions
+        // ultérieures. C'est la même correction que pour la fenêtre
+        // nulle, appliquée à la quiescence.
+        let flag = if alpha <= alpha_orig {
+            Flag::Upper
+        } else {
+            Flag::Exact
+        };
+        (alpha, best_move, flag)
     }
 
     /// MVV-LVA : `10 × valeur de la victime − valeur de l'agresseur`,
@@ -518,6 +831,84 @@ impl<'a> Ctx<'a> {
         };
         let promo = if mv.is_promotion() { 800 } else { 0 };
         10 * victim + promo - attacker
+    }
+
+    /// Le **coup gratuit** (null-move) : le trait passe son tour.
+    ///
+    /// C'est implémenté **côté AB** : le core gelé n'a pas de « passe »,
+    /// et il ne doit pas en avoir. On bascule donc le trait et la clé
+    /// Zobrist — la clé de la position *après* le coup gratuit est celle
+    /// de la position *avant*, avec le trait opposé.
+    ///
+    /// L'horloge des 50 coups n'est **pas** incrémentée : le coup gratuit
+    /// n'est pas un coup, et le traiter comme une nulle par la règle des
+    /// 50 coups produirait des coupes fausses. La case de prise en
+    /// passant est neutralisée : après un coup gratuit, le droit de prise
+    /// en passant est *caduc* (aucun coup réel n'a été joué) — sans quoi
+    /// l'adversaire pourrait « capturer en passant » un pion qui n'a pas
+    /// avancé.
+    fn make_null(&mut self) -> u8 {
+        let saved_ep = self.pos.ep;
+        self.pos.side = self.pos.side.opp();
+        self.pos.zobrist ^= crate::zobrist::ZOBRIST.side;
+        self.pos.ep = crate::types::NO_EP;
+        saved_ep
+    }
+
+    /// L'inverse de [`Ctx::make_null`].
+    fn unmake_null(&mut self, saved_ep: u8) {
+        self.pos.side = self.pos.side.opp();
+        self.pos.zobrist ^= crate::zobrist::ZOBRIST.side;
+        self.pos.ep = saved_ep;
+    }
+
+    /// Le trait au trait a-t-il du **matériel** hors pions ? Dans une
+    /// fin de pions, un coup gratuit est un **zugzwang** : « passer »
+    /// serait une perte. Le null-move y est donc désactivé.
+    fn has_non_pawn_material(&self) -> bool {
+        let us = self.pos.side;
+        (self.pos.pieces(us, crate::types::KNIGHT)
+            | self.pos.pieces(us, crate::types::BISHOP)
+            | self.pos.pieces(us, crate::types::ROOK)
+            | self.pos.pieces(us, crate::types::QUEEN))
+            != 0
+    }
+
+    /// Le trait au trait a-t-il une **capture** disponible ?
+    ///
+    /// Une heuristique qui élague sur l'évaluation statique (razoring,
+    /// futilité) ne doit pas s'appliquer quand une capture existe :
+    /// l'évaluation statique compte les pièces *comme si elles étaient
+    /// vivantes*, et c'est exactement là qu'elle se trompe le plus.
+    /// Sans ce garde-fou, la futilité rendrait `beta` sur une position
+    /// où une dame est « prise mais pas encore comptée comme prise ».
+    fn has_capture(&self) -> bool {
+        let mut list = MoveList::new();
+        movegen::generate(&self.pos, &mut list, GenKind::CapturesOnly);
+        !list.is_empty()
+    }
+
+    /// La **réduction de profondeur** du LMR : les coups tranquilles,
+    /// loin dans l'ordre, sont cherchés moins profond.
+    ///
+    /// La table est volontairement simple (elle n'est pas « apprise ») :
+    /// la phase mesure l'effet **moyen** de la réduction, pas sa qualité
+    /// fine. Une table apprise serait une phase à part.
+    fn lmr_reduction(&self, depth: i32, index: usize) -> i32 {
+        let mut r = 1;
+        if depth >= 4 {
+            r += 1;
+        }
+        if depth >= 6 {
+            r += 1;
+        }
+        if index >= 3 {
+            r += 1;
+        }
+        if index >= 6 {
+            r += 1;
+        }
+        r
     }
 
     /// La position courante est-elle une **répétition** ? (même joueur au

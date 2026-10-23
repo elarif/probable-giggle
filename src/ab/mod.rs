@@ -23,5 +23,5 @@
 pub mod search;
 pub mod tt;
 
-pub use search::{Limits, MATE, MAX_PLY, Outcome, Search, first_legal_move};
+pub use search::{Limits, MATE, MAX_PLY, Options, Outcome, Search, first_legal_move};
 pub use tt::{Flag, Probe, Tt};
