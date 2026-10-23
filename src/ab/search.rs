@@ -42,6 +42,14 @@ pub const MATE: i32 = 30_000;
 /// La profondeur maximale de la pile de recherche.
 pub const MAX_PLY: usize = 96;
 
+/// La capacité du tampon d'ordre des coups (phase perf).
+///
+/// Elle est égale à la capacité de la `MoveList` du core (256) : une
+/// position légale n'a jamais plus de 218 coups, la liste du core ne
+/// peut donc pas en contenir plus. Le tampon est indexé par des `u8`,
+/// d'où la limite à 256.
+const MOVE_CAP: usize = 256;
+
 /// Marge réservée à l'aller-retour UCI (le moteur doit répondre **avant**
 /// que l'horloge de l'adversaire expire).
 pub const TIME_MARGIN_MS: u128 = 5;
@@ -216,6 +224,7 @@ impl Search {
             path: Vec::with_capacity(MAX_PLY),
             killers: vec![[Move::NONE; 2]; MAX_PLY + 1],
             history: vec![0u32; 64 * 64],
+            scores: (0..=MAX_PLY + 1).map(|_| [0i32; MOVE_CAP]).collect(),
             pv_table: (0..=MAX_PLY).map(|_| Vec::new()).collect(),
             nodes: 0,
             node_limit: self.limits.nodes,
@@ -315,6 +324,21 @@ struct Ctx<'a> {
     /// était du code mort. C'est la décomposition d'AB4 qui l'a
     /// révélé.)
     history: Vec<u32>,
+    /// Le tampon des **scores d'ordre**, un par ply (phase perf).
+    ///
+    /// Avant, chaque nœud allouait un `Vec<(i32, Move)>` sur le tas
+    /// (malloc + free + le tampon temporaire du tri stable) : à un
+    /// million de nœuds, c'est un million d'allocations. Le tampon est
+    /// ici alloué **une fois par recherche** et réutilisé d'un nœud à
+    /// l'autre.
+    ///
+    /// Un ply n'est pas réutilisé par une récursion plus profonde : la
+    /// negamax du ply `p` n'utilise que `scores[p]`, et ses enfants
+    /// utilisent `scores[p+1]`, `scores[p+2]`… La quiescence utilise le
+    /// tampon du **même** ply que la negamax qui l'appelle — mais cette
+    /// negamax là rend la main à la quiescence *avant* de trier ses
+    /// coups, donc avant de toucher à son tampon.
+    scores: Vec<[i32; MOVE_CAP]>,
     /// La **table PV** (ligne principale) : `pv_table[ply]` est la
     /// meilleure ligne connue depuis la profondeur `ply`. Elle est
     /// reconstruite pendant la recherche — l'extraire de la TT serait
@@ -570,28 +594,58 @@ impl<'a> Ctx<'a> {
         } else {
             Move::NONE
         };
-        let mut moves: Vec<(i32, Move)> = Vec::with_capacity(list.len());
-        for i in 0..list.len() {
-            let mv = list.get(i);
-            let mut sc = self.mvv_lva(mv);
-            if mv == tt_best && tt_best != Move::NONE {
-                sc += 1_000_000;
-            } else if mv == killer0 || mv == killer1 {
-                sc += 50_000;
-            } else if self.opts.history && !mv.is_capture() {
-                sc += (self.history[history_index(mv)] as i32) / 8;
+        // **Pas d'allocation par nœud** (phase perf, 2026-10-23).
+        //
+        // Les scores vivent dans un tampon **par ply**, réutilisé d'un
+        // nœud à l'autre ; l'ordre est un tableau d'**indices** sur la
+        // pile. Le tri est *instable* — mais sur un ordre **total**
+        // (score décroissant, puis indice croissant) : le résultat est
+        // donc **identique** à celui du tri stable d'avant, coup par
+        // coup. C'est ce qui permet de supprimer l'allocation *et* le
+        // tampon temporaire du tri.
+        //
+        // L'emprunt est scindé (`&self.pos`, `&self.history`,
+        // `&mut self.scores[ply]`) : ce sont trois champs disjoints.
+        let n = list.len();
+        debug_assert!(n <= MOVE_CAP, "plus de coups que le tampon d'ordre");
+        let use_history = self.opts.history;
+        {
+            let pos = &self.pos;
+            let history = &self.history;
+            let scores = &mut self.scores[ply];
+            for i in 0..n {
+                let mv = list.get(i);
+                let mut sc = mvv_lva(pos, mv);
+                if mv == tt_best && tt_best != Move::NONE {
+                    sc += 1_000_000;
+                } else if mv == killer0 || mv == killer1 {
+                    sc += 50_000;
+                } else if use_history && !mv.is_capture() {
+                    sc += (history[history_index(mv)] as i32) / 8;
+                }
+                scores[i] = sc;
             }
-            moves.push((sc, mv));
         }
-        moves.sort_by(|a, b| b.0.cmp(&a.0));
+        let mut order = [0u8; MOVE_CAP];
+        for i in 0..n {
+            order[i] = i as u8;
+        }
+        {
+            let scores = &self.scores[ply];
+            order[..n].sort_unstable_by(|&a, &b| {
+                scores[b as usize]
+                    .cmp(&scores[a as usize])
+                    .then(a.cmp(&b))
+            });
+        }
 
         let alpha_orig = alpha;
         let mut best_score = -MATE - 1;
         let mut best_move = Move::NONE;
         let mut flag = Flag::Upper;
 
-        for (index, (_, mv)) in moves.iter().enumerate() {
-            let mv = *mv;
+        for (index, &idx) in order[..n].iter().enumerate() {
+            let mv = list.get(idx as usize);
             let key_here = self.pos.zobrist;
             let undo = self.pos.make(mv);
             self.path.push(key_here);
@@ -774,14 +828,32 @@ impl<'a> Ctx<'a> {
             }
         }
 
-        let mut moves: Vec<(i32, Move)> = Vec::with_capacity(list.len());
-        for i in 0..list.len() {
-            let mv = list.get(i);
-            moves.push((self.mvv_lva(mv), mv));
+        // Le même traitement que dans la negamax : **aucune allocation**
+        // (tampon par ply + tri sur un ordre total).
+        let n = list.len();
+        debug_assert!(n <= MOVE_CAP, "plus de coups que le tampon d'ordre");
+        {
+            let pos = &self.pos;
+            let scores = &mut self.scores[ply];
+            for i in 0..n {
+                scores[i] = mvv_lva(pos, list.get(i));
+            }
         }
-        moves.sort_by(|a, b| b.0.cmp(&a.0));
+        let mut order = [0u8; MOVE_CAP];
+        for i in 0..n {
+            order[i] = i as u8;
+        }
+        {
+            let scores = &self.scores[ply];
+            order[..n].sort_unstable_by(|&a, &b| {
+                scores[b as usize]
+                    .cmp(&scores[a as usize])
+                    .then(a.cmp(&b))
+            });
+        }
 
-        for (_, mv) in moves {
+        for &idx in order[..n].iter() {
+            let mv = list.get(idx as usize);
             let undo = self.pos.make(mv);
             let (score, _, _) = self.quiescence(-beta, -alpha, ply + 1);
             self.pos.unmake(mv, undo);
@@ -809,29 +881,6 @@ impl<'a> Ctx<'a> {
         (alpha, best_move, flag)
     }
 
-    /// MVV-LVA : `10 × valeur de la victime − valeur de l'agresseur`,
-    /// plus un bonus de promotion. L'ordre des coups est *le* premier
-    /// levier de débit d'un alpha-beta.
-    fn mvv_lva(&self, mv: Move) -> i32 {
-        let victim = if mv.is_ep() {
-            eval::MAT_PAWN
-        } else {
-            let code = self.pos.piece_on(mv.to());
-            if code == 0 {
-                0
-            } else {
-                piece_value(((code - 1) % 6) as usize)
-            }
-        };
-        let attacker_code = self.pos.piece_on(mv.from());
-        let attacker = if attacker_code == 0 {
-            0
-        } else {
-            piece_value(((attacker_code - 1) % 6) as usize)
-        };
-        let promo = if mv.is_promotion() { 800 } else { 0 };
-        10 * victim + promo - attacker
-    }
 
     /// Le **coup gratuit** (null-move) : le trait passe son tour.
     ///
@@ -979,4 +1028,32 @@ fn score_from_tt(score: i32, ply: usize) -> i32 {
     } else {
         score
     }
+}
+
+/// MVV-LVA : `10 × valeur de la victime − valeur de l'agresseur`, plus
+/// un bonus de promotion.
+///
+/// C'est une **fonction libre** (et non une méthode) pour que
+/// l'appelant puisse emprunter `&self.pos` et `&mut self.scores` **en
+/// même temps** : ce sont deux champs disjoints de `self`, et le
+/// borrow-checker l'accepte.
+fn mvv_lva(pos: &Position, mv: Move) -> i32 {
+    let victim = if mv.is_ep() {
+        eval::MAT_PAWN
+    } else {
+        let code = pos.piece_on(mv.to());
+        if code == 0 {
+            0
+        } else {
+            piece_value(((code - 1) % 6) as usize)
+        }
+    };
+    let attacker_code = pos.piece_on(mv.from());
+    let attacker = if attacker_code == 0 {
+        0
+    } else {
+        piece_value(((attacker_code - 1) % 6) as usize)
+    };
+    let promo = if mv.is_promotion() { 800 } else { 0 };
+    10 * victim + promo - attacker
 }

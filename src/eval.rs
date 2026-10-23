@@ -184,6 +184,7 @@ const PST_KING: [i16; 64] = [
 ];
 
 /// The piece-square table for a piece kind.
+#[cfg(test)]
 #[inline(always)]
 fn pst(kind: usize) -> &'static [i16; 64] {
     match kind {
@@ -196,15 +197,95 @@ fn pst(kind: usize) -> &'static [i16; 64] {
     }
 }
 
+/// La valeur d'une case pour un genre de pièce : **matériel + PST**, dans
+/// la convention « rang = `sq >> 3` » (c'est la convention de la table
+/// *noire* ; la table *blanche* est la même, lue à rang renversé).
+const fn pst_value(kind: usize, i: usize) -> i16 {
+    let p = match kind {
+        PAWN => PST_PAWN[i],
+        KNIGHT => PST_KNIGHT[i],
+        BISHOP => PST_BISHOP[i],
+        ROOK => PST_ROOK[i],
+        QUEEN => PST_QUEEN[i],
+        _ => PST_KING[i],
+    };
+    p + MATERIAL[kind] as i16
+}
+
+/// La table **fusionnée** matériel + PST : une seule lecture par pièce.
+///
+/// Elle est indexée par `sq` avec la convention « rang = `sq >> 3` » :
+/// * une pièce **noire** en `sq` lit `PSTV[kind][sq]` ;
+/// * une pièce **blanche** en `sq` lit `PSTV[kind][sq ^ 56]` (le rang
+///   renversé, c'est-à-dire la lecture « visuelle » de la table
+///   symétrique).
+///
+/// La fusion du matériel **dans** la table PST est ce qui rend le
+/// parcours bitboard possible : le compte du matériel n'a plus besoin
+/// d'un `popcount` séparé — il est déjà dans la valeur de la case.
+const PSTV: [[i16; 64]; 6] = {
+    let mut out = [[0i16; 64]; 6];
+    let mut k = 0;
+    while k < 6 {
+        let mut i = 0;
+        while i < 64 {
+            out[k][i] = pst_value(k, i);
+            i += 1;
+        }
+        k += 1;
+    }
+    out
+};
+
 /// Evaluation in centipawns, **White-positive**.
+///
+/// **Parcours bitboard** (phase perf, 2026-10-23) : on ne visite que les
+/// cases **occupées** (≈ 32) au lieu des 64 cases de la boîte aux
+/// lettres, et on supprime la branche « case vide ? » par case — c'est
+/// cette branche qui coûtait le plus (prédiction ratée sur ~50 % des
+/// cases).
+///
+/// La **valeur est identique bit à bit** à l'ancienne version boîte aux
+/// lettres : mêmes termes, même somme (l'addition entière est
+/// associative), mêmes index de table. C'est vérifié par un test
+/// d'identité (`eval_white_reference` ci-dessous) sur un corpus de
+/// plusieurs milliers de positions.
 #[inline]
 pub fn eval_white(pos: &Position) -> i32 {
+    let mut acc = 0i32;
+    for kind in 0..6 {
+        let pieces = pos.bb_piece[kind];
+        if pieces == 0 {
+            continue;
+        }
+        // Les blancs : rang renversé (`sq ^ 56`).
+        let mut w = pieces & pos.bb_color[WHITE];
+        while w != 0 {
+            let sq = w.trailing_zeros() as usize;
+            acc += PSTV[kind][sq ^ 56] as i32;
+            w &= w - 1;
+        }
+        // Les noirs : rang tel quel.
+        let mut b = pieces & pos.bb_color[BLACK];
+        while b != 0 {
+            let sq = b.trailing_zeros() as usize;
+            acc -= PSTV[kind][sq] as i32;
+            b &= b - 1;
+        }
+    }
+    acc
+}
+
+/// L'ancienne évaluation (parcours de la **boîte aux lettres**), gardée
+/// comme **référence** : c'est elle que le test d'identité compare à la
+/// version bitboard. Elle n'est compilée qu'en test.
+#[cfg(test)]
+fn eval_white_reference(pos: &Position) -> i32 {
     let mut acc = 0i32;
     for (sq, m) in pos.mailbox.iter().enumerate() {
         if *m != 0 {
             let code = m - 1;
             let kind = (code % 6) as usize;
-            // White: visual row 7-rank; Black: mirrored row (symmetric tables).
             let row = if code < 6 { 7 - (sq >> 3) } else { sq >> 3 };
             let i = (row << 3) | (sq & 7);
             let v = material(kind) + pst(kind)[i] as i32;
@@ -257,4 +338,102 @@ pub fn insufficient_material(pos: &Position) -> bool {
     let b = (pos.bb_piece[KNIGHT] & pos.bb_color[BLACK]).count_ones()
         + (pos.bb_piece[BISHOP] & pos.bb_color[BLACK]).count_ones();
     w <= 1 && b <= 1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::movegen::{MoveList, generate};
+    use crate::types::GenKind;
+    /// Le corpus du test d'identité : les positions de référence, plus
+    /// une marche aléatoire **déterministe** (graine fixe).
+    fn corpus(n_positions: usize) -> Vec<Position> {
+        const FENS: &[&str] = &[
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+            "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 b - - 0 1",
+        ];
+        let mut out: Vec<Position> = FENS
+            .iter()
+            .filter_map(|f| Position::from_fen(f).ok())
+            .collect();
+        let mut rng = 0x1234_5678_9ABC_DEF0u64;
+        let mut next = || {
+            rng ^= rng << 13;
+            rng ^= rng >> 7;
+            rng ^= rng << 17;
+            rng
+        };
+        while out.len() < n_positions {
+            let fen = FENS[(next() % FENS.len() as u64) as usize];
+            let mut pos = Position::from_fen(fen).expect("fen de référence");
+            let plies = (next() % 40) as usize;
+            for _ in 0..plies {
+                let mut list = MoveList::new();
+                generate(&pos, &mut list, GenKind::All);
+                if list.is_empty() {
+                    break;
+                }
+                let mv = list.get((next() % list.len() as u64) as usize);
+                pos.make(mv);
+            }
+            out.push(pos);
+        }
+        out
+    }
+
+    /// **L'identité de la valeur** : l'évaluation bitboard doit rendre
+    /// **exactement** la même valeur que l'ancienne évaluation boîte
+    /// aux lettres. C'est le gate de la phase perf : une évaluation qui
+    /// change de valeur invalide *toutes* les mesures gelées des phases
+    /// 3 à 5 (et le MCTS devient non reproductible).
+    #[test]
+    fn eval_white_is_bit_identical_to_the_mailbox_version() {
+        for pos in corpus(4_000) {
+            assert_eq!(
+                eval_white(&pos),
+                eval_white_reference(&pos),
+                "la valeur a changé sur une position du corpus"
+            );
+        }
+    }
+
+    /// La boîte aux lettres et les bitboards doivent décrire **le même
+    /// échiquier** : l'évaluation bitboard ne lit que les bitboards.
+    #[test]
+    fn mailbox_and_bitboards_agree() {
+        for pos in corpus(500) {
+            for sq in 0..64usize {
+                let m = pos.mailbox[sq];
+                let bit = 1u64 << sq;
+                if m == 0 {
+                    for kind in 0..6 {
+                        assert_eq!(pos.bb_piece[kind] & bit, 0, "bitboard fantôme en {sq}");
+                    }
+                } else {
+                    let code = (m - 1) as usize;
+                    assert_ne!(pos.bb_piece[code % 6] & bit, 0, "bitboard manquant en {sq}");
+                    assert_ne!(pos.bb_color[code / 6] & bit, 0, "couleur manquante en {sq}");
+                }
+            }
+        }
+    }
+
+    /// L'évaluation ne dépend pas du trait (elle est exprimée dans le
+    /// cadre « Blanc ») — une propriété déjà testée ailleurs, mais qui
+    /// doit survivre au changement de représentation.
+    #[test]
+    fn eval_white_is_side_independent() {
+        for pos in corpus(300) {
+            let mut flipped = pos.clone();
+            flipped.side = if pos.side == Color::White {
+                Color::Black
+            } else {
+                Color::White
+            };
+            assert_eq!(eval_white(&pos), eval_white(&flipped));
+        }
+    }
 }

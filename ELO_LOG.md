@@ -519,6 +519,38 @@ exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
 * **rapport** : `docs/ab/phase8-2026-10-23.md` — plan :
   `docs/ab/plan-heuristiques-2026-10-23.md`.
 
+## Phase PERF — la performance, mesurée (2026-10-23)
+
+* **but** : la phase AB8 a établi que le goulot est la **fonction de
+  valeur** ; la performance n'est donc pas un levier de force, mais un
+  **prérequis** de la phase NN (une valeur apprise ne sert que si la
+  recherche a le débit pour l'exploiter). Le plan est
+  `docs/perf/plan-perf-2026-10-23.md` ;
+* **ligne de base mesurée** (`examples/perf_probe.rs`, instrument
+  nouveau) : `eval_for_mover` **106,5 ns**, `generate(All)` **187,1 ns**,
+  make+unmake 20,4 ns, alpha-beta **2,35 Mnps (426 ns/nœud)**, MCTS
+  mono **597 k playouts/s (1675 ns)**. Le core n'est pas le goulot
+  (perft : 219-257 Mnps) ;
+* **P1 — l'alpha-beta sans allocation par nœud** : les scores vivent
+  dans un tampon par ply, l'ordre est un tableau d'indices sur la pile,
+  le tri est instable **sur un ordre total** (donc identique au tri
+  stable d'avant) ;
+* **P2 — l'évaluation bitboard** : on ne visite que les cases occupées
+  (~32 au lieu de 64), sans branche par case, table PST fusionnée avec
+  le matériel ;
+* **résultats** : eval **106,5 → 30,6-34,4 ns (×3,1)** ; alpha-beta
+  **2,35 → 3,34-3,39 Mnps (+43 %**, 426 → 295 ns/nœud) ; nœuds en
+  200 ms **465 920 → 622 592-679 936** ; MCTS mono **597 → 675-735 k
+  playouts/s**, 4 threads **1,87 → 2,44-2,53 M/s** ;
+* **identité bit à bit** (donc **aucune** mesure gelée invalidée, aucun
+  duel à rejouer) : alpha-beta à profondeur 5 = **1 102 522 nœuds**
+  avant et après ; MCTS `tree_nodes` = **20 917** et `tree_edges` =
+  **863 208** avant et après ; `eval_white` (bitboard) identique à la
+  version boîte aux lettres sur **4 000 positions** (test d'identité) ;
+* **suite** : P3 (génération échelonnée dans l'AB), P4 (arène MCTS
+  compacte — le goulot est mémoire : 863 208 arêtes = 17 Mo), P5 (arbre
+  MCTS partagé lock-free — le prérequis du lot), P6 (phase NN).
+
 ## Instruments de mesure (état au 2026-10-22)
 
 Le journal est **alimenté** : les maillons manquants ont été fournis.
