@@ -435,6 +435,39 @@ fn ep_legal_ray_impl<const W: bool>(pos: &Position, from: u8, ep: u8, ksq: u8, o
 /// loudly asserted (`debug_assert!` with the contract message, see
 /// `build_legality_impl` / `Position::king_sq`).
 pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
+    // La **spécialisation à la compilation** : les trois modes ne font
+    // pas le même travail, et le compilateur doit pouvoir *supprimer* le
+    // code inutile — les coups tranquilles dans le mode tactique, les
+    // prises dans le mode tranquille. Sans cela, chaque coup émis paie
+    // une branche sur le mode.
+    //
+    // C'est le patron de `toanth/motors` (`const ONLY_TACTICAL` /
+    // `const ONLY_QUIET` dans `gears/src/games/chess/movegen.rs`) et le
+    // patron que le dépôt utilise déjà pour le comptage
+    // (`count_moves_impl<const W: bool>`).
+    match kind {
+        GenKind::All => generate_impl::<false, false>(pos, out),
+        GenKind::CapturesOnly => generate_impl::<true, false>(pos, out),
+        GenKind::QuietsOnly => generate_impl::<false, true>(pos, out),
+    }
+}
+
+/// Le générateur, **spécialisé** par compilation.
+///
+/// Les deux paramètres sont les deux moitiés de la génération échelonnée :
+///
+/// * `TACTICAL_ONLY` — seuls les coups **tactiques** (prises, promotions,
+///   prises en passant) sont émis ; les coups tranquilles sont supprimés ;
+/// * `QUIET_ONLY` — seuls les coups **tranquilles** sont émis ; les
+///   tactiques sont supprimés.
+///
+/// Un coup **tactique** est émis si et seulement si `!QUIET_ONLY` ; un
+/// coup **tranquille** est émis si et seulement si `!TACTICAL_ONLY`. Les
+/// deux instanciations `All` (`false, false`) émettent donc tout.
+fn generate_impl<const TACTICAL_ONLY: bool, const QUIET_ONLY: bool>(
+    pos: &Position,
+    out: &mut MoveList,
+) {
     let us = pos.side;
     let them = us.opp();
     let occ = pos.occ();
@@ -454,16 +487,42 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
 
     // King moves. The king is removed from occupancy so sliders x-ray through it.
     // M3: enemy king square never a target (no-op on legal input).
-    let mut kt = KING_ATT[(ksq & 63) as usize] & !us_bb & !ctx.danger & !ctx.them_king;
-    while kt != 0 {
-        let to = kt.trailing_zeros() as u8;
-        kt &= kt - 1;
-        let cap = (them_bb >> to) & 1 != 0;
-        out.push(Move::new(
-            ksq,
-            to,
-            if cap { FLAG_CAPTURE } else { FLAG_QUIET },
-        ));
+    //
+    // Les prises du roi sont **tactiques**, ses coups tranquilles sont
+    // **tranquilles** : la génération échelonnée les sépare.
+    let kt = KING_ATT[(ksq & 63) as usize] & !us_bb & !ctx.danger & !ctx.them_king;
+    if TACTICAL_ONLY && QUIET_ONLY {
+        // Aucun coup : les deux filtres sont actifs. (Cas impossible
+        // aujourd'hui, mais le générateur le définit.)
+    } else if TACTICAL_ONLY {
+        // Les **prises** du roi seulement (une prise est tactique).
+        let mut kc = kt & them_bb;
+        while kc != 0 {
+            let to = kc.trailing_zeros() as u8;
+            kc &= kc - 1;
+            out.push(Move::new(ksq, to, FLAG_CAPTURE));
+        }
+    } else if QUIET_ONLY {
+        // Les coups **tranquilles** du roi seulement.
+        let mut kq = kt & !them_bb;
+        while kq != 0 {
+            let to = kq.trailing_zeros() as u8;
+            kq &= kq - 1;
+            out.push(Move::new(ksq, to, FLAG_QUIET));
+        }
+    } else {
+        // Le cas général : **une seule** passe sur les cases cibles.
+        let mut k = kt;
+        while k != 0 {
+            let to = k.trailing_zeros() as u8;
+            k &= k - 1;
+            let cap = (them_bb >> to) & 1 != 0;
+            out.push(Move::new(
+                ksq,
+                to,
+                if cap { FLAG_CAPTURE } else { FLAG_QUIET },
+            ));
+        }
     }
 
     if ncheck >= 2 {
@@ -478,18 +537,18 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     };
     let pinned = ctx.pinned;
 
-    let captures_only = kind == GenKind::CapturesOnly;
-
     // ---- Pawns ----
     let pawns = pos.bb_piece[PAWN] & us_bb;
     let free = pawns & !pinned;
-    gen_pawns_bulk(pos, out, us, them_bb, free, allowed, empty, captures_only);
+    gen_pawns_bulk::<TACTICAL_ONLY, QUIET_ONLY>(
+        pos, out, us, them_bb, free, allowed, empty,
+    );
     if ctx.npins != 0 {
         for i in 0..ctx.npins as usize {
             let from = ctx.pin_sq[i];
             // Only pawn pins matter here; sliders use their own loop below.
             if pawns & (1u64 << from) != 0 {
-                gen_pawn_pinned(
+                gen_pawn_pinned::<TACTICAL_ONLY, QUIET_ONLY>(
                     pos,
                     out,
                     us,
@@ -497,7 +556,6 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
                     from,
                     allowed & ctx.pin_lines[i],
                     empty,
-                    captures_only,
                 );
             }
         }
@@ -518,7 +576,10 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
     // tuple pattern evaluates both elements eagerly, which would call
     // `ep_capture_square` on every node even though an en-passant square
     // is rare.
-    if let Some(ep) = pos.ep_square()
+    // La prise en passant est **tactique** : elle n'est émise que si
+    // le mode tranquille est désactivé.
+    if !QUIET_ONLY
+        && let Some(ep) = pos.ep_square()
         && let Some(cap_sq) = pos.ep_capture_square(us)
     {
         let evades_check = if ncheck == 1 {
@@ -544,7 +605,7 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
         let s = kn.trailing_zeros() as u8;
         kn &= kn - 1;
         let t = KNIGHT_ATT[s as usize] & !us_bb & allowed;
-        emit_slider(out, s, t, them_bb, captures_only);
+        emit_slider::<TACTICAL_ONLY, QUIET_ONLY>(out, s, t, them_bb);
     }
 
     // ---- Bishops + queens (diagonal part) ----
@@ -556,7 +617,7 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
         if pinned & (1u64 << s) != 0 {
             t &= ctx.line_of(s);
         }
-        emit_slider(out, s, t, them_bb, captures_only);
+        emit_slider::<TACTICAL_ONLY, QUIET_ONLY>(out, s, t, them_bb);
     }
 
     // ---- Rooks + queens (orthogonal part) ----
@@ -568,37 +629,46 @@ pub fn generate(pos: &Position, out: &mut MoveList, kind: GenKind) {
         if pinned & (1u64 << s) != 0 {
             t &= ctx.line_of(s);
         }
-        emit_slider(out, s, t, them_bb, captures_only);
+        emit_slider::<TACTICAL_ONLY, QUIET_ONLY>(out, s, t, them_bb);
     }
 
     // ---- Castling ----
-    if kind == GenKind::All && ncheck == 0 {
+    // Le roque est un coup **tranquille** : il est émis dans le mode
+    // tranquille, supprimé dans le mode tactique.
+    if !TACTICAL_ONLY && ncheck == 0 {
         gen_castle(pos, out, us, occ);
     }
 }
 
 #[inline]
-fn emit_slider(out: &mut MoveList, from: u8, targets: u64, them: u64, captures_only: bool) {
-    let caps = targets & them;
-    let mut c = caps;
-    while c != 0 {
-        let to = c.trailing_zeros() as u8;
-        c &= c - 1;
-        out.push(Move::new(from, to, FLAG_CAPTURE));
+fn emit_slider<const TACTICAL_ONLY: bool, const QUIET_ONLY: bool>(
+    out: &mut MoveList,
+    from: u8,
+    targets: u64,
+    them: u64,
+) {
+    // Les prises sont **tactiques** (émises si `!QUIET_ONLY`), les coups
+    // tranquilles sont **tranquilles** (émis si `!TACTICAL_ONLY`).
+    if !QUIET_ONLY {
+        let mut c = targets & them;
+        while c != 0 {
+            let to = c.trailing_zeros() as u8;
+            c &= c - 1;
+            out.push(Move::new(from, to, FLAG_CAPTURE));
+        }
     }
-    if captures_only {
-        return;
-    }
-    let mut q = targets & !them;
-    while q != 0 {
-        let to = q.trailing_zeros() as u8;
-        q &= q - 1;
-        out.push(Move::new(from, to, FLAG_QUIET));
+    if !TACTICAL_ONLY {
+        let mut q = targets & !them;
+        while q != 0 {
+            let to = q.trailing_zeros() as u8;
+            q &= q - 1;
+            out.push(Move::new(from, to, FLAG_QUIET));
+        }
     }
 }
 
 #[allow(clippy::too_many_arguments)]
-fn gen_pawns_bulk(
+fn gen_pawns_bulk<const TACTICAL_ONLY: bool, const QUIET_ONLY: bool>(
     _pos: &Position,
     out: &mut MoveList,
     us: Color,
@@ -606,7 +676,6 @@ fn gen_pawns_bulk(
     pawns: u64,
     allowed: u64,
     empty: u64,
-    captures_only: bool,
 ) {
     if pawns == 0 {
         return;
@@ -619,11 +688,11 @@ fn gen_pawns_bulk(
         let cap_r = ((pawns & !FILE_H) << 9) & them & allowed;
         let cap_l = ((pawns & !FILE_A) << 7) & them & allowed;
 
-        emit_pawn_pushes(out, promo, 8, true, captures_only, false);
-        emit_pawn_pushes(out, quiet, 8, false, captures_only, false);
-        emit_pawn_pushes(out, double, 16, false, captures_only, false);
-        emit_pawn_caps(out, cap_r, 9, true, captures_only);
-        emit_pawn_caps(out, cap_l, 7, true, captures_only);
+        emit_pawn_pushes::<TACTICAL_ONLY, QUIET_ONLY>(out, promo, 8, true, false);
+        emit_pawn_pushes::<TACTICAL_ONLY, QUIET_ONLY>(out, quiet, 8, false, false);
+        emit_pawn_pushes::<TACTICAL_ONLY, QUIET_ONLY>(out, double, 16, false, false);
+        emit_pawn_caps::<TACTICAL_ONLY, QUIET_ONLY>(out, cap_r, 9, true);
+        emit_pawn_caps::<TACTICAL_ONLY, QUIET_ONLY>(out, cap_l, 7, true);
     } else {
         let push = (pawns >> 8) & empty;
         let promo = push & crate::tables::RANK_1 & allowed;
@@ -632,21 +701,20 @@ fn gen_pawns_bulk(
         let cap_r = ((pawns & !FILE_H) >> 7) & them & allowed;
         let cap_l = ((pawns & !FILE_A) >> 9) & them & allowed;
 
-        emit_pawn_pushes(out, promo, 8, true, captures_only, true);
-        emit_pawn_pushes(out, quiet, 8, false, captures_only, true);
-        emit_pawn_pushes(out, double, 16, false, captures_only, true);
-        emit_pawn_caps_down(out, cap_r, 7, true, captures_only);
-        emit_pawn_caps_down(out, cap_l, 9, true, captures_only);
+        emit_pawn_pushes::<TACTICAL_ONLY, QUIET_ONLY>(out, promo, 8, true, true);
+        emit_pawn_pushes::<TACTICAL_ONLY, QUIET_ONLY>(out, quiet, 8, false, true);
+        emit_pawn_pushes::<TACTICAL_ONLY, QUIET_ONLY>(out, double, 16, false, true);
+        emit_pawn_caps_down::<TACTICAL_ONLY, QUIET_ONLY>(out, cap_r, 7, true);
+        emit_pawn_caps_down::<TACTICAL_ONLY, QUIET_ONLY>(out, cap_l, 9, true);
     }
 }
 
 #[inline]
-fn emit_pawn_pushes(
+fn emit_pawn_pushes<const TACTICAL_ONLY: bool, const QUIET_ONLY: bool>(
     out: &mut MoveList,
     targets: u64,
     back: u8,
     promo: bool,
-    captures_only: bool,
     down: bool,
 ) {
     let mut t = targets;
@@ -655,8 +723,11 @@ fn emit_pawn_pushes(
         t &= t - 1;
         let from = if down { to + back } else { to - back };
         if promo {
-            push_promotions(out, from, to, false);
-        } else if !captures_only {
+            // Une promotion est un coup **tactique**.
+            if !QUIET_ONLY {
+                push_promotions(out, from, to, false);
+            }
+        } else if !TACTICAL_ONLY {
             let flag = if back == 16 {
                 FLAG_DOUBLE_PUSH
             } else {
@@ -668,7 +739,15 @@ fn emit_pawn_pushes(
 }
 
 #[inline]
-fn emit_pawn_caps(out: &mut MoveList, targets: u64, back: u8, _cap: bool, _captures_only: bool) {
+fn emit_pawn_caps<const TACTICAL_ONLY: bool, const QUIET_ONLY: bool>(
+    out: &mut MoveList,
+    targets: u64,
+    back: u8,
+    _cap: bool,
+) {
+    if QUIET_ONLY {
+        return;
+    }
     let promo_mask = RANK_8;
     let mut t = targets;
     while t != 0 {
@@ -683,13 +762,15 @@ fn emit_pawn_caps(out: &mut MoveList, targets: u64, back: u8, _cap: bool, _captu
 }
 
 #[inline]
-fn emit_pawn_caps_down(
+fn emit_pawn_caps_down<const TACTICAL_ONLY: bool, const QUIET_ONLY: bool>(
     out: &mut MoveList,
     targets: u64,
     back: u8,
     _cap: bool,
-    _captures_only: bool,
 ) {
+    if QUIET_ONLY {
+        return;
+    }
     let promo_mask = crate::tables::RANK_1;
     let mut t = targets;
     while t != 0 {
@@ -704,7 +785,7 @@ fn emit_pawn_caps_down(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn gen_pawn_pinned(
+fn gen_pawn_pinned<const TACTICAL_ONLY: bool, const QUIET_ONLY: bool>(
     _pos: &Position,
     out: &mut MoveList,
     us: Color,
@@ -712,21 +793,23 @@ fn gen_pawn_pinned(
     from: u8,
     mask: u64,
     _empty: u64,
-    captures_only: bool,
 ) {
     if us == Color::White {
         let one = from + 8;
         if _pos.piece_on(one) == 0 && mask & (1u64 << one) != 0 {
             if one >= 56 {
-                push_promotions(out, from, one, false);
-            } else if !captures_only {
+                // Une promotion est **tactique**.
+                if !QUIET_ONLY {
+                    push_promotions(out, from, one, false);
+                }
+            } else if !TACTICAL_ONLY {
                 out.push(Move::new(from, one, FLAG_QUIET));
             }
         }
         if (8..16).contains(&from) && _pos.piece_on(from + 8) == 0 && _pos.piece_on(from + 16) == 0
         {
             let two = from + 16;
-            if mask & (1u64 << two) != 0 && !captures_only {
+            if mask & (1u64 << two) != 0 && !TACTICAL_ONLY {
                 out.push(Move::new(from, two, FLAG_DOUBLE_PUSH));
             }
         }
@@ -737,6 +820,9 @@ fn gen_pawn_pinned(
             }
             let to = (from as i8 + 8 + df) as u8;
             if them & (1u64 << to) != 0 && mask & (1u64 << to) != 0 {
+                if QUIET_ONLY {
+                    continue;
+                }
                 if to >= 56 {
                     push_promotions(out, from, to, true);
                 } else {
@@ -748,15 +834,17 @@ fn gen_pawn_pinned(
         let one = from - 8;
         if _pos.piece_on(one) == 0 && mask & (1u64 << one) != 0 {
             if one < 8 {
-                push_promotions(out, from, one, false);
-            } else if !captures_only {
+                if !QUIET_ONLY {
+                    push_promotions(out, from, one, false);
+                }
+            } else if !TACTICAL_ONLY {
                 out.push(Move::new(from, one, FLAG_QUIET));
             }
         }
         if (48..56).contains(&from) && _pos.piece_on(from - 8) == 0 && _pos.piece_on(from - 16) == 0
         {
             let two = from - 16;
-            if mask & (1u64 << two) != 0 && !captures_only {
+            if mask & (1u64 << two) != 0 && !TACTICAL_ONLY {
                 out.push(Move::new(from, two, FLAG_DOUBLE_PUSH));
             }
         }
@@ -767,6 +855,9 @@ fn gen_pawn_pinned(
             }
             let to = (from as i8 - 8 + df) as u8;
             if them & (1u64 << to) != 0 && mask & (1u64 << to) != 0 {
+                if QUIET_ONLY {
+                    continue;
+                }
                 if to < 8 {
                     push_promotions(out, from, to, true);
                 } else {

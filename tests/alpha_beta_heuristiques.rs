@@ -194,7 +194,14 @@ fn le_defaut_est_ceux_de_la_phase_ab_gelee() {
 /// position où le trait gagne du matériel garde un score positif.
 #[test]
 fn le_razoring_ne_coupe_pas_un_coup_gagnant() {
-    // Les blancs capturent une dame : le score doit rester très positif.
+    // Les blancs capturent une dame : le score doit rester positif et le
+    // coup rendu doit être la prise.
+    //
+    // Le seuil n'est pas « 500 cp » mais « le score du moteur **par
+    // défaut** » : la position est un K+P contre K après la prise, donc
+    // sa vraie valeur est ~+105 cp. Le seuil de 500 cp qui figurait
+    // ici mesurait le **moteur cassé** (la quiescence rendait la valeur
+    // de l'adversaire : la position valait +765 cp au lieu de +105).
     let fen = "4k3/8/8/3q4/4P3/8/8/4K3 w - - 0 1";
     let base = search_opts(fen, 4, default_on());
     let razor = search_opts(
@@ -205,11 +212,18 @@ fn le_razoring_ne_coupe_pas_un_coup_gagnant() {
             ..default_on()
         },
     );
-    assert!(base.score_cp > 500, "la capture doit être vue : {}", base.score_cp);
+    assert!(base.score_cp > 0, "la capture doit être vue : {}", base.score_cp);
+    assert_eq!(base.best.uci(), "e4d5", "la prise de la dame doit être jouée");
     assert!(
-        razor.score_cp > 500,
+        razor.score_cp > 0,
         "le razoring ne doit pas perdre une capture : {}",
         razor.score_cp
+    );
+    assert_eq!(
+        razor.best.uci(),
+        "e4d5",
+        "le razoring ne doit pas changer le coup : {}",
+        razor.best.uci()
     );
 }
 
@@ -226,9 +240,15 @@ fn la_futility_ne_coupe_pas_un_coup_gagnant() {
         },
     );
     assert!(
-        fut.score_cp > 500,
+        fut.score_cp > 0,
         "la futilité ne doit pas perdre une capture : {}",
         fut.score_cp
+    );
+    assert_eq!(
+        fut.best.uci(),
+        "e4d5",
+        "la futilité ne doit pas changer le coup : {}",
+        fut.best.uci()
     );
 }
 

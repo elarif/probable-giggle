@@ -84,6 +84,48 @@ fn ab_scores_a_won_endgame_positive() {
     assert!(o.score_cp < ab::MATE - 2, "it is not a mate yet");
 }
 
+/// Une position **calme** (aucune prise disponible) n'est **pas** une
+/// nulle : elle est évaluée.
+///
+/// C'est le test de régression du défaut de la **quiescence** : le
+/// générateur émettait, en mode « prises seulement », les coups
+/// tranquilles du **roi** ; la quiescence ne pouvait donc pas distinguer
+/// « pas de prise » de « pat », et rendait `0` (une nulle) pour toute
+/// position sans prise. La valeur d'une position calme était donc
+/// **fausse** — et, plus grave, la valeur rendue par la quiescence
+/// explorant une prise était celle de **l'adversaire** (le signe n'était
+/// pas inversé), ce qui faisait noter une position perdante comme
+/// gagnante.
+#[test]
+fn ab_evaluate_une_position_calme() {
+    // Les blancs sont perdants d'une dame ; la position est calme (aucune
+    // prise) : le score doit être **négatif**, pas nul.
+    let fen = "k7/8/8/q7/8/4P3/8/4K3 w - - 0 1";
+    let o = search_fen(fen, 3);
+    assert!(
+        o.score_cp < -500,
+        "une position perdante doit être négative, pas nulle : {}",
+        o.score_cp
+    );
+}
+
+/// La valeur rendue par la quiescence est celle du **trait** : une
+/// position gagnante reste gagnante quand la quiescence explore une
+/// prise.
+#[test]
+fn ab_quiescence_rend_la_valeur_du_trait() {
+    // Les blancs capturent une dame : la quiescence explore cette prise
+    // et le score doit rester **positif** (côté trait).
+    let fen = "4k3/8/8/3q4/4P3/8/8/4K3 w - - 0 1";
+    let o = search_fen(fen, 4);
+    assert!(
+        o.score_cp > 0,
+        "la capture de la dame doit rester positive : {}",
+        o.score_cp
+    );
+    assert_eq!(o.best.uci(), "e4d5", "la prise de la dame doit être jouée");
+}
+
 /// Le coup rendu est **légal** — jamais `0000` sur une position jouable.
 #[test]
 fn ab_never_answers_0000_on_a_playable_position() {

@@ -806,27 +806,41 @@ impl<'a> Ctx<'a> {
         let mut list = MoveList::new();
         if in_check {
             movegen::generate(&self.pos, &mut list, GenKind::All);
+            if list.is_empty() {
+                // Aucun coup d'esquive : c'est un **mat**.
+                return (-(MATE - ply as i32), Move::NONE, Flag::Exact);
+            }
         } else {
+            // Le **stand-pat** vient *avant* la liste : une position sans
+            // prise n'est **pas** une nulle, c'est une position à
+            // évaluer. (C'est ce que le mode `CapturesOnly` du
+            // générateur masquait : il émettait aussi les coups
+            // tranquilles du roi, donc la liste n'était jamais vide et le
+            // stand-pat était toujours atteint — mais la quiescence
+            // confondait alors « pas de prise » et « pat ».)
+            let stand = crate::nn::leaf_cp(&self.pos);
+            if stand >= beta {
+                return (stand, Move::NONE, Flag::Lower);
+            }
             movegen::generate(&self.pos, &mut list, GenKind::CapturesOnly);
-        }
-        if list.is_empty() {
-            let v = if in_check { -(MATE - ply as i32) } else { 0 };
-            return (v, Move::NONE, Flag::Exact);
+            if list.is_empty() {
+                // Pas de prise : la position n'est **terminale** que si
+                // elle n'a plus aucun coup légal (pat). Sinon, c'est la
+                // valeur statique qui répond.
+                if !movegen::has_legal_move(&self.pos) {
+                    return (0, Move::NONE, Flag::Exact);
+                }
+                return (stand, Move::NONE, Flag::Exact);
+            }
+            if stand > alpha {
+                alpha = stand;
+            }
         }
 
         // The best move of the quiescence (for the PV). A stand-pat that
         // wins leaves it at `NONE`: the PV then stops there, which is the
         // honest thing to show — there is no capture to play.
         let mut best_move = Move::NONE;
-        if !in_check {
-            let stand = crate::nn::leaf_cp(&self.pos);
-            if stand >= beta {
-                return (stand, Move::NONE, Flag::Lower);
-            }
-            if stand > alpha {
-                alpha = stand;
-            }
-        }
 
         // Le même traitement que dans la negamax : **aucune allocation**
         // (tampon par ply + tri sur un ordre total).
@@ -855,7 +869,13 @@ impl<'a> Ctx<'a> {
         for &idx in order[..n].iter() {
             let mv = list.get(idx as usize);
             let undo = self.pos.make(mv);
-            let (score, _, _) = self.quiescence(-beta, -alpha, ply + 1);
+            // **La valeur de l'enfant est celle de l'adversaire** : il faut
+            // l'inverser pour la lire du point de vue du trait (negamax).
+            // Sans cette inversion, la quiescence rendait la valeur *de
+            // l'adversaire* : le moteur jugeait les positions calmes à
+            // l'envers (une position perdante était notée gagnante).
+            let (child_score, _, _) = self.quiescence(-beta, -alpha, ply + 1);
+            let score = -child_score;
             self.pos.unmake(mv, undo);
             if self.aborted {
                 return (0, Move::NONE, Flag::Upper);

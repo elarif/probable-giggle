@@ -293,6 +293,14 @@ impl Move {
 pub enum GenKind {
     All,
     CapturesOnly,
+    /// Les seuls coups **tranquilles** (ni prise, ni promotion).
+    ///
+    /// C'est la moitié complementaire de [`GenKind::CapturesOnly`] : les
+    /// deux ensemble forment la generation **échelonnée** (tactique
+    /// d'abord, tranquille ensuite), que la recherche utilise pour ne
+    /// generer les coups tranquilles que si les tactiques n'ont pas
+    /// suffit.
+    QuietsOnly,
 }
 
 // Castling-right bit flags.
