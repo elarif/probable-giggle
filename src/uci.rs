@@ -77,6 +77,15 @@ pub struct UciState {
     threads: usize,
     /// The search algorithm (AB): `mcts` (default) or `alpha`.
     search: SearchKind,
+    /// Phase AB7 : l'amplitude du bruit de la valeur (en centipions).
+    /// `0` = pas de bruit (le défaut, et l'état bit-à-bit d'avant).
+    noise_cp: u32,
+    /// Phase AB7 : la graine du champ de bruit, **indépendante** de la
+    /// graine de recherche.
+    noise_seed: u64,
+    /// Phase AB8 : les **options de recherche** de l'alpha-beta — chaque
+    /// heuristique est activable **seule**, pour être mesurée seule.
+    ab_options: ab::Options,
     worker: Option<std::thread::JoinHandle<()>>,
     stop: Arc<AtomicBool>,
 }
@@ -96,7 +105,9 @@ impl Default for UciState {
             leaf_q: 0,
             threads: 1,
             search: SearchKind::default(),
-            worker: None,
+            noise_cp: 0,
+            noise_seed: crate::eval::DEFAULT_NOISE_SEED,
+            ab_options: ab::Options::default(),            worker: None,
             stop: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -172,6 +183,26 @@ fn handle(st: &mut UciState, line: &str) -> bool {
             // 3–5 (et le tournoi du 2026-10-22) doivent rester
             // reproductibles à l'identique.
             out_line("option name Search type string default mcts");
+            // Phase AB7 : le bruit de la valeur (le dispositif causal).
+            // `EvalNoise` est l'amplitude **en centipions** ; `0` = pas de
+            // bruit (le défaut : les mesures gelées des phases 3 à 5
+            // restent bit-à-bit).
+            out_line("option name EvalNoise type spin default 0 min 0 max 2000");
+            out_line(&format!(
+                "option name EvalNoiseSeed type string default {:#x}",
+                st.noise_seed
+            ));
+            // Phase AB8 : les options de recherche de l'alpha-beta. Les
+            // trois premières sont **actives par défaut** (c'est le chemin
+            // de la phase AB gelée) ; les trois autres sont **inactives** :
+            // chacune doit gagner sa place sur des mesures.
+            out_line("option name AbPvs type spin default 1 min 0 max 1");
+            out_line("option name AbKillers type spin default 1 min 0 max 1");
+            out_line("option name AbHistory type spin default 1 min 0 max 1");
+            out_line("option name AbNullMove type spin default 0 min 0 max 1");
+            out_line("option name AbRazoring type spin default 0 min 0 max 1");
+            out_line("option name AbFutility type spin default 0 min 0 max 1");
+            out_line("option name AbLmr type spin default 0 min 0 max 1");
             out_line("uciok");
         }
         Some("isready") => {
@@ -197,6 +228,7 @@ fn handle(st: &mut UciState, line: &str) -> bool {
             let leaf_q = st.leaf_q;
             let threads = st.threads;
             let kind = st.search;
+            let ab_options = st.ab_options;
             st.worker = Some(std::thread::spawn(move || {
                 // ---- l'alpha-beta de référence (phase AB) ----
                 // `docs/ab/plan-alpha-beta-2026-10-22.md`. Le chemin MCTS
@@ -216,7 +248,7 @@ fn handle(st: &mut UciState, line: &str) -> bool {
                             u64::MAX
                         },
                     };
-                    let search = ab::Search::new(pos, hist, limits);
+                    let search = ab::Search::with_options(pos, hist, limits, ab_options);
                     let o = search.run(&stop);
                     // Même contrat que le MCTS : une position jouable
                     // reçoit toujours un coup **légal**.
@@ -352,6 +384,7 @@ fn move_uci(m: Move) -> String {
     }
 }
 
+/// L'alpha-beta de référence (`docs/ab/plan-alpha-beta-2026-10-22.md`).
 fn set_option(st: &mut UciState, toks: &[&str]) {
     // setoption name <Name> value <Value...>
     let (mut n, mut v) = (String::new(), String::new());
@@ -409,6 +442,20 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
                 .map(|x: usize| x.clamp(1, 64))
                 .unwrap_or(st.threads)
         }
+        // Le bruit de la valeur (phase AB7). L'amplitude et la graine
+        // sont **indépendantes** de la graine de recherche (`Seed`) : le
+        // champ de bruit doit être le même d'un point de la courbe à
+        // l'autre, quelle que soit la graine du moteur.
+        ("EvalNoise", _) => {
+            st.noise_cp = v.parse::<u32>().map(|x| x.min(2000)).unwrap_or(st.noise_cp);
+            crate::eval::set_noise(st.noise_cp, st.noise_seed);
+        }
+        ("EvalNoiseSeed", _) => {
+            st.noise_seed = u64::from_str_radix(v.trim_start_matches("0x"), 16)
+                .or_else(|_| v.parse())
+                .unwrap_or(st.noise_seed);
+            crate::eval::set_noise(st.noise_cp, st.noise_seed);
+        }
         // L'alpha-beta de référence (`docs/ab/plan-alpha-beta-2026-10-22.md`).
         ("Search", _) => {
             st.search = match v.trim().to_ascii_lowercase().as_str() {
@@ -416,7 +463,28 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
                 _ => SearchKind::Mcts,
             }
         }
+        // Phase AB8 : les options de recherche de l'alpha-beta. Elles
+        // n'ont d'effet que sur le chemin `Search=alpha` ; le chemin
+        // MCTS est inchangé.
+        ("AbPvs", _) => st.ab_options.pvs = parse_bool(&v, st.ab_options.pvs),
+        ("AbKillers", _) => st.ab_options.killers = parse_bool(&v, st.ab_options.killers),
+        ("AbHistory", _) => st.ab_options.history = parse_bool(&v, st.ab_options.history),
+        ("AbNullMove", _) => st.ab_options.null_move = parse_bool(&v, st.ab_options.null_move),
+        ("AbRazoring", _) => st.ab_options.razoring = parse_bool(&v, st.ab_options.razoring),
+        ("AbFutility", _) => st.ab_options.futility = parse_bool(&v, st.ab_options.futility),
+        ("AbLmr", _) => st.ab_options.lmr = parse_bool(&v, st.ab_options.lmr),
         (name, value) => eprintln!("uci: ignored option {name:?} = {value:?}"),
+    }
+}
+
+/// Un booléen d'option UCI : `0`/`1`, `false`/`true`, `non`/`oui`.
+/// Une valeur illisible **laisse l'option inchangée** (elle n'est pas
+/// appliquée silencieusement à l'inverse de ce qui est demandé).
+fn parse_bool(v: &str, current: bool) -> bool {
+    match v.trim().to_ascii_lowercase().as_str() {
+        "1" | "true" | "yes" | "on" => true,
+        "0" | "false" | "no" | "off" => false,
+        _ => current,
     }
 }
 

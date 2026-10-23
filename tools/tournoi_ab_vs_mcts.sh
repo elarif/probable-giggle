@@ -31,6 +31,7 @@ ROUNDS=20
 CONCURRENCY=5
 BOOK=""
 SEED=20261022
+NOISE=0
 OUT="prt/rr/ab-vs-mcts.log"
 PGN=""
 MYCHESS="${MYCHESS:-target/release/mychess}"
@@ -89,6 +90,7 @@ fi
     echo "# timemargin : ${TIMEMARGIN} ms ; adjudication : aucune"
     echo "# book : ${BOOK} (ordre aleatoire, graine ${SEED})"
     echo "# rondes : ${ROUNDS} x 2 couleurs par paire"
+    echo "# bruit de la valeur : ${NOISE} cp (0 = valeur parfaite)"
     echo "# ab = Search=alpha (negamax + table de transposition)"
     echo "# mcts = Search=mcts (le MCTS du projet)"
     echo "# date : $(date -Is)"
@@ -101,8 +103,8 @@ PGN_ARGS=()
 cd "$OUT_DIR"
 fastchess \
     "${PGN_ARGS[@]}" \
-    -engine name=ab cmd="$MYCHESS_ABS" args="uci" option.Search=alpha \
-    -engine name=mcts cmd="$MYCHESS_ABS" args="uci" option.Search=mcts \
+    -engine name=ab cmd="$MYCHESS_ABS" args="uci" option.Search=alpha option.EvalNoise="$NOISE" \
+    -engine name=mcts cmd="$MYCHESS_ABS" args="uci" option.Search=mcts option.EvalNoise="$NOISE" \
     -each proto=uci "st=$ST" "timemargin=$TIMEMARGIN" \
     -openings file="$BOOK_ABS" format=epd order=random \
     -rounds "$ROUNDS" -games 2 -concurrency "$CONCURRENCY" -srand "$SEED" \
