@@ -149,7 +149,13 @@ mod v1_ref {
                     bv = c.node;
                 }
             }
-            let sc = (q_from_parent(&arena[children[best].node as usize]) * 100.0).round() as i32;
+            // L'échelle : la Q est dans `[-1, 1]` et le pont vers les
+            // centipions est `1/1000` (`mcts::EVAL_Q_CP_SCALE`) — le
+            // facteur était écrit en dur (`* 100.0`) et rendait le score
+            // **dix fois trop petit** (une dame de plus : 895 cp
+            // annoncés 90). La référence est mise à jour avec l'échelle
+            // **du moteur**, qui est la seule correcte.
+            let sc = (q_from_parent(&arena[children[best].node as usize]) * 1000.0).round() as i32;
             (children[best].mv, sc)
         };
         Outcome {

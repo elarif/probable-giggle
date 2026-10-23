@@ -505,7 +505,18 @@ fn pick_best(root: &[(Move, u64, f32)]) -> (Move, i32) {
         // `0000` in that case (no child at all).
         return (Move::NONE, 0);
     }
-    let sc = (-(root[best].2 / bv as f32) * 100.0).round() as i32;
+    // La Q de l'arête racine est la valeur **côté adverse** (c'est
+    // l'adversaire qui jouera le coup) : la négation la ramène au point
+    // de vue du joueur au trait.
+    //
+    // L'échelle est celle du **pont** : `Q = cp * EVAL_Q_CP_SCALE`
+    // (`1/1000`), donc `cp = Q / EVAL_Q_CP_SCALE`. Le facteur était
+    // écrit en dur (`* 100.0`) : c'était **dix fois trop petit** — une
+    // position avec une dame de plus (895 cp) était annoncée à 90 cp.
+    // Le littéral est remplacé par la constante du pont : c'est le seul
+    // endroit où l'échelle se touche, et il n'y a plus de nombre magique
+    // à resynchroniser.
+    let sc = (-(root[best].2 / bv as f32) / EVAL_Q_CP_SCALE).round() as i32;
     (root[best].0, sc)
 }
 
