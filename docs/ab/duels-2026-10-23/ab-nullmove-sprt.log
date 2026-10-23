@@ -1,0 +1,991 @@
+# duel AB vs AB — 2026-10-23T09:00:30+02:00
+# A : AbNullMove=1
+# B : AbNullMove=0
+# book : /tmp/openings_src/eco_lichess.epd (ordre aleatoire, graine 20261023)
+# rondes : 200 x 2 couleurs par paire
+# temps : 200 ms par coup (fastchess st=0.200s, timemargin=200 ms) ; adjudication : aucune
+# sprt : elo0=0 elo1=5 alpha=0.05 beta=0.05
+# hote : Linux 6.18.54.1-microsoft-standard-WSL2 x86_64 — 12 coeurs
+# command : fastchess option.AbNullMove=1 vs option.AbNullMove=0
+Indexing opening suite...
+Started game 1 of 400 (a vs b)
+Started game 3 of 400 (a vs b)
+Started game 4 of 400 (b vs a)
+Started game 2 of 400 (b vs a)
+Started game 5 of 400 (a vs b)
+[[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[]
+slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+Finished game 3 (a vs b): 0-1 {Black mates}
+Started game 6 of 400 (b vs a)
+Finished game 2 (b vs a): 0-1 {Black mates}
+Started game 7 of 400 (a vs b)
+Finished game 4 (b vs a): 0-1 {Black mates}
+Started game 8 of 400 (b vs a)
+Finished game 5 (a vs b): 1-0 {White mates}
+Started game 9 of 400 (a vs b)
+Finished game 1 (a vs b): 1-0 {White mates}
+Started game 10 of 400 (b vs a)
+Finished game 8 (b vs a): 1-0 {White mates}
+Started game 11 of 400 (a vs b)
+Finished game 7 (a vs b): 0-1 {Black mates}
+Started game 12 of 400 (b vs a)
+Finished game 9 (a vs b): 1-0 {White mates}
+Started game 13 of 400 (a vs b)
+Finished game 6 (b vs a): 1-0 {White mates}
+Started game 14 of 400 (b vs a)
+Finished game 12 (b vs a): 0-1 {Black mates}
+Started game 15 of 400 (a vs b)
+Finished game 10 (b vs a): 0-1 {Black mates}
+Started game 16 of 400 (b vs a)
+Finished game 11 (a vs b): 0-1 {Black mates}
+Started game 17 of 400 (a vs b)
+Finished game 14 (b vs a): 0-1 {Black mates}
+Started game 18 of 400 (b vs a)
+Finished game 13 (a vs b): 0-1 {Black mates}
+Started game 19 of 400 (a vs b)
+Finished game 15 (a vs b): 0-1 {Black mates}
+Started game 20 of 400 (b vs a)
+Finished game 17 (a vs b): 1-0 {White mates}
+Started game 21 of 400 (a vs b)
+Finished game 16 (b vs a): 1-0 {White mates}
+Started game 22 of 400 (b vs a)
+Finished game 20 (b vs a): 1-0 {White mates}
+Started game 23 of 400 (a vs b)
+Finished game 22 (b vs a): 1-0 {White mates}
+Started game 24 of 400 (b vs a)
+Finished game 21 (a vs b): 0-1 {Black mates}
+Started game 25 of 400 (a vs b)
+Finished game 18 (b vs a): 1-0 {White mates}
+Started game 26 of 400 (b vs a)
+Finished game 19 (a vs b): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -63.88 +/- 164.47, nElo: -62.40 +/- 145.18
+LOS: 19.98 %, DrawRatio: 45.45 %, PairsRatio: 0.50
+Games: 22, Wins: 9, Losses: 13, Draws: 0, Points: 9.0 (40.91 %)
+Ptnml(0-2): [4, 0, 5, 0, 2], WL/DD Ratio: inf
+LLR: -0.06 (-1.9%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 27 of 400 (a vs b)
+Finished game 23 (a vs b): 0-1 {Black mates}
+Started game 28 of 400 (b vs a)
+Finished game 24 (b vs a): 0-1 {Black mates}
+Started game 29 of 400 (a vs b)
+Finished game 27 (a vs b): 0-1 {Black mates}
+Started game 30 of 400 (b vs a)
+Finished game 26 (b vs a): 1-0 {White mates}
+Started game 31 of 400 (a vs b)
+Finished game 25 (a vs b): 0-1 {Black mates}
+Started game 32 of 400 (b vs a)
+Finished game 28 (b vs a): 0-1 {Black mates}
+Started game 33 of 400 (a vs b)
+Finished game 29 (a vs b): 0-1 {Black mates}
+Started game 34 of 400 (b vs a)
+Finished game 30 (b vs a): 1-0 {White mates}
+Started game 35 of 400 (a vs b)
+Finished game 32 (b vs a): 1-0 {White mates}
+Started game 36 of 400 (b vs a)
+Finished game 31 (a vs b): 0-1 {Black mates}
+Started game 37 of 400 (a vs b)
+Finished game 33 (a vs b): 1-0 {White mates}
+Started game 38 of 400 (b vs a)
+Finished game 34 (b vs a): 0-1 {Black mates}
+Started game 39 of 400 (a vs b)
+Finished game 36 (b vs a): 1-0 {White mates}
+Started game 40 of 400 (b vs a)
+Finished game 35 (a vs b): 1-0 {White mates}
+Started game 41 of 400 (a vs b)
+Finished game 39 (a vs b): 0-1 {Black mates}
+Started game 42 of 400 (b vs a)
+Finished game 40 (b vs a): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -83.88 +/- 120.48, nElo: -83.69 +/- 110.47
+LOS: 6.88 %, DrawRatio: 42.11 %, PairsRatio: 0.38
+Games: 38, Wins: 14, Losses: 23, Draws: 1, Points: 14.5 (38.16 %)
+Ptnml(0-2): [7, 1, 8, 0, 3], WL/DD Ratio: inf
+LLR: -0.13 (-4.3%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 43 of 400 (a vs b)
+Finished game 41 (a vs b): 0-1 {Black mates}
+Started game 44 of 400 (b vs a)
+Finished game 37 (a vs b): 1-0 {White mates}
+Started game 45 of 400 (a vs b)
+Finished game 38 (b vs a): 0-1 {Black mates}
+Started game 46 of 400 (b vs a)
+Finished game 45 (a vs b): 0-1 {Black mates}
+Started game 47 of 400 (a vs b)
+Finished game 42 (b vs a): 1-0 {White mates}
+Started game 48 of 400 (b vs a)
+Finished game 44 (b vs a): 0-1 {Black mates}
+Started game 49 of 400 (a vs b)
+Finished game 46 (b vs a): 1-0 {White mates}
+Started game 50 of 400 (b vs a)
+Finished game 43 (a vs b): 0-1 {Black mates}
+Started game 51 of 400 (a vs b)
+Finished game 47 (a vs b): 1-0 {White mates}
+Started game 52 of 400 (b vs a)
+Finished game 50 (b vs a): 1-0 {White mates}
+Started game 53 of 400 (a vs b)
+Finished game 52 (b vs a): 1-0 {White mates}
+Started game 54 of 400 (b vs a)
+Finished game 49 (a vs b): 1-0 {White mates}
+Started game 55 of 400 (a vs b)
+Finished game 51 (a vs b): 1/2-1/2 {Draw by stalemate}
+Started game 56 of 400 (b vs a)
+Finished game 48 (b vs a): 0-1 {Black mates}
+Started game 57 of 400 (a vs b)
+Finished game 54 (b vs a): 1-0 {White mates}
+Started game 58 of 400 (b vs a)
+Finished game 53 (a vs b): 1-0 {White mates}
+Started game 59 of 400 (a vs b)
+Finished game 55 (a vs b): 0-1 {Black mates}
+Started game 60 of 400 (b vs a)
+Finished game 58 (b vs a): 0-1 {Black mates}
+Started game 61 of 400 (a vs b)
+Finished game 56 (b vs a): 1-0 {White mates}
+Started game 62 of 400 (b vs a)
+Finished game 60 (b vs a): 1-0 {White mates}
+Started game 63 of 400 (a vs b)
+Finished game 59 (a vs b): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -72.94 +/- 95.25, nElo: -72.49 +/- 89.41
+LOS: 5.60 %, DrawRatio: 41.38 %, PairsRatio: 0.42
+Games: 58, Wins: 22, Losses: 34, Draws: 2, Points: 23.0 (39.66 %)
+Ptnml(0-2): [10, 2, 12, 0, 5], WL/DD Ratio: inf
+LLR: -0.17 (-5.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 64 of 400 (b vs a)
+Finished game 57 (a vs b): 0-1 {Black mates}
+Started game 65 of 400 (a vs b)
+Finished game 64 (b vs a): 1-0 {White mates}
+Started game 66 of 400 (b vs a)
+Finished game 62 (b vs a): 0-1 {Black mates}
+Started game 67 of 400 (a vs b)
+Finished game 61 (a vs b): 0-1 {Black mates}
+Started game 68 of 400 (b vs a)
+Finished game 63 (a vs b): 0-1 {Black mates}
+Started game 69 of 400 (a vs b)
+Finished game 65 (a vs b): 0-1 {Black mates}
+Started game 70 of 400 (b vs a)
+Finished game 66 (b vs a): 1-0 {White mates}
+Started game 71 of 400 (a vs b)
+Finished game 67 (a vs b): 1-0 {White mates}
+Started game 72 of 400 (b vs a)
+Finished game 68 (b vs a): 1-0 {White mates}
+Started game 73 of 400 (a vs b)
+Finished game 72 (b vs a): 1-0 {White mates}
+Started game 74 of 400 (b vs a)
+Finished game 69 (a vs b): 1-0 {White mates}
+Started game 75 of 400 (a vs b)
+Finished game 71 (a vs b): 1-0 {White mates}
+Started game 76 of 400 (b vs a)
+Finished game 70 (b vs a): 1-0 {White mates}
+Started game 77 of 400 (a vs b)
+Finished game 73 (a vs b): 1-0 {White mates}
+Started game 78 of 400 (b vs a)
+Finished game 75 (a vs b): 0-1 {Black mates}
+Started game 79 of 400 (a vs b)
+Finished game 78 (b vs a): 1-0 {White mates}
+Started game 80 of 400 (b vs a)
+Finished game 74 (b vs a): 1-0 {White mates}
+Started game 81 of 400 (a vs b)
+Finished game 77 (a vs b): 1-0 {White mates}
+Started game 82 of 400 (b vs a)
+Finished game 79 (a vs b): 0-1 {Black mates}
+Started game 83 of 400 (a vs b)
+Finished game 76 (b vs a): 1/2-1/2 {Draw by fifty moves rule}
+Started game 84 of 400 (b vs a)
+Finished game 81 (a vs b): 0-1 {Black mates}
+Started game 85 of 400 (a vs b)
+Finished game 82 (b vs a): 0-1 {Black mates}
+Started game 86 of 400 (b vs a)
+Finished game 80 (b vs a): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -81.99 +/- 72.61, nElo: -89.60 +/- 75.20
+LOS: 0.98 %, DrawRatio: 48.78 %, PairsRatio: 0.31
+Games: 82, Wins: 30, Losses: 49, Draws: 3, Points: 31.5 (38.41 %)
+Ptnml(0-2): [13, 3, 20, 0, 5], WL/DD Ratio: inf
+LLR: -0.29 (-9.9%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 87 of 400 (a vs b)
+Finished game 83 (a vs b): 0-1 {Black mates}
+Started game 88 of 400 (b vs a)
+Finished game 84 (b vs a): 1-0 {White mates}
+Started game 89 of 400 (a vs b)
+Finished game 85 (a vs b): 0-1 {Black mates}
+Started game 90 of 400 (b vs a)
+Finished game 86 (b vs a): 1-0 {White mates}
+Started game 91 of 400 (a vs b)
+Finished game 88 (b vs a): 1-0 {White mates}
+Started game 92 of 400 (b vs a)
+Finished game 87 (a vs b): 0-1 {Black mates}
+Started game 93 of 400 (a vs b)
+Finished game 91 (a vs b): 0-1 {Black mates}
+Started game 94 of 400 (b vs a)
+Finished game 89 (a vs b): 0-1 {Black mates}
+Started game 95 of 400 (a vs b)
+Finished game 92 (b vs a): 1-0 {White mates}
+Started game 96 of 400 (b vs a)
+Finished game 93 (a vs b): 0-1 {Black mates}
+Started game 97 of 400 (a vs b)
+Finished game 94 (b vs a): 1-0 {White mates}
+Started game 98 of 400 (b vs a)
+Finished game 90 (b vs a): 0-1 {Black mates}
+Started game 99 of 400 (a vs b)
+Finished game 96 (b vs a): 0-1 {Black mates}
+Started game 100 of 400 (b vs a)
+Finished game 95 (a vs b): 0-1 {Black mates}
+Started game 101 of 400 (a vs b)
+Finished game 98 (b vs a): 1-0 {White mates}
+Started game 102 of 400 (b vs a)
+Finished game 97 (a vs b): 1-0 {White mates}
+Started game 103 of 400 (a vs b)
+Finished game 99 (a vs b): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 104 of 400 (b vs a)
+Finished game 101 (a vs b): 0-1 {Black mates}
+Started game 105 of 400 (a vs b)
+Finished game 103 (a vs b): 0-1 {Black mates}
+Started game 106 of 400 (b vs a)
+Finished game 100 (b vs a): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -107.54 +/- 67.14, nElo: -118.02 +/- 68.10
+LOS: 0.03 %, DrawRatio: 46.00 %, PairsRatio: 0.23
+Games: 100, Wins: 33, Losses: 63, Draws: 4, Points: 35.0 (35.00 %)
+Ptnml(0-2): [18, 4, 23, 0, 5], WL/DD Ratio: inf
+LLR: -0.44 (-15.1%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 107 of 400 (a vs b)
+Finished game 102 (b vs a): 0-1 {Black mates}
+Started game 108 of 400 (b vs a)
+Finished game 104 (b vs a): 0-1 {Black mates}
+Started game 109 of 400 (a vs b)
+Finished game 105 (a vs b): 1-0 {White mates}
+Started game 110 of 400 (b vs a)
+Finished game 108 (b vs a): 1-0 {White mates}
+Started game 111 of 400 (a vs b)
+Finished game 107 (a vs b): 1-0 {White mates}
+Started game 112 of 400 (b vs a)
+Finished game 110 (b vs a): 1-0 {White mates}
+Started game 113 of 400 (a vs b)
+Finished game 106 (b vs a): 1-0 {White mates}
+Started game 114 of 400 (b vs a)
+Finished game 109 (a vs b): 1-0 {White mates}
+Started game 115 of 400 (a vs b)
+Finished game 112 (b vs a): 1-0 {White mates}
+Started game 116 of 400 (b vs a)
+Finished game 115 (a vs b): 0-1 {Black mates}
+Started game 117 of 400 (a vs b)
+Finished game 111 (a vs b): 0-1 {Black mates}
+Started game 118 of 400 (b vs a)
+Finished game 114 (b vs a): 1-0 {White mates}
+Started game 119 of 400 (a vs b)
+Finished game 116 (b vs a): 0-1 {Black mates}
+Started game 120 of 400 (b vs a)
+Finished game 113 (a vs b): 0-1 {Black mates}
+Started game 121 of 400 (a vs b)
+Finished game 117 (a vs b): 1-0 {White mates}
+Started game 122 of 400 (b vs a)
+Finished game 118 (b vs a): 1-0 {White mates}
+Started game 123 of 400 (a vs b)
+Finished game 120 (b vs a): 1-0 {White mates}
+Started game 124 of 400 (b vs a)
+Finished game 119 (a vs b): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -107.54 +/- 58.66, nElo: -122.84 +/- 62.16
+LOS: 0.01 %, DrawRatio: 50.00 %, PairsRatio: 0.20
+Games: 120, Wins: 40, Losses: 76, Draws: 4, Points: 42.0 (35.00 %)
+Ptnml(0-2): [21, 4, 30, 0, 5], WL/DD Ratio: inf
+LLR: -0.55 (-18.7%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 125 of 400 (a vs b)
+Finished game 123 (a vs b): 1-0 {White mates}
+Started game 126 of 400 (b vs a)
+Finished game 122 (b vs a): 1-0 {White mates}
+Started game 127 of 400 (a vs b)
+Finished game 121 (a vs b): 1-0 {White mates}
+Started game 128 of 400 (b vs a)
+Finished game 128 (b vs a): 0-1 {Black mates}
+Started game 129 of 400 (a vs b)
+Finished game 125 (a vs b): 1-0 {White mates}
+Started game 130 of 400 (b vs a)
+Finished game 126 (b vs a): 0-1 {Black mates}
+Started game 131 of 400 (a vs b)
+Finished game 124 (b vs a): 1-0 {White mates}
+Started game 132 of 400 (b vs a)
+Finished game 127 (a vs b): 1/2-1/2 {Draw by insufficient mating material}
+Started game 133 of 400 (a vs b)
+Finished game 129 (a vs b): 0-1 {Black mates}
+Started game 134 of 400 (b vs a)
+Finished game 132 (b vs a): 0-1 {Black mates}
+Started game 135 of 400 (a vs b)
+Finished game 130 (b vs a): 1-0 {White mates}
+Started game 136 of 400 (b vs a)
+Finished game 131 (a vs b): 0-1 {Black mates}
+Started game 137 of 400 (a vs b)
+Finished game 133 (a vs b): 1-0 {White mates}
+Started game 138 of 400 (b vs a)
+Finished game 135 (a vs b): 0-1 {Black mates}
+Started game 139 of 400 (a vs b)
+Finished game 136 (b vs a): 1-0 {White mates}
+Started game 140 of 400 (b vs a)
+Finished game 134 (b vs a): 1/2-1/2 {Draw by insufficient mating material}
+Started game 141 of 400 (a vs b)
+Finished game 137 (a vs b): 0-1 {Black mates}
+Started game 142 of 400 (b vs a)
+Finished game 138 (b vs a): 0-1 {Black mates}
+Started game 143 of 400 (a vs b)
+Finished game 140 (b vs a): 1-0 {White mates}
+Started game 144 of 400 (b vs a)
+Finished game 139 (a vs b): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -96.73 +/- 54.44, nElo: -108.70 +/- 57.55
+LOS: 0.01 %, DrawRatio: 48.57 %, PairsRatio: 0.29
+Games: 140, Wins: 48, Losses: 86, Draws: 6, Points: 51.0 (36.43 %)
+Ptnml(0-2): [24, 4, 34, 2, 6], WL/DD Ratio: inf
+LLR: -0.59 (-20.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 145 of 400 (a vs b)
+Finished game 141 (a vs b): 0-1 {Black mates}
+Started game 146 of 400 (b vs a)
+Finished game 142 (b vs a): 1-0 {White mates}
+Started game 147 of 400 (a vs b)
+Finished game 145 (a vs b): 1-0 {White mates}
+Started game 148 of 400 (b vs a)
+Finished game 146 (b vs a): 0-1 {Black mates}
+Started game 149 of 400 (a vs b)
+Finished game 144 (b vs a): 1-0 {White mates}
+Started game 150 of 400 (b vs a)
+Finished game 143 (a vs b): 1/2-1/2 {Draw by insufficient mating material}
+Started game 151 of 400 (a vs b)
+Finished game 148 (b vs a): 1-0 {White mates}
+Started game 152 of 400 (b vs a)
+Finished game 147 (a vs b): 1-0 {White mates}
+Started game 153 of 400 (a vs b)
+Finished game 152 (b vs a): 0-1 {Black mates}
+Started game 154 of 400 (b vs a)
+Finished game 149 (a vs b): 1-0 {White mates}
+Started game 155 of 400 (a vs b)
+Finished game 150 (b vs a): 1-0 {White mates}
+Started game 156 of 400 (b vs a)
+Finished game 151 (a vs b): 0-1 {Black mates}
+Started game 157 of 400 (a vs b)
+Finished game 153 (a vs b): 1-0 {White mates}
+Started game 158 of 400 (b vs a)
+Finished game 155 (a vs b): 0-1 {Black mates}
+Started game 159 of 400 (a vs b)
+Finished game 154 (b vs a): 1/2-1/2 {Draw by insufficient mating material}
+Started game 160 of 400 (b vs a)
+Finished game 156 (b vs a): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 161 of 400 (a vs b)
+Finished game 159 (a vs b): 0-1 {Black mates}
+Started game 162 of 400 (b vs a)
+Finished game 161 (a vs b): 1-0 {White mates}
+Started game 163 of 400 (a vs b)
+Finished game 157 (a vs b): 0-1 {Black mates}
+Started game 164 of 400 (b vs a)
+Finished game 162 (b vs a): 0-1 {Black mates}
+Started game 165 of 400 (a vs b)
+Finished game 160 (b vs a): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -86.43 +/- 51.22, nElo: -95.44 +/- 53.83
+LOS: 0.03 %, DrawRatio: 46.25 %, PairsRatio: 0.34
+Games: 160, Wins: 56, Losses: 95, Draws: 9, Points: 60.5 (37.81 %)
+Ptnml(0-2): [26, 6, 37, 3, 8], WL/DD Ratio: inf
+LLR: -0.60 (-20.5%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 166 of 400 (b vs a)
+Finished game 163 (a vs b): 0-1 {Black mates}
+Started game 167 of 400 (a vs b)
+Finished game 167 (a vs b): 1-0 {White mates}
+Started game 168 of 400 (b vs a)
+Finished game 164 (b vs a): 1-0 {White mates}
+Started game 169 of 400 (a vs b)
+Finished game 158 (b vs a): 1/2-1/2 {Draw by insufficient mating material}
+Started game 170 of 400 (b vs a)
+Finished game 165 (a vs b): 0-1 {Black mates}
+Started game 171 of 400 (a vs b)
+Finished game 170 (b vs a): 0-1 {Black mates}
+Started game 172 of 400 (b vs a)
+Finished game 168 (b vs a): 1-0 {White mates}
+Started game 173 of 400 (a vs b)
+Finished game 166 (b vs a): 0-1 {Black mates}
+Started game 174 of 400 (b vs a)
+Finished game 171 (a vs b): 1-0 {White mates}
+Started game 175 of 400 (a vs b)
+Finished game 172 (b vs a): 0-1 {Black mates}
+Started game 176 of 400 (b vs a)
+Finished game 169 (a vs b): 0-1 {Black mates}
+Started game 177 of 400 (a vs b)
+Finished game 173 (a vs b): 1-0 {White mates}
+Started game 178 of 400 (b vs a)
+Finished game 175 (a vs b): 0-1 {Black mates}
+Started game 179 of 400 (a vs b)
+Finished game 174 (b vs a): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 180 of 400 (b vs a)
+Finished game 176 (b vs a): 0-1 {Black mates}
+Started game 181 of 400 (a vs b)
+Finished game 177 (a vs b): 1-0 {White mates}
+Started game 182 of 400 (b vs a)
+Finished game 181 (a vs b): 0-1 {Black mates}
+Started game 183 of 400 (a vs b)
+Finished game 178 (b vs a): 1-0 {White mates}
+Started game 184 of 400 (b vs a)
+Finished game 179 (a vs b): 0-1 {Black mates}
+Started game 185 of 400 (a vs b)
+Finished game 180 (b vs a): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -76.49 +/- 46.97, nElo: -85.94 +/- 50.76
+LOS: 0.05 %, DrawRatio: 47.78 %, PairsRatio: 0.38
+Games: 180, Wins: 65, Losses: 104, Draws: 11, Points: 70.5 (39.17 %)
+Ptnml(0-2): [27, 7, 43, 4, 9], WL/DD Ratio: inf
+LLR: -0.62 (-21.1%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 186 of 400 (b vs a)
+Finished game 182 (b vs a): 0-1 {Black mates}
+Started game 187 of 400 (a vs b)
+Finished game 183 (a vs b): 0-1 {Black mates}
+Started game 188 of 400 (b vs a)
+Finished game 185 (a vs b): 1-0 {White mates}
+Started game 189 of 400 (a vs b)
+Finished game 184 (b vs a): 1-0 {White mates}
+Started game 190 of 400 (b vs a)
+Finished game 187 (a vs b): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 191 of 400 (a vs b)
+Finished game 186 (b vs a): 1-0 {White mates}
+Started game 192 of 400 (b vs a)
+Finished game 189 (a vs b): 0-1 {Black mates}
+Started game 193 of 400 (a vs b)
+Finished game 188 (b vs a): 1-0 {White mates}
+Started game 194 of 400 (b vs a)
+Finished game 190 (b vs a): 0-1 {Black mates}
+Started game 195 of 400 (a vs b)
+Finished game 191 (a vs b): 0-1 {Black mates}
+Started game 196 of 400 (b vs a)
+Finished game 193 (a vs b): 0-1 {Black mates}
+Started game 197 of 400 (a vs b)
+Finished game 192 (b vs a): 1-0 {White mates}
+Started game 198 of 400 (b vs a)
+Finished game 194 (b vs a): 0-1 {Black mates}
+Started game 199 of 400 (a vs b)
+Finished game 195 (a vs b): 1-0 {White mates}
+Started game 200 of 400 (b vs a)
+Finished game 196 (b vs a): 1-0 {White mates}
+Started game 201 of 400 (a vs b)
+Finished game 197 (a vs b): 1-0 {White mates}
+Started game 202 of 400 (b vs a)
+Finished game 198 (b vs a): 1-0 {White mates}
+Started game 203 of 400 (a vs b)
+Finished game 200 (b vs a): 1-0 {White mates}
+Started game 204 of 400 (b vs a)
+Finished game 201 (a vs b): 0-1 {Black mates}
+Started game 205 of 400 (a vs b)
+Finished game 199 (a vs b): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -79.53 +/- 43.41, nElo: -91.89 +/- 48.15
+LOS: 0.01 %, DrawRatio: 49.00 %, PairsRatio: 0.34
+Games: 200, Wins: 71, Losses: 116, Draws: 13, Points: 77.5 (38.75 %)
+Ptnml(0-2): [29, 9, 49, 4, 9], WL/DD Ratio: inf
+LLR: -0.73 (-24.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 206 of 400 (b vs a)
+Finished game 203 (a vs b): 1-0 {White mates}
+Started game 207 of 400 (a vs b)
+Finished game 204 (b vs a): 1-0 {White mates}
+Started game 208 of 400 (b vs a)
+Finished game 202 (b vs a): 1-0 {White mates}
+Started game 209 of 400 (a vs b)
+Finished game 205 (a vs b): 0-1 {Black mates}
+Started game 210 of 400 (b vs a)
+Finished game 207 (a vs b): 0-1 {Black mates}
+Started game 211 of 400 (a vs b)
+Finished game 206 (b vs a): 0-1 {Black mates}
+Started game 212 of 400 (b vs a)
+Finished game 208 (b vs a): 1-0 {White mates}
+Started game 213 of 400 (a vs b)
+Finished game 213 (a vs b): 1-0 {White mates}
+Started game 214 of 400 (b vs a)
+Finished game 210 (b vs a): 1-0 {White mates}
+Started game 215 of 400 (a vs b)
+Finished game 214 (b vs a): 1-0 {White mates}
+Started game 216 of 400 (b vs a)
+Finished game 209 (a vs b): 0-1 {Black mates}
+Started game 217 of 400 (a vs b)
+Finished game 216 (b vs a): 0-1 {Black mates}
+Started game 218 of 400 (b vs a)
+Finished game 215 (a vs b): 0-1 {Black mates}
+Started game 219 of 400 (a vs b)
+Finished game 211 (a vs b): 1-0 {White mates}
+Started game 220 of 400 (b vs a)
+Finished game 217 (a vs b): 1-0 {White mates}
+Started game 221 of 400 (a vs b)
+Finished game 219 (a vs b): 1-0 {White mates}
+Started game 222 of 400 (b vs a)
+Finished game 220 (b vs a): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -83.61 +/- 41.52, nElo: -97.50 +/- 46.33
+LOS: 0.00 %, DrawRatio: 50.00 %, PairsRatio: 0.32
+Games: 216, Wins: 76, Losses: 127, Draws: 13, Points: 82.5 (38.19 %)
+Ptnml(0-2): [32, 9, 54, 4, 9], WL/DD Ratio: inf
+LLR: -0.83 (-28.2%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 223 of 400 (a vs b)
+Finished game 218 (b vs a): 0-1 {Black mates}
+Started game 224 of 400 (b vs a)
+Finished game 212 (b vs a): 1/2-1/2 {Draw by fifty moves rule}
+Started game 225 of 400 (a vs b)
+Finished game 221 (a vs b): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 226 of 400 (b vs a)
+Finished game 224 (b vs a): 1-0 {White mates}
+Started game 227 of 400 (a vs b)
+Finished game 223 (a vs b): 0-1 {Black mates}
+Started game 228 of 400 (b vs a)
+Finished game 222 (b vs a): 0-1 {Black mates}
+Started game 229 of 400 (a vs b)
+Finished game 225 (a vs b): 0-1 {Black mates}
+Started game 230 of 400 (b vs a)
+Finished game 227 (a vs b): 0-1 {Black mates}
+Started game 231 of 400 (a vs b)
+Finished game 226 (b vs a): 1-0 {White mates}
+Started game 232 of 400 (b vs a)
+Finished game 229 (a vs b): 0-1 {Black mates}
+Started game 233 of 400 (a vs b)
+Finished game 228 (b vs a): 1-0 {White mates}
+Started game 234 of 400 (b vs a)
+Finished game 230 (b vs a): 0-1 {Black mates}
+Started game 235 of 400 (a vs b)
+Finished game 231 (a vs b): 0-1 {Black mates}
+Started game 236 of 400 (b vs a)
+Finished game 233 (a vs b): 0-1 {Black mates}
+Started game 237 of 400 (a vs b)
+Finished game 235 (a vs b): 0-1 {Black mates}
+Started game 238 of 400 (b vs a)
+Finished game 236 (b vs a): 1-0 {White mates}
+Started game 239 of 400 (a vs b)
+Finished game 237 (a vs b): 1-0 {White mates}
+Started game 240 of 400 (b vs a)
+Finished game 232 (b vs a): 1/2-1/2 {Draw by fifty moves rule}
+Started game 241 of 400 (a vs b)
+Finished game 239 (a vs b): 1-0 {White mates}
+Started game 242 of 400 (b vs a)
+Finished game 240 (b vs a): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -80.93 +/- 40.99, nElo: -91.21 +/- 44.33
+LOS: 0.00 %, DrawRatio: 46.61 %, PairsRatio: 0.37
+Games: 236, Wins: 83, Losses: 137, Draws: 16, Points: 91.0 (38.56 %)
+Ptnml(0-2): [36, 10, 55, 6, 11], WL/DD Ratio: inf
+LLR: -0.86 (-29.2%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 243 of 400 (a vs b)
+Finished game 234 (b vs a): 1/2-1/2 {Draw by insufficient mating material}
+Started game 244 of 400 (b vs a)
+Finished game 238 (b vs a): 0-1 {Black mates}
+Started game 245 of 400 (a vs b)
+Finished game 243 (a vs b): 0-1 {Black mates}
+Started game 246 of 400 (b vs a)
+Finished game 241 (a vs b): 0-1 {Black mates}
+Started game 247 of 400 (a vs b)
+Finished game 244 (b vs a): 0-1 {Black mates}
+Started game 248 of 400 (b vs a)
+Finished game 245 (a vs b): 1-0 {White mates}
+Started game 249 of 400 (a vs b)
+Finished game 246 (b vs a): 1-0 {White mates}
+Started game 250 of 400 (b vs a)
+Finished game 247 (a vs b): 0-1 {Black mates}
+Started game 251 of 400 (a vs b)
+Finished game 242 (b vs a): 0-1 {Black mates}
+Started game 252 of 400 (b vs a)
+Finished game 248 (b vs a): 1-0 {White mates}
+Started game 253 of 400 (a vs b)
+Finished game 249 (a vs b): 0-1 {Black mates}
+Started game 254 of 400 (b vs a)
+Finished game 253 (a vs b): 1-0 {White mates}
+Started game 255 of 400 (a vs b)
+Finished game 254 (b vs a): 1-0 {White mates}
+Started game 256 of 400 (b vs a)
+Finished game 250 (b vs a): 0-1 {Black mates}
+Started game 257 of 400 (a vs b)
+Finished game 251 (a vs b): 0-1 {Black mates}
+Started game 258 of 400 (b vs a)
+Finished game 257 (a vs b): 1-0 {White mates}
+Started game 259 of 400 (a vs b)
+Finished game 252 (b vs a): 0-1 {Black mates}
+Started game 260 of 400 (b vs a)
+Finished game 255 (a vs b): 1/2-1/2 {Draw by insufficient mating material}
+Started game 261 of 400 (a vs b)
+Finished game 258 (b vs a): 0-1 {Black mates}
+Started game 262 of 400 (b vs a)
+Finished game 256 (b vs a): 0-1 {Black mates}
+Started game 263 of 400 (a vs b)
+Finished game 259 (a vs b): 0-1 {Black mates}
+Started game 264 of 400 (b vs a)
+Finished game 260 (b vs a): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -70.44 +/- 38.49, nElo: -79.79 +/- 42.23
+LOS: 0.01 %, DrawRatio: 47.69 %, PairsRatio: 0.42
+Games: 260, Wins: 95, Losses: 147, Draws: 18, Points: 104.0 (40.00 %)
+Ptnml(0-2): [37, 11, 62, 7, 13], WL/DD Ratio: inf
+LLR: -0.84 (-28.7%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 265 of 400 (a vs b)
+Finished game 262 (b vs a): 0-1 {Black mates}
+Started game 266 of 400 (b vs a)
+Finished game 266 (b vs a): 0-1 {Black mates}
+Started game 267 of 400 (a vs b)
+Finished game 264 (b vs a): 0-1 {Black mates}
+Started game 268 of 400 (b vs a)
+Finished game 265 (a vs b): 1-0 {White mates}
+Started game 269 of 400 (a vs b)
+Finished game 261 (a vs b): 1-0 {White mates}
+Started game 270 of 400 (b vs a)
+Finished game 268 (b vs a): 1-0 {White mates}
+Started game 271 of 400 (a vs b)
+Finished game 263 (a vs b): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 272 of 400 (b vs a)
+Finished game 267 (a vs b): 0-1 {Black mates}
+Started game 273 of 400 (a vs b)
+Finished game 270 (b vs a): 1-0 {White mates}
+Started game 274 of 400 (b vs a)
+Finished game 269 (a vs b): 0-1 {Black mates}
+Started game 275 of 400 (a vs b)
+Finished game 271 (a vs b): 0-1 {Black mates}
+Started game 276 of 400 (b vs a)
+Finished game 272 (b vs a): 1-0 {White mates}
+Started game 277 of 400 (a vs b)
+Finished game 274 (b vs a): 1-0 {White mates}
+Started game 278 of 400 (b vs a)
+Finished game 278 (b vs a): 1-0 {White mates}
+Started game 279 of 400 (a vs b)
+Finished game 273 (a vs b): 1-0 {White mates}
+Started game 280 of 400 (b vs a)
+Finished game 275 (a vs b): 1-0 {White mates}
+Started game 281 of 400 (a vs b)
+Finished game 277 (a vs b): 1-0 {White mates}
+Started game 282 of 400 (b vs a)
+Finished game 279 (a vs b): 1-0 {White mates}
+Started game 283 of 400 (a vs b)
+Finished game 276 (b vs a): 1-0 {White mates}
+Started game 284 of 400 (b vs a)
+Finished game 281 (a vs b): 0-1 {Black mates}
+Started game 285 of 400 (a vs b)
+Finished game 280 (b vs a): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -66.57 +/- 37.48, nElo: -74.37 +/- 40.70
+LOS: 0.02 %, DrawRatio: 47.14 %, PairsRatio: 0.45
+Games: 280, Wins: 104, Losses: 157, Draws: 19, Points: 113.5 (40.54 %)
+Ptnml(0-2): [40, 11, 66, 8, 15], WL/DD Ratio: inf
+LLR: -0.86 (-29.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 286 of 400 (b vs a)
+Finished game 282 (b vs a): 1-0 {White mates}
+Started game 287 of 400 (a vs b)
+Finished game 283 (a vs b): 1-0 {White mates}
+Started game 288 of 400 (b vs a)
+Finished game 284 (b vs a): 0-1 {Black mates}
+Started game 289 of 400 (a vs b)
+Finished game 285 (a vs b): 1-0 {White mates}
+Started game 290 of 400 (b vs a)
+Finished game 288 (b vs a): 0-1 {Black mates}
+Started game 291 of 400 (a vs b)
+Finished game 286 (b vs a): 1-0 {White mates}
+Started game 292 of 400 (b vs a)
+Finished game 287 (a vs b): 1-0 {White mates}
+Started game 293 of 400 (a vs b)
+Finished game 293 (a vs b): 1-0 {White mates}
+Started game 294 of 400 (b vs a)
+Finished game 289 (a vs b): 0-1 {Black mates}
+Started game 295 of 400 (a vs b)
+Finished game 292 (b vs a): 0-1 {Black mates}
+Started game 296 of 400 (b vs a)
+Finished game 291 (a vs b): 1-0 {White mates}
+Started game 297 of 400 (a vs b)
+Finished game 290 (b vs a): 1/2-1/2 {Draw by insufficient mating material}
+Started game 298 of 400 (b vs a)
+Finished game 295 (a vs b): 1-0 {White mates}
+Started game 299 of 400 (a vs b)
+Finished game 294 (b vs a): 1-0 {White mates}
+Started game 300 of 400 (b vs a)
+Finished game 296 (b vs a): 1-0 {White mates}
+Started game 301 of 400 (a vs b)
+Finished game 297 (a vs b): 0-1 {Black mates}
+Started game 302 of 400 (b vs a)
+Finished game 298 (b vs a): 1-0 {White mates}
+Started game 303 of 400 (a vs b)
+Finished game 299 (a vs b): 0-1 {Black mates}
+Started game 304 of 400 (b vs a)
+Finished game 301 (a vs b): 0-1 {Black mates}
+Started game 305 of 400 (a vs b)
+Finished game 300 (b vs a): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -63.23 +/- 36.84, nElo: -69.27 +/- 39.32
+LOS: 0.03 %, DrawRatio: 46.00 %, PairsRatio: 0.47
+Games: 300, Wins: 113, Losses: 167, Draws: 20, Points: 123.0 (41.00 %)
+Ptnml(0-2): [43, 12, 69, 8, 18], WL/DD Ratio: inf
+LLR: -0.86 (-29.2%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 306 of 400 (b vs a)
+Finished game 302 (b vs a): 1-0 {White mates}
+Started game 307 of 400 (a vs b)
+Finished game 304 (b vs a): 1-0 {White mates}
+Started game 308 of 400 (b vs a)
+Finished game 305 (a vs b): 0-1 {Black mates}
+Started game 309 of 400 (a vs b)
+Finished game 303 (a vs b): 0-1 {Black mates}
+Started game 310 of 400 (b vs a)
+Finished game 306 (b vs a): 0-1 {Black mates}
+Started game 311 of 400 (a vs b)
+Finished game 307 (a vs b): 0-1 {Black mates}
+Started game 312 of 400 (b vs a)
+Finished game 308 (b vs a): 0-1 {Black mates}
+Started game 313 of 400 (a vs b)
+Finished game 309 (a vs b): 1-0 {White mates}
+Started game 314 of 400 (b vs a)
+Finished game 310 (b vs a): 0-1 {Black mates}
+Started game 315 of 400 (a vs b)
+Finished game 311 (a vs b): 0-1 {Black mates}
+Started game 316 of 400 (b vs a)
+Finished game 312 (b vs a): 1-0 {White mates}
+Started game 317 of 400 (a vs b)
+Finished game 313 (a vs b): 0-1 {Black mates}
+Started game 318 of 400 (b vs a)
+Finished game 314 (b vs a): 1-0 {White mates}
+Started game 319 of 400 (a vs b)
+Finished game 316 (b vs a): 1/2-1/2 {Draw by stalemate}
+Started game 320 of 400 (b vs a)
+Finished game 315 (a vs b): 0-1 {Black mates}
+Started game 321 of 400 (a vs b)
+Finished game 320 (b vs a): 0-1 {Black mates}
+Started game 322 of 400 (b vs a)
+Finished game 317 (a vs b): 0-1 {Black mates}
+Started game 323 of 400 (a vs b)
+Finished game 318 (b vs a): 0-1 {Black mates}
+Started game 324 of 400 (b vs a)
+Finished game 322 (b vs a): 0-1 {Black mates}
+Started game 325 of 400 (a vs b)
+Finished game 323 (a vs b): 1-0 {White mates}
+Started game 326 of 400 (b vs a)
+Finished game 319 (a vs b): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -64.80 +/- 36.16, nElo: -70.10 +/- 38.07
+LOS: 0.02 %, DrawRatio: 45.00 %, PairsRatio: 0.47
+Games: 320, Wins: 120, Losses: 179, Draws: 21, Points: 130.5 (40.78 %)
+Ptnml(0-2): [47, 13, 72, 8, 20], WL/DD Ratio: inf
+LLR: -0.93 (-31.4%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 327 of 400 (a vs b)
+Finished game 321 (a vs b): 0-1 {Black mates}
+Started game 328 of 400 (b vs a)
+Finished game 324 (b vs a): 1-0 {White mates}
+Started game 329 of 400 (a vs b)
+Finished game 326 (b vs a): 0-1 {Black mates}
+Started game 330 of 400 (b vs a)
+Finished game 325 (a vs b): 0-1 {Black mates}
+Started game 331 of 400 (a vs b)
+Finished game 330 (b vs a): 0-1 {Black mates}
+Started game 332 of 400 (b vs a)
+Finished game 328 (b vs a): 1-0 {White mates}
+Started game 333 of 400 (a vs b)
+Finished game 329 (a vs b): 0-1 {Black mates}
+Started game 334 of 400 (b vs a)
+Finished game 331 (a vs b): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 335 of 400 (a vs b)
+Finished game 327 (a vs b): 0-1 {Black mates}
+Started game 336 of 400 (b vs a)
+Finished game 333 (a vs b): 0-1 {Black mates}
+Started game 337 of 400 (a vs b)
+Finished game 332 (b vs a): 1-0 {White mates}
+Started game 338 of 400 (b vs a)
+Finished game 334 (b vs a): 1-0 {White mates}
+Started game 339 of 400 (a vs b)
+Finished game 337 (a vs b): 1-0 {White mates}
+Started game 340 of 400 (b vs a)
+Finished game 336 (b vs a): 0-1 {Black mates}
+Started game 341 of 400 (a vs b)
+Finished game 339 (a vs b): 0-1 {Black mates}
+Started game 342 of 400 (b vs a)
+Finished game 335 (a vs b): 1/2-1/2 {Draw by insufficient mating material}
+Started game 343 of 400 (a vs b)
+Finished game 338 (b vs a): 1-0 {White mates}
+Started game 344 of 400 (b vs a)
+Finished game 342 (b vs a): 1-0 {White mates}
+Started game 345 of 400 (a vs b)
+Finished game 340 (b vs a): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -67.25 +/- 34.80, nElo: -73.44 +/- 36.93
+LOS: 0.00 %, DrawRatio: 45.29 %, PairsRatio: 0.45
+Games: 340, Wins: 126, Losses: 191, Draws: 23, Points: 137.5 (40.44 %)
+Ptnml(0-2): [50, 14, 77, 9, 20], WL/DD Ratio: inf
+LLR: -1.03 (-34.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 346 of 400 (b vs a)
+Finished game 341 (a vs b): 0-1 {Black mates}
+Started game 347 of 400 (a vs b)
+Finished game 347 (a vs b): 1-0 {White mates}
+Started game 348 of 400 (b vs a)
+Finished game 343 (a vs b): 0-1 {Black mates}
+Started game 349 of 400 (a vs b)
+Finished game 344 (b vs a): 1-0 {White mates}
+Started game 350 of 400 (b vs a)
+Finished game 348 (b vs a): 1-0 {White mates}
+Started game 351 of 400 (a vs b)
+Finished game 345 (a vs b): 1-0 {White mates}
+Started game 352 of 400 (b vs a)
+Finished game 346 (b vs a): 1-0 {White mates}
+Started game 353 of 400 (a vs b)
+Finished game 349 (a vs b): 0-1 {Black mates}
+Started game 354 of 400 (b vs a)
+Finished game 352 (b vs a): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 355 of 400 (a vs b)
+Finished game 350 (b vs a): 1-0 {White mates}
+Started game 356 of 400 (b vs a)
+Finished game 351 (a vs b): 0-1 {Black mates}
+Started game 357 of 400 (a vs b)
+Finished game 354 (b vs a): 1-0 {White mates}
+Started game 358 of 400 (b vs a)
+Finished game 355 (a vs b): 1-0 {White mates}
+Started game 359 of 400 (a vs b)
+Finished game 353 (a vs b): 1/2-1/2 {Draw by insufficient mating material}
+Started game 360 of 400 (b vs a)
+Finished game 356 (b vs a): 1-0 {White mates}
+Started game 361 of 400 (a vs b)
+Finished game 357 (a vs b): 0-1 {Black mates}
+Started game 362 of 400 (b vs a)
+Finished game 358 (b vs a): 0-1 {Black mates}
+Started game 363 of 400 (a vs b)
+Finished game 360 (b vs a): 1-0 {White mates}
+Started game 364 of 400 (b vs a)
+Finished game 359 (a vs b): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -73.46 +/- 33.78, nElo: -80.68 +/- 35.89
+LOS: 0.00 %, DrawRatio: 45.00 %, PairsRatio: 0.41
+Games: 360, Wins: 130, Losses: 205, Draws: 25, Points: 142.5 (39.58 %)
+Ptnml(0-2): [54, 16, 81, 9, 20], WL/DD Ratio: inf
+LLR: -1.18 (-40.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 365 of 400 (a vs b)
+Finished game 361 (a vs b): 0-1 {Black mates}
+Started game 366 of 400 (b vs a)
+Finished game 362 (b vs a): 1-0 {White mates}
+Started game 367 of 400 (a vs b)
+Finished game 363 (a vs b): 0-1 {Black mates}
+Started game 368 of 400 (b vs a)
+Finished game 364 (b vs a): 1-0 {White mates}
+Started game 369 of 400 (a vs b)
+Finished game 366 (b vs a): 0-1 {Black mates}
+Started game 370 of 400 (b vs a)
+Finished game 369 (a vs b): 0-1 {Black mates}
+Started game 371 of 400 (a vs b)
+Finished game 365 (a vs b): 0-1 {Black mates}
+Started game 372 of 400 (b vs a)
+Finished game 367 (a vs b): 1-0 {White mates}
+Started game 373 of 400 (a vs b)
+Finished game 368 (b vs a): 1-0 {White mates}
+Started game 374 of 400 (b vs a)
+Finished game 370 (b vs a): 1-0 {White mates}
+Started game 375 of 400 (a vs b)
+Finished game 373 (a vs b): 0-1 {Black mates}
+Started game 376 of 400 (b vs a)
+Finished game 371 (a vs b): 0-1 {Black mates}
+Started game 377 of 400 (a vs b)
+Finished game 372 (b vs a): 0-1 {Black mates}
+Started game 378 of 400 (b vs a)
+Finished game 375 (a vs b): 0-1 {Black mates}
+Started game 379 of 400 (a vs b)
+Finished game 376 (b vs a): 0-1 {Black mates}
+Started game 380 of 400 (b vs a)
+Finished game 374 (b vs a): 1-0 {White mates}
+Started game 381 of 400 (a vs b)
+Finished game 378 (b vs a): 1-0 {White mates}
+Started game 382 of 400 (b vs a)
+Finished game 377 (a vs b): 0-1 {Black mates}
+Started game 383 of 400 (a vs b)
+Finished game 379 (a vs b): 1-0 {White mates}
+Started game 384 of 400 (b vs a)
+Finished game 380 (b vs a): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -77.13 +/- 33.18, nElo: -84.19 +/- 34.93
+LOS: 0.00 %, DrawRatio: 44.74 %, PairsRatio: 0.40
+Games: 380, Wins: 136, Losses: 219, Draws: 25, Points: 148.5 (39.08 %)
+Ptnml(0-2): [59, 16, 85, 9, 21], WL/DD Ratio: inf
+LLR: -1.29 (-43.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 385 of 400 (a vs b)
+Finished game 382 (b vs a): 1-0 {White mates}
+Started game 386 of 400 (b vs a)
+Finished game 383 (a vs b): 1-0 {White mates}
+Started game 387 of 400 (a vs b)
+Finished game 381 (a vs b): 1-0 {White mates}
+Started game 388 of 400 (b vs a)
+Finished game 386 (b vs a): 1-0 {White mates}
+Started game 389 of 400 (a vs b)
+Finished game 385 (a vs b): 0-1 {Black mates}
+Started game 390 of 400 (b vs a)
+Finished game 384 (b vs a): 1-0 {White mates}
+Started game 391 of 400 (a vs b)
+Finished game 388 (b vs a): 0-1 {Black mates}
+Started game 392 of 400 (b vs a)
+Finished game 387 (a vs b): 0-1 {Black mates}
+Started game 393 of 400 (a vs b)
+Finished game 389 (a vs b): 0-1 {Black mates}
+Started game 394 of 400 (b vs a)
+Finished game 390 (b vs a): 0-1 {Black mates}
+Started game 395 of 400 (a vs b)
+Finished game 391 (a vs b): 1-0 {White mates}
+Started game 396 of 400 (b vs a)
+Finished game 393 (a vs b): 0-1 {Black mates}
+Started game 397 of 400 (a vs b)
+Finished game 394 (b vs a): 0-1 {Black mates}
+Started game 398 of 400 (b vs a)
+Finished game 392 (b vs a): 0-1 {Black mates}
+Started game 399 of 400 (a vs b)
+Finished game 395 (a vs b): 0-1 {Black mates}
+Started game 400 of 400 (b vs a)
+Finished game 396 (b vs a): 0-1 {Black mates}
+Finished game 400 (b vs a): 1-0 {White mates}
+Finished game 397 (a vs b): 1-0 {White mates}
+Finished game 399 (a vs b): 1-0 {White mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -73.53 +/- 32.02, nElo: -81.01 +/- 34.13
+LOS: 0.00 %, DrawRatio: 46.23 %, PairsRatio: 0.41
+Games: 398, Wins: 145, Losses: 228, Draws: 25, Points: 157.5 (39.57 %)
+Ptnml(0-2): [60, 16, 92, 9, 22], WL/DD Ratio: inf
+LLR: -1.31 (-44.4%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Finished game 398 (b vs a): 0-1 {Black mates}
+--------------------------------------------------
+Results of a vs b (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -71.34 +/- 32.07, nElo: -78.15 +/- 34.05
+LOS: 0.00 %, DrawRatio: 46.00 %, PairsRatio: 0.42
+Games: 400, Wins: 147, Losses: 228, Draws: 25, Points: 159.5 (39.88 %)
+Ptnml(0-2): [60, 16, 92, 9, 23], WL/DD Ratio: inf
+LLR: -1.27 (-43.2%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Finished match
+Total Time: 00:23:05 (hours:minutes:seconds)
+

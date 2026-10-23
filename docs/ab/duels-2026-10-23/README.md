@@ -4,42 +4,52 @@ Copie **versionnée** des journaux `fastchess` des duels de la phase
 AB8b (le répertoire `prt/` est dans `.gitignore` ; ces copies sont la
 **preuve** des duels).
 
-Commande commune aux deux duels :
+## Les duels définitifs — 400 parties, SPRT gelé
+
+Commande commune aux trois :
 
 ```bash
-tools/duel_ab.sh --rounds 20 \
-    --a "<option>=1" --b "<option>=0" \
-    --out prt/rr/<nom>.log --pgn prt/rr/<nom>.pgn
+tools/duels_ab8b_sprt.sh
 ```
 
 Protocole : même binaire (`target/release/mychess`), une seule option UCI
 qui change, `movetime 200 ms` par coup (`fastchess st=0.200`,
 `timemargin=200 ms`), livre ECO lichess en ordre aléatoire (graine
-`20261023`), aucune adjudication, 40 parties (20 rondes × 2 couleurs),
-concurrence 5, hôte 12 cœurs.
+`20261023`), aucune adjudication, **400 parties** (200 rondes × 2
+couleurs), concurrence 5, hôte 12 cœurs, machine calme (les trois
+duels sont joués **en séquence**), SPRT **gelé** du dépôt
+(`elo0=0 elo1=5 alpha=0.05 beta=0.05`).
 
-| log | duel | résultat | Elo ± err |
-|---|---|---|---|
-| `ab-nullmove.log` | `AbNullMove=1` contre `AbNullMove=0` | 19 V – 19 D – 2 N (50,00 %) | **−0,0 ± 122,8** (LOS 50,0 %) |
-| `ab-lmr.log` | `AbLmr=1` contre `AbLmr=0` | 20 V – 19 D – 1 N (51,25 %) | **+8,7 ± 71,1** (LOS 59,6 %) |
+| log | duel | résultat | Elo ± err | LLR |
+|---|---|---|---|---|
+| `ab-controle-sprt.log` | **contrôle** : `AbNullMove=1` contre `AbNullMove=1` | 182 V – 201 D – 17 N (47,62 %) | −16,5 ± 30,7 | −0,35 (−11,7 %) |
+| `ab-nullmove-sprt.log` | `AbNullMove=1` contre `AbNullMove=0` | 147 V – 228 D – 25 N (39,88 %) | **−71,3 ± 32,1** | −1,27 (−43,2 %) |
+| `ab-lmr-sprt.log` | `AbLmr=1` contre `AbLmr=0` | 178 V – 189 D – 33 N (48,62 %) | −9,6 ± 31,5 | −0,21 (−7,2 %) |
 
-Les deux duels sont **non concluants** : le point estimate est plat et
-l'intervalle de confiance recouvre zéro. À 40 parties, la précision
-réelle est **± 70 à ± 120 Elo** (la variance est forte et la
-proportion de nulles varie d'un duel à l'autre : 40 % ici, 75 % pour
-le LMR), pas les ± 45 Elo qu'un calcul « 50 % de nulles » ferait
-croire. Voir `docs/ab/phase8-2026-10-23.md` §4.1.
+**Le contrôle d'abord** : les deux moteurs du contrôle sont le même
+binaire avec la même option, le résultat doit être nul. Il l'est
+(−16,5 ± 30,7, aucun faux positif) — et il révèle le **biais du
+protocole**, de l'ordre de **−16 Elo** (0,5 σ). Tout écart se lit
+*contre* ce biais.
 
-## L'avertissement que les chiffres donnent eux-mêmes
+**Le null-move est négatif** : l'intervalle [−103, −39] exclut zéro ;
+rapporté au contrôle, l'effet est de **−54,8 ± 44,4 Elo** (1,2 σ).
+Verdict : **ni acceptée** — le null-move n'est pas un gain de force, il
+est **reverti** (défaut 0 ; le code était déjà à 0).
 
-Le **même** protocole, rejoué sur une machine **chargée** (5 cœurs
-occupés par le vieux run `st=200`, que l'arrêt avait laissé en vie),
-avait donné **−43,7 ± 100,3** (null-move) et **+34,9 ± 95,3** (LMR) ;
-sur machine calme (92 % idle), **−0,0** et **+8,7**. L'écart entre les
-deux exécutions (≈ 44 Elo) est du même ordre que l'écart que le duel
-prétend mesurer : **à ce budget, le duel ne mesure rien**. Seul un
-volume de parties bien supérieur (la phase 5 du MCTS en jouait 400
-par point) ou un SPRT aurait une résolution utile.
+**Le LMR est neutre** : −9,6 ± 31,5, LLR −0,21. Il reste **reverti**.
+
+Précision : 400 parties ⇒ **± 30 Elo** (contre ± 100 à 40 parties).
+
+## Les duels de 40 parties (première passe)
+
+Mêmes options, mais **40 parties** et **sans SPRT** (estimation d'Elo
+seule) : `ab-nullmove.log` (19 V – 19 D – 2 N, −0,0 ± 122,8 Elo) et
+`ab-lmr.log` (20 V – 19 D – 1 N, +8,7 ± 71,1 Elo). Ces deux duels
+étaient **trop courts pour mesurer quoi que ce soit** : le même
+protocole, rejoué sur une machine **chargée** (5 cœurs occupés par le
+vieux run `st=200`, que l'arrêt avait laissé en vie), donnait −43,7 et
++34,9 Elo. Ils sont conservés pour la trace, pas comme preuve.
 
 ## Un journal invalide, conservé pour la trace
 
@@ -51,3 +61,5 @@ secondes** (« `st=N` — Movetime in seconds ») : le budget était **1000×
 trop long** (200 s par coup au lieu de 200 ms) et l'en-tête du journal
 annonçait 200 ms. Le script convertit désormais les millisecondes en
 secondes et journalise la conversion.
+
+Voir `docs/ab/phase8-2026-10-23.md` §4.1.

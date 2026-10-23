@@ -286,20 +286,27 @@ Deux résultats :
   l'alpha-beta n'élague plus, donc n'approfondit plus.
 
 Le **duel AB-vs-AB** (phase AB8b : le même binaire, une seule option qui
-change, `movetime 200 ms`, 40 parties) a été joué pour le null-move et
-pour le LMR : null-move **−0,0 ± 122,8 Elo** (19 V – 19 D – 2 N), LMR
-**+8,7 ± 71,1 Elo** (20 V – 19 D – 1 N). **Les deux sont non
-concluants** : le point estimate est plat et l'intervalle recouvre
-zéro. Le null-move est un **gain de débit** (−27 % de nœuds) dont la
-profondeur **ne se convertit pas en force** tant que la valeur est
-bruyante ; le LMR garde son verdict (**reverti**).
+change, `movetime 200 ms`, **400 parties**, protocole **SPRT gelé** du
+dépôt) est joué pour le null-move et pour le LMR, **précédé d'un
+contrôle** (les deux moteurs identiques, qui doit donner zéro) :
 
-Et l'avertissement que ces chiffres donnent eux-mêmes : le **même**
-protocole, rejoué sur une machine chargée, avait donné **−43,7** et
-**+34,9** Elo. L'écart entre deux exécutions (≈ 44 Elo) est du même
-ordre que l'écart que le duel prétend mesurer — **à 40 parties, ce
-protocole ne mesure rien** ; il faudrait le volume de la phase 5 (400
-parties par point) ou un SPRT.
+| duel | 400 parties | Elo ± err | LLR |
+|---|---|---|---|
+| contrôle (`=1` contre `=1`) | 182 V – 201 D – 17 N | −16,5 ± 30,7 | −0,35 |
+| null-move (`=1` contre `=0`) | 147 V – 228 D – 25 N | **−71,3 ± 32,1** | −1,27 |
+| LMR (`=1` contre `=0`) | 178 V – 189 D – 33 N | −9,6 ± 31,5 | −0,21 |
+
+**Le null-move est négatif** (l'intervalle exclut zéro ; rapporté au
+contrôle, −54,8 ± 44,4 Elo) : il est **reverti**. Il passait pourtant
+les trois critères de l'instrument (débit, score, amortissement du
+bruit) — **une métrique de débit n'est pas une métrique de force**. Le
+mécanisme : son test de coup gratuit est fait sur une **valeur
+bruitée**, donc il *fail high* et élague des variantes réelles. Le LMR
+reste **reverti** (neutre). À 400 parties, la précision est de **± 30
+Elo** — contre ± 100 à 40 parties, où le même protocole rejoué sur
+une machine chargée donnait −43,7 et +34,9 Elo : un contrôle
+temps-fixe est **sensible à la charge**, d'où les duels joués en
+séquence, chacun précédé d'un contrôle.
 
 Au passage, un défaut d'instrument a été trouvé et corrigé :
 `tools/duel_ab.sh` passait `--time 200` à `fastchess -each st=`, or

@@ -468,22 +468,39 @@ exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
   490 cp) ; sur une position du livre, une recherche à profondeur 3
   coûte **1 159 093 540 nœuds** avec du bruit contre ≈ 10 000 sans
   (facteur **100 000×**) ;
-* **les deux duels AB-vs-AB** (phase AB8b, joués le 2026-10-23 à
-  07:05 sur une machine **sans charge**, 92 % idle) : null-move=1
-  contre null-move=0 → 19 V – 19 D – 2 N (50,00 %) ⇒ **−0,0 ± 122,8
-  Elo** (LOS 50,0 %) ; LMR=1 contre LMR=0 → 20 V – 19 D – 1 N (51,25 %)
-  ⇒ **+8,7 ± 71,1 Elo** (LOS 59,6 %). **Les deux sont non
-  concluants** : le point estimate est plat et l'intervalle recouvre
-  zéro. Le null-move garde son **gain de débit** (−27 % de nœuds), pas
-  un gain de force ; le LMR garde son verdict (**reverti**) ;
-* **l'écart entre deux exécutions du même duel l'illustre** : rejoué
-  sur une machine **chargée** (5 cœurs occupés par le vieux run `st=200`
-  que l'arrêt avait laissé en vie), le même protocole donnait **−43,7
-  ± 100,3** (null-move) et **+34,9 ± 95,3** (LMR) ; sur machine calme,
-  **−0,0** et **+8,7**. L'écart entre les deux exécutions (≈ 44 Elo)
-  est du même ordre que l'écart que le duel prétend mesurer : **à ce
-  budget de 40 parties, le duel ne mesure rien** — il faudrait le
-  volume de la phase 5 (400 parties par point) ou un SPRT ;
+* **les duels AB-vs-AB à 400 parties, en SPRT gelé** (phase AB8b,
+  `tools/duels_ab8b_sprt.sh`, 2026-10-23 08:40–09:47, machine calme,
+  `movetime 200 ms`, graine 20261023, aucune adjudication) :
+  * **contrôle** (`AbNullMove=1` contre `AbNullMove=1` — les deux
+    moteurs identiques) : 182 V – 201 D – 17 N ⇒ **−16,5 ± 30,7 Elo**,
+    LLR −0,35 → **aucun faux positif**, et le **biais du protocole**
+    est de l'ordre de **−16 Elo** ;
+  * **null-move** (`=1` contre `=0`) : 147 V – 228 D – 25 N ⇒
+    **−71,3 ± 32,1 Elo**, LLR −1,27 — l'intervalle [−103, −39]
+    **exclut zéro** ; rapporté au contrôle, **−54,8 ± 44,4 Elo**
+    (1,2 σ) ;
+  * **LMR** (`=1` contre `=0`) : 178 V – 189 D – 33 N ⇒ **−9,6 ± 31,5
+    Elo**, LLR −0,21 — neutre ;
+  * **verdict** : aucun des deux élagages n'est un gain de force. Le
+    **null-move est négatif** : il est **reverti** (défaut 0 — le code
+    était déjà à 0 ; la ligne « gardée (défaut 1) » du rapport de
+    phase était fausse sur le défaut). Le LMR reste **reverti** ;
+* **ce que le duel enseigne sur la méthode** : le null-move passait
+  les **trois** critères de l'instrument (débit, score, amortissement
+  du bruit) et perdait 71 Elo au duel — **une métrique de débit n'est
+  pas une métrique de force**. Le mécanisme : le test du coup gratuit
+  (« la position reste-t-elle bonne après un coup gratuit ? ») est
+  lui-même fait sur une **valeur bruitée**, donc il *fail high* par
+  erreur, la recherche rend `beta` — une victoire imaginaire — et
+  élague des variantes réelles. C'est un élagage sur du bruit, comme
+  la razoring et la futilité ;
+* **précision** : 400 parties ⇒ **± 30 Elo**, contre ± 100 à 40
+  parties. Le même protocole à 40 parties, rejoué sur une machine
+  **chargée** (5 cœurs occupés par le vieux run `st=200`, que l'arrêt
+  avait laissé en vie), donnait **−43,7** et **+34,9** Elo au lieu de
+  **−0,0** et **+8,7** : un contrôle temps-fixe est **sensible à la
+  charge** — d'où les duels joués **en séquence** et chacun **précédé
+  d'un contrôle** ;
 * **un défaut d'instrument corrigé en passant** : `tools/duel_ab.sh`
   passait `--time 200` à `fastchess -each st=`, or fastchess lit
   **`st=` en secondes** (« st=N — Movetime in seconds ») : le budget
@@ -496,7 +513,9 @@ exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
   c'est *mécanique* : sans valeur fiable, l'alpha-beta n'élague plus et
   ne peut donc pas approfondir. La porte du plan AB tranche vers
   l'issue **C** ; la **phase NN** (valeur apprise) est confirmée comme
-  la seule voie, pour les deux algorithmes ;
+  la seule voie, pour les deux algorithmes. Aucune heuristique
+  d'élagage n'est retenue : le chemin par défaut reste **PVS +
+  killers + historique** ;
 * **rapport** : `docs/ab/phase8-2026-10-23.md` — plan :
   `docs/ab/plan-heuristiques-2026-10-23.md`.
 
