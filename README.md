@@ -260,6 +260,34 @@ de force.
 Plan : `docs/ab/plan-alpha-beta-2026-10-22.md` · rapport :
 `docs/ab/phase1-2026-10-22.md`.
 
+
+### Phase AB8 — les heuristiques de l'alpha-beta, mesurées à la métrique du bruit (2026-10-23)
+
+La phase AB a laissé une question ouverte : *une heuristique d'élagage
+classique est-elle un gain pour cet alpha-beta, ou un gain de profondeur
+sur un arbre bruité ?* La phase AB8 la pose par la mesure : les six
+briques de la recherche (PVS, killer moves, historique, null-move,
+razoring, futilité, LMR) sont **activables séparément** (options UCI
+`Ab*`), et l'instrument `examples/heuristiques_ab` mesure pour chacune
+le **débit**, la **profondeur atteinte**, le **score** et le **facteur
+d'amplification du bruit** (le dispositif d'AB7).
+
+Deux résultats :
+
+* la décomposition a révélé que l'**heuristique d'historique était du
+  code mort** (son bonus valait toujours zéro) et que la **table de
+  transposition stockait des bornes comme des valeurs exactes** — les
+  deux sont corrigés ;
+* surtout, le bruit **casse l'élagage** : à 200 ms, la profondeur
+  atteinte passe de **4,0–4,4** à **2,5–2,9** avec un bruit de 490 cp,
+  et une recherche à profondeur 3 peut coûter **1,16 milliard de nœuds**
+  (contre ≈ 10 000 sans bruit). Le goulot d'étranglement du projet est
+  donc **mécaniquement** la fonction de valeur : sans valeur fiable,
+  l'alpha-beta n'élague plus, donc n'approfondit plus.
+
+Plan : `docs/ab/plan-heuristiques-2026-10-23.md` · rapport :
+`docs/ab/phase8-2026-10-23.md`.
+
 ### Phase 5 — feuille tactiquement résolue (quiescence-lite) : **mesurée, revertie**
 
 La phase 5 attaque l'**effet horizon** de la feuille : depuis A1, la

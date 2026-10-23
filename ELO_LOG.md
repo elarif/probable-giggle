@@ -437,6 +437,45 @@ exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
 * **rapport** : `docs/ab/phase1-2026-10-22.md` — plan :
   `docs/ab/plan-alpha-beta-2026-10-22.md`.
 
+## Phase AB8 — les heuristiques de l'alpha-beta, mesurées à la métrique du bruit (2026-10-23)
+
+* **but** : le plan AB4 demandait « plus de débit **et** plus de score » ;
+  le plan AB7 le reposait : « une heuristique qui augmente la profondeur
+  *et* le bruit n'est pas un gain ». La phase décompose le lot
+  PVS + killers + historique et ajoute null-move, razoring, futilité et
+  LMR, chacune **activable seule** (options UCI `Ab*`) ;
+* **instrument** : `examples/heuristiques_ab` (débit, profondeur, score,
+  facteur d'amplification d'AB7) + `tools/duel_ab.sh` (duel AB-vs-AB,
+  une seule option qui change) ; 20 positions du livre ECO, `movetime
+  200 ms`, graine de bruit `0x4e4f495345000001` ;
+* **deux défauts trouvés par la décomposition** :
+  1. l'**heuristique d'historique était du code mort** (bonus
+     `/1024` pour un incrément de `profondeur²` : le bonus valait
+     toujours zéro) — « sans historique » et « base » donnaient les
+     mêmes chiffres à la nœud près ;
+  2. la **table de transposition stockait des bornes comme des valeurs
+     exactes** (fenêtre nulle, quiescence en échec) — ce qui falsifie
+     les transpositions et rend toute mesure « à arbre identique »
+     invalide. Les deux sont **corrigés** ; le chemin par défaut change,
+     donc le duel de la phase AB n'est plus reproductible à l'identique ;
+* **mesures** (20 positions) : PVS **−64 % de nœuds**, killers
+  **−37 %**, historique **−4 %** (0 % avant correctif), null-move
+  **−27 %** de nœuds et **+0,8 plie** à 200 ms, razoring et futilité
+  **sans effet** (le garde-fou « capture » les rend inoffensives), LMR
+  **+16 % de nœuds** à profondeur fixée ;
+* **le résultat qui compte** : le bruit **casse l'élagage**. À 200 ms,
+  la profondeur passe de **4,0–4,4** (sans bruit) à **2,5–2,9** (bruit
+  490 cp) ; sur une position du livre, une recherche à profondeur 3
+  coûte **1 159 093 540 nœuds** avec du bruit contre ≈ 10 000 sans
+  (facteur **100 000×**) ;
+* **décision** : le goulot est **la fonction de valeur**, et cette fois
+  c'est *mécanique* : sans valeur fiable, l'alpha-beta n'élague plus et
+  ne peut donc pas approfondir. La porte du plan AB tranche vers
+  l'issue **C** ; la **phase NN** (valeur apprise) est confirmée comme
+  la seule voie, pour les deux algorithmes ;
+* **rapport** : `docs/ab/phase8-2026-10-23.md` — plan :
+  `docs/ab/plan-heuristiques-2026-10-23.md`.
+
 ## Instruments de mesure (état au 2026-10-22)
 
 Le journal est **alimenté** : les maillons manquants ont été fournis.
