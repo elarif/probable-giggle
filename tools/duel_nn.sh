@@ -103,7 +103,10 @@ if [[ "$CONTROLE" -eq 1 ]]; then
     B_OPTS="option.Search=${SEARCH}"
     LABEL="controle (A et B identiques)"
 else
-    A_OPTS="option.Search=${SEARCH} option.EvalNN=1 option.EvalNNFile=${NET_ABS}"
+    # L'ordre des options **compte** : `EvalNNFile` doit être posé
+    # **avant** `EvalNN=1`, sinon le moteur tente de charger le chemin
+    # par défaut (relatif) et échoue.
+    A_OPTS="option.Search=${SEARCH} option.EvalNNFile=${NET_ABS} option.EvalNN=1"
     B_OPTS="option.Search=${SEARCH} option.EvalNN=0"
     LABEL="valeur apprise (EvalNN=1) contre reference gelee (EvalNN=0)"
 fi

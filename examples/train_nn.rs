@@ -161,6 +161,7 @@ fn main() {
     // La **récence** : le nombre de demi-coups qui séparent la position
     // de la fin de sa partie. On le déduit du corpus (les positions
     // d'une partie sont consécutives, la dernière a le plus grand ply).
+    let has_continuous_label = records.first().and_then(|r| r.label).is_some();
     let mut last_ply: std::collections::HashMap<u32, u32> = std::collections::HashMap::new();
     for r in &records {
         let e = last_ply.entry(r.game).or_insert(r.ply);
@@ -175,7 +176,11 @@ fn main() {
             Some(tau) if tau > 0.0 => (-d / tau).exp(),
             _ => 1.0,
         };
-        if discount != 1.0 {
+        // La décote ne s'applique qu'aux corpus annotés par le
+        // **résultat de partie** : l'étiquette continue (la valeur de
+        // la recherche) est déjà une valeur, la décoter serait
+        // faux.
+        if discount != 1.0 && !has_continuous_label {
             // La décote : une position à d demi-coups de la fin ne vaut
             // pas le résultat final, mais un résultat *affaibli*.
             s.target *= discount.powf(d);

@@ -28,7 +28,13 @@ ROUNDS=200
 SEED=20261023
 NET="${NET:-models/value_v1.bin}"
 AVANT="${AVANT:-/tmp/mychess-avant-fix-rng}"
-COMMON=(--rounds "$ROUNDS" --sprt --seed "$SEED" --concurrency 5 --time 200)
+# Le **moteur** du duel : l'alpha-beta, comme dans les duels AB8b. Les
+# parties du MCTS a 200 ms/coup durent ~85 s (le moteur joue long), ce
+# qui rendrait le duel inutilisable en temps Machine ; l'alpha-beta
+# joue des parties decisives en quelques secondes, et c'est aussi
+# l'instrument de mesure du projet.
+SEARCH="${SEARCH:-alpha}"
+COMMON=(--rounds "$ROUNDS" --sprt --seed "$SEED" --concurrency 5 --time 200 --search "$SEARCH")
 
 echo "=== 1/3 — contrôle (le moteur contre lui-même) ==="
 tools/duel_nn.sh "${COMMON[@]}" --controle \
