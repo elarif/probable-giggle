@@ -52,6 +52,11 @@ const MOVE_CAP: usize = 256;
 
 /// Marge réservée à l'aller-retour UCI (le moteur doit répondre **avant**
 /// que l'horloge de l'adversaire expire).
+///
+/// Elle est **appliquée par la couche UCI** (`uci::TIME_MARGIN_MS`) :
+/// l'alpha-beta ne la soustrait pas une seconde fois, sinon le moteur
+/// réfléchissait 5 ms de moins que le budget annoncé — et 5 ms de moins
+/// que le MCTS, sur le même budget.
 pub const TIME_MARGIN_MS: u128 = 5;
 
 /// L'échéance n'est testée que tous les `1 << NODE_CHECK_BITS` nœuds :
@@ -153,6 +158,27 @@ const RAZOR_MARGIN: i32 = 300;
 /// statique est si haut que les coups tranquilles ne peuvent pas le
 /// faire perdre.
 const FUTILITY_MARGIN: i32 = 200;
+/// Le nombre maximal de **prises** que la quiescence explore.
+///
+/// # Pourquoi cette borne est nécessaire
+///
+/// La quiescence explore les prises **en série**, sans limite. Sur une
+/// position riche en pions promouvables, l'arbre des séries de prises
+/// est **combinatoire** : huit pions sur la 7ᵉ rangée ont chacun
+/// plusieurs promotions, et chaque promotion **ajoute** une pièce
+/// (elle n'en retire pas) — le nombre de pièces ne décroît donc pas, et
+/// la borne « le matériel décroît » ne tient pas.
+///
+/// Mesuré (revue du 2026-10-23) : sur la position
+/// `R3K2R/PPPBBPPP/2N2Q1p/1p2P3/3PN3/bn2pnp1/p1ppqpb1/r3k2r b KQkq - 0 1`
+/// (kiwipete retourné), la **profondeur 1** ne se terminait pas après
+/// 2 000 000 de nœuds : la recherche ne finissait pas, et le moteur
+/// **bloquait** — une partie perdue sur le temps.
+///
+/// La borne est le compromis usuel : huit prises suffisent à résoudre
+/// les combinaisons tactiques, et au-delà la valeur est dans le bruit.
+const MAX_QUIESCENCE_CAPTURES: usize = 8;
+
 /// La **zone sûre** du LMR : au-delà de cette marge (en centipions), la
 /// position est si favorable — ou si défavorable — que la profondeur
 /// gagnée ne change plus la décision. Le LMR n'y réduit pas.
@@ -216,11 +242,27 @@ impl Search {
     /// cours est abandonnée et la **dernière itération complète** est
     /// rendue.
     pub fn run(&self, stop: &AtomicBool) -> Outcome {
+        let mut tt = Tt::new();
+        self.run_with_tt(stop, &mut tt)
+    }
+
+    /// La recherche, avec une **table de transposition partagée**.
+    ///
+    /// La table est normalement **créée par la recherche** (une table
+    /// neuve à chaque `go`). Cette variante permet d'en **réutiliser
+    /// une** — c'est ce qui rend testable l'invariant « la table de
+    /// transposition ne change **pas** la valeur » : on peut purger la
+    /// table entre deux recherches et comparer les scores.
+    ///
+    /// Sans cette variante, le test existant (`ab_tt_does_not_change_the_score`)
+    /// comparait **deux recherches neuves** (donc deux tables neuves) :
+    /// il ne vérifiait rien.
+    pub fn run_with_tt(&self, stop: &AtomicBool, tt: &mut Tt) -> Outcome {
         let start = Instant::now();
         let mut ctx = Ctx {
             pos: self.pos,
             game_hist: self.game_hist.clone(),
-            tt: Tt::new(),
+            tt,
             path: Vec::with_capacity(MAX_PLY),
             killers: vec![[Move::NONE; 2]; MAX_PLY + 1],
             history: vec![0u32; 64 * 64],
@@ -234,8 +276,14 @@ impl Search {
             opts: self.options,
         };
         if let Some(ms) = self.limits.movetime_ms {
-            let budget = ms.saturating_sub(TIME_MARGIN_MS).max(1);
-            ctx.deadline = Some(start + std::time::Duration::from_millis(budget as u64));
+            // Le budget est pris **tel quel** : la marge d'aller-retour
+            // est réservée par la couche UCI (`uci::TIME_MARGIN_MS`),
+            // qui la soustrait une seule fois. La soustraire **encore**
+            // ici retirait 5 ms de plus au moteur — et, surtout, rendait
+            // l'alpha-beta et le MCTS **incomparables** (le MCTS, lui,
+            // ne soustrait rien) : toute mesure de phase qui compare les
+            // deux algorithmes était faussée de 5 ms.
+            ctx.deadline = Some(start + std::time::Duration::from_millis(ms.max(1) as u64));
         }
 
         let max_depth = if self.limits.max_depth > 0 {
@@ -289,6 +337,40 @@ impl Search {
     }
 }
 
+/// La valeur de la **quiescence** d'une position, seule (sans la negamax
+/// au-dessus).
+///
+/// C'est une **sonde** : elle expose la feuille de l'alpha-beta pour que
+/// les tests puissent vérifier son contrat sans passer par une
+/// recherche complète. Le contrat qui compte : **la valeur d'une
+/// position terminale ne dépend pas de la fenêtre** — un pat vaut 0
+/// quelle que soit la fenêtre, parce que la terminalité est décidée
+/// *avant* toute comparaison de scores.
+///
+/// Elle appelle exactement le même code que la recherche.
+pub fn quiescence_of(pos: &Position, alpha: i32, beta: i32) -> i32 {
+    let stop = AtomicBool::new(false);
+    let mut tt = Tt::new();
+    let mut ctx = Ctx {
+        pos: *pos,
+        game_hist: vec![pos.zobrist],
+        tt: &mut tt,
+        path: Vec::with_capacity(MAX_PLY),
+        killers: vec![[Move::NONE; 2]; MAX_PLY + 1],
+        history: vec![0u32; 64 * 64],
+        scores: (0..=MAX_PLY + 1).map(|_| [0i32; MOVE_CAP]).collect(),
+        pv_table: (0..=MAX_PLY).map(|_| Vec::new()).collect(),
+        nodes: 0,
+        node_limit: u64::MAX,
+        deadline: None,
+        stop: &stop,
+        aborted: false,
+        opts: Options::default(),
+    };
+    let (score, _, _) = ctx.quiescence(alpha, beta, 0, 0);
+    score
+}
+
 /// Le premier coup légal de la position (`0000` si elle est terminale).
 pub fn first_legal_move(pos: &Position) -> Move {
     let list = movegen::generate_all(pos);
@@ -300,11 +382,13 @@ pub fn first_legal_move(pos: &Position) -> Move {
 }
 
 /// L'état de la recherche (le « contexte »).
-struct Ctx<'a> {
+struct Ctx<'a, 'b> {
     pos: Position,
     /// Les clés Zobrist de la partie (hors position courante).
     game_hist: Vec<u64>,
-    tt: Tt,
+    /// La table de transposition : elle peut être **partagée** entre
+    /// plusieurs recherches (voir [`Search::run_with_tt`]).
+    tt: &'b mut Tt,
     /// Les clés Zobrist des positions **ancêtres** de la ligne de
     /// recherche (la règle de répétition).
     path: Vec<u64>,
@@ -353,7 +437,7 @@ struct Ctx<'a> {
     opts: Options,
 }
 
-impl<'a> Ctx<'a> {
+impl<'a, 'b> Ctx<'a, 'b> {
     /// Le negamax, fenêtre `[alpha, beta)`, score côté au trait.
     fn negamax(&mut self, mut alpha: i32, mut beta: i32, depth: i32, ply: usize) -> i32 {
         if self.aborted {
@@ -440,7 +524,14 @@ impl<'a> Ctx<'a> {
         }
 
         // Les règles de nulle.
-        if self.pos.halfmove >= 100 || self.is_repetition() {
+        //
+        // Le **matériel insuffisant** (K contre K, K+B contre K) est une
+        // nulle : le MCTS l'applique (`mcts::terminal_value`), l'alpha-beta
+        // non — les deux moteurs n'évaluaient donc pas la même position,
+        // et le contrat de la phase AB (« la même évaluation pour les
+        // deux algorithmes ») était rompu.
+        if self.pos.halfmove >= 100 || self.is_repetition() || eval::insufficient_material(&self.pos)
+        {
             return 0;
         }
 
@@ -451,9 +542,23 @@ impl<'a> Ctx<'a> {
             if p.depth as i32 >= depth {
                 let s = score_from_tt(p.score as i32, ply);
                 match p.flag {
-                    Flag::Exact => return s,
+                    Flag::Exact => {
+                        // **La PV est semée avec le coup de la table.**
+                        //
+                        // Sans cela, une transposition rendue à la racine
+                        // laissait la PV **vide** : le moteur rendait
+                        // alors le repli (« le premier coup légal ») au
+                        // lieu du meilleur coup connu — un coup
+                        // arbitraire, joué avec la bonne valeur. C'est
+                        // visible dès qu'une table est partagée entre
+                        // deux recherches (le test
+                        // `la_table_de_transposition_ne_change_pas_la_valeur`).
+                        self.seed_pv(ply, p.best);
+                        return s;
+                    }
                     Flag::Lower => {
                         if s >= beta {
+                            self.seed_pv(ply, p.best);
                             return s;
                         }
                         if s > alpha {
@@ -462,6 +567,7 @@ impl<'a> Ctx<'a> {
                     }
                     Flag::Upper => {
                         if s <= alpha {
+                            self.seed_pv(ply, p.best);
                             return s;
                         }
                         if s < beta {
@@ -476,7 +582,7 @@ impl<'a> Ctx<'a> {
             // The frontier node is **stored too**: the PV is extracted from
             // the chain of TT entries, and a frontier that is not stored
             // truncates the PV to a single move.
-            let (sc, bm, fl) = self.quiescence(alpha, beta, ply);
+            let (sc, bm, fl) = self.quiescence(alpha, beta, ply, 0);
             self.tt
                 .store(key, 0, score_to_tt(sc, ply) as i16, fl, bm);
             return sc;
@@ -520,6 +626,7 @@ impl<'a> Ctx<'a> {
             && !in_check
             && !mate_window
             && !self.has_capture()
+            && !self.opponent_has_capture()
         {
             let stand = crate::nn::leaf_cp(&self.pos);
             if stand - FUTILITY_MARGIN >= beta {
@@ -544,6 +651,7 @@ impl<'a> Ctx<'a> {
             && !in_check
             && !mate_window
             && !self.has_capture()
+            && !self.opponent_has_capture()
         {
             let stand = crate::nn::leaf_cp(&self.pos);
             if stand + RAZOR_MARGIN < alpha {
@@ -578,7 +686,7 @@ impl<'a> Ctx<'a> {
             && depth >= NULL_MIN_DEPTH
             && !in_check
             && self.pos.ep == crate::types::NO_EP
-            && self.has_non_pawn_material()
+            && self.has_heavy_material()
         {
             let saved_ep = self.make_null();
             let s = -self.negamax(-beta, -beta + 1, depth - 1 - NULL_REDUCTION, ply + 1);
@@ -686,13 +794,9 @@ impl<'a> Ctx<'a> {
             // de mat** (il perdrait le mat) ni dans une position où le
             // trait est **largement devant** (la zone « sûre » : à ce
             // niveau, la profondeur gagnée ne change pas la décision).
-            let can_reduce = self.opts.lmr
-                && index > 0
-                && !in_check
-                && !mv.is_capture()
-                && !mv.is_promotion()
-                && alpha.abs() < LMR_SAFE_LIMIT
-                && beta.abs() < LMR_SAFE_LIMIT;
+            let can_reduce = lmr_can_reduce(
+                &self.opts, mv, tt_best, index, ply, in_check, alpha, beta,
+            );
             let reduced = if can_reduce {
                 (full_depth - self.lmr_reduction(depth, index)).max(1)
             } else {
@@ -790,9 +894,29 @@ impl<'a> Ctx<'a> {
     /// L'évaluation n'est **jamais** lue sur une position « agitée » :
     /// c'est l'effet horizon que la phase 5 du MCTS a voulu corriger
     /// (et qui a coûté −118 à −241 Elo).
-    fn quiescence(&mut self, mut alpha: i32, beta: i32, ply: usize) -> (i32, Move, Flag) {
+    fn quiescence(
+        &mut self,
+        mut alpha: i32,
+        beta: i32,
+        ply: usize,
+        captures: usize,
+    ) -> (i32, Move, Flag) {
         if self.aborted {
             return (0, Move::NONE, Flag::Upper);
+        }
+        // **Garde-fou de profondeur** : la quiescence n'a pas de borne
+        // de ply propre (elle n'est pas bornée par la profondeur
+        // itérative). Sans ce filet, une série de prises-promotions
+        // pourrait déborder la pile.
+        if ply + 2 >= MAX_PLY {
+            return (crate::nn::leaf_cp(&self.pos), Move::NONE, Flag::Exact);
+        }
+        // **Borne des prises** : au-delà, la position est rendue à sa
+        // valeur statique (le « stand-pat »). C'est la borne qui rend
+        // la quiescence **finie** sur les positions à promotions
+        // combinatoires (cf. `MAX_QUIESCENCE_CAPTURES`).
+        if captures >= MAX_QUIESCENCE_CAPTURES {
+            return (crate::nn::leaf_cp(&self.pos), Move::NONE, Flag::Exact);
         }
         if self.nodes >= self.node_limit {
             self.aborted = true;
@@ -836,9 +960,22 @@ impl<'a> Ctx<'a> {
             // stand-pat était toujours atteint — mais la quiescence
             // confondait alors « pas de prise » et « pat ».)
             let stand = crate::nn::leaf_cp(&self.pos);
-            if stand >= beta {
-                return (stand, Move::NONE, Flag::Lower);
-            }
+            // **La terminalité passe AVANT la coupe « stand-pat ».**
+            //
+            // Une position sans aucun coup légal est un **pat** (nulle),
+            // pas une position à évaluer. La coupe `stand >= beta`
+            // précédait le test de légalité : une **capture qui menait au
+            // pat** était alors notée « gagnante » (la valeur statique
+            // de la position de pat, ≥ beta), et la nulle était perdue.
+            // C'est la même famille de bug que le correctif du 2026-10-23
+            // (le signe de la quiescence) : la terminalité doit être
+            // décidée **avant** toute comparaison de scores.
+            //
+            // L'ordre n'est **pas** plus coûteux : la génération des
+            // prises était faite de toute façon juste après — elle est
+            // simplement anticipée. Le seul surcoût porte sur les nœuds
+            // où la coupe s'appliquait (ils paient maintenant la
+            // génération).
             movegen::generate(&self.pos, &mut list, GenKind::CapturesOnly);
             if list.is_empty() {
                 // Pas de prise : la position n'est **terminale** que si
@@ -847,7 +984,15 @@ impl<'a> Ctx<'a> {
                 if !movegen::has_legal_move(&self.pos) {
                     return (0, Move::NONE, Flag::Exact);
                 }
+                if stand >= beta {
+                    return (stand, Move::NONE, Flag::Lower);
+                }
                 return (stand, Move::NONE, Flag::Exact);
+            }
+            // Il y a au moins une prise : la position n'est pas
+            // terminale, la coupe « stand-pat » est donc sûre.
+            if stand >= beta {
+                return (stand, Move::NONE, Flag::Lower);
             }
             if stand > alpha {
                 alpha = stand;
@@ -891,7 +1036,7 @@ impl<'a> Ctx<'a> {
             // Sans cette inversion, la quiescence rendait la valeur *de
             // l'adversaire* : le moteur jugeait les positions calmes à
             // l'envers (une position perdante était notée gagnante).
-            let (child_score, _, _) = self.quiescence(-beta, -alpha, ply + 1);
+            let (child_score, _, _) = self.quiescence(-beta, -alpha, ply + 1, captures + 1);
             let score = -child_score;
             self.pos.unmake(mv, undo);
             if self.aborted {
@@ -999,16 +1144,21 @@ impl<'a> Ctx<'a> {
         self.pos.ep = saved_ep;
     }
 
-    /// Le trait au trait a-t-il du **matériel** hors pions ? Dans une
-    /// fin de pions, un coup gratuit est un **zugzwang** : « passer »
-    /// serait une perte. Le null-move y est donc désactivé.
-    fn has_non_pawn_material(&self) -> bool {
-        let us = self.pos.side;
-        (self.pos.pieces(us, crate::types::KNIGHT)
-            | self.pos.pieces(us, crate::types::BISHOP)
-            | self.pos.pieces(us, crate::types::ROOK)
-            | self.pos.pieces(us, crate::types::QUEEN))
-            != 0
+    /// Le trait au trait a-t-il du **matériel lourd** (tour ou dame) ?
+    ///
+    /// Le coup gratuit est désactivé dans les fins de pions — c'est le
+    /// zugzwang classique — **et** dans les fins de pièces **mineures**
+    /// (cavalier ou fou contre roi) : dans ces finales, « passer » est
+    /// presque toujours une perte, et le null-move y rend `beta` sans
+    /// chercher : le moteur refuse alors un coup gagnant.
+    ///
+    /// Le garde-fou précédent (toute pièce hors pions) laissait passer
+    /// ces finales : c'est le même bug de famille que le coup gratuit
+    /// naïf, que le duel de la phase AB8 a mesuré **négatif**
+    /// (−71 Elo) — mais la phase l'avait mesuré sur le débit, pas sur
+    /// la force.
+    fn has_heavy_material(&self) -> bool {
+        has_heavy_material(&self.pos)
     }
 
     /// Le trait au trait a-t-il une **capture** disponible ?
@@ -1022,6 +1172,32 @@ impl<'a> Ctx<'a> {
     fn has_capture(&self) -> bool {
         let mut list = MoveList::new();
         movegen::generate(&self.pos, &mut list, GenKind::CapturesOnly);
+        !list.is_empty()
+    }
+
+    /// L'**adversaire** a-t-il une capture disponible ?
+    ///
+    /// Le garde-fou « capture » de la futilité et du razoring doit
+    /// regarder **les deux camps**. La futilité rend `beta` (« nous
+    /// gagnons ») quand l'évaluation statique est très haute ; or
+    /// l'évaluation statique compte les pièces *comme si elles étaient
+    /// vivantes*. Si l'adversaire peut **prendre** une de nos pièces,
+    /// la borne est fausse : la position est perdante, pas gagnante.
+    ///
+    /// Le trait adverse est simulé en inversant le **seul** côté au
+    /// trait : la case de prise en passant est conservée (une prise en
+    /// passant de l'adversaire doit être vue), et rien d'autre n'est
+    /// touché.
+    ///
+    /// Le coût (une génération) n'est payé que sur le chemin **shallow**
+    /// et seulement quand l'option est active — les options AB8 sont
+    /// inactives par défaut.
+    fn opponent_has_capture(&mut self) -> bool {
+        let side = self.pos.side;
+        self.pos.side = side.opp();
+        let mut list = MoveList::new();
+        movegen::generate(&self.pos, &mut list, GenKind::CapturesOnly);
+        self.pos.side = side;
         !list.is_empty()
     }
 
@@ -1051,12 +1227,32 @@ impl<'a> Ctx<'a> {
     /// La position courante est-elle une **répétition** ? (même joueur au
     /// trait, mêmes droits de roque, même case de prise en passant —
     /// c'est ce que la clé Zobrist garantit.)
+    ///
+    /// # Règle : **trois** occurrences
+    ///
+    /// La nulle par répétition (règle FIDE) exige que la position soit
+    /// apparue **trois fois** ; à la deuxième, la nulle peut être
+    /// *réclamée*, elle n'est pas automatique.
+    ///
+    /// Le moteur traitait la **deuxième** occurrence comme une nulle
+    /// automatique : il evaluait donc `0` une position qui n'était pas
+    ///Drawing, et le MCTS (qui exige trois occurrences) ne traitait pas
+    /// la même position de la même façon — ce qui **violait le contrat
+    /// de la phase AB** (« les deux algorithmes voient la même
+    /// évaluation »).
+    ///
+    /// Ici, on compte les occurrences **antérieures** : il en faut
+    /// **deux** (la position courante étant la troisième).
     fn is_repetition(&self) -> bool {
         let key = self.pos.zobrist;
+        let mut previous = 0usize;
         // La ligne de recherche : les ancêtres.
         for &k in self.path.iter() {
             if k == key {
-                return true;
+                previous += 1;
+                if previous >= 2 {
+                    return true;
+                }
             }
         }
         // L'historique de la partie, **hors** la position courante (la
@@ -1069,12 +1265,85 @@ impl<'a> Ctx<'a> {
         // partie — à 300 coups, chaque nœud payait 300 comparaisons.
         for &k in self.game_hist.iter().rev().skip(1).take(100) {
             if k == key {
-                return true;
+                previous += 1;
+                if previous >= 2 {
+                    return true;
+                }
             }
         }
         false
     }
+    /// Semer la **ligne principale** d'un ply avec le coup connu.
+    ///
+    /// Quand la recherche rend la main sur une **transposition**, la
+    /// ligne principale n'est pas reconstruite : elle est vide. Le coup
+    /// de la table est la seule information connue — sans lui, le
+    /// moteur rendrait le repli (le premier coup légal) au lieu du
+    /// meilleur coup connu.
+    fn seed_pv(&mut self, ply: usize, mv: Move) {
+        if mv != Move::NONE {
+            self.pv_table[ply].clear();
+            self.pv_table[ply].push(mv);
+        }
+    }
+
 }
+
+/// Le trait au trait a-t-il du **matériel lourd** (tour ou dame) ?
+///
+/// Le coup gratuit (null-move) est désactivé dans les fins de pions
+/// (zugzwang classique) **et** dans les fins de pièces **mineures**
+/// (cavalier ou fou contre roi) : dans ces finales, « passer » est
+/// presque toujours une perte, et le null-move y rend `beta` sans
+/// chercher — le moteur refuse alors un coup gagnant.
+fn has_heavy_material(pos: &Position) -> bool {
+    let us = pos.side;
+    (pos.pieces(us, crate::types::ROOK) | pos.pieces(us, crate::types::QUEEN)) != 0
+}
+
+/// Le coup peut-il être cherché à **profondeur réduite** (LMR) ?
+///
+/// La fonction est **pure** et **testable** : les invariants du LMR
+/// sont des invariants de *cette* fonction, pas des invariants de la
+/// boucle de recherche — c'est la raison de l'extraire.
+///
+/// # Les invariants
+///
+/// * le coup de la **TT** n'est **jamais** réduit : c'est le meilleur
+///   coup connu pour la position, et sa valeur peut n'être qu'une
+///   *borne* (une recherche à fenêtre nulle qui échoue ne donne pas la
+///   valeur exacte) ; le réduire produirait un choix faux. La
+///   génération **échelonnée** rend cette condition nécessaire : le
+///   coup de la TT peut être un coup *tranquille*, donc porter un
+///   index > 0 dans la phase tranquille — le test `index > 0` ne
+///   l'excluait pas ;
+/// * le coup de la **PV** (ply 0) n'est **jamais** réduit : la ligne
+///   principale est la seule dont la valeur est garantie complète ;
+/// * une **fenêtre de mat** n'est jamais réduite (le mat serait perdu) ;
+/// * les coups **tactiques** (prises, promotions) ne sont jamais
+///   réduits.
+fn lmr_can_reduce(
+    opts: &Options,
+    mv: Move,
+    tt_best: Move,
+    index: usize,
+    ply: usize,
+    in_check: bool,
+    alpha: i32,
+    beta: i32,
+) -> bool {
+    opts.lmr
+        && index > 0
+        && !in_check
+        && !mv.is_capture()
+        && !mv.is_promotion()
+        && mv != tt_best
+        && ply > 0
+        && alpha.abs() < LMR_SAFE_LIMIT
+        && beta.abs() < LMR_SAFE_LIMIT
+}
+
+
 
 /// L'index de la table d'historique d'un coup (`from * 64 + to`).
 fn history_index(mv: Move) -> usize {
@@ -1144,4 +1413,146 @@ fn mvv_lva(pos: &Position, mv: Move) -> i32 {
     };
     let promo = if mv.is_promotion() { 800 } else { 0 };
     10 * victim + promo - attacker
+}
+
+#[cfg(test)]
+mod tests {
+    //! Les invariants **internes** de la recherche.
+    //!
+    //! Les invariants qui se lisent dans une recherche complète (« le
+    //! score ne bouge pas ») sont tested dans `tests/ab_proprietes.rs` ;
+    //! ceux qui tiennent à **une condition** (le LMR, le null-move) sont
+    //! ici, sur la fonction pure qui les porte : c'est le seul endroit
+    //! où on peut les énoncer **sans** dépendre du reste de la boucle.
+
+    use super::*;
+
+    fn opts() -> Options {
+        Options {
+            lmr: true,
+            ..Options::default()
+        }
+    }
+
+    /// Un coup **tranquille**, ni de la TT, hors PV, dans une fenêtre
+    /// normale : le LMR **s'applique**.
+    #[test]
+    fn lmr_reduces_a_plain_quiet_move() {
+        let mv = Move::new(0, 1, 0); // un coup tranquille quelconque
+        assert!(lmr_can_reduce(
+            &opts(),
+            mv,
+            Move::NONE,
+            3,   // index
+            2,   // ply
+            false,
+            0,
+            100
+        ));
+    }
+
+    /// Le coup de la **table de transposition** n'est **jamais** réduit.
+    ///
+    /// C'est l'invariant que la génération échelonnée avait cassé : le
+    /// coup de la TT peut être *tranquille*, donc porter un index > 0
+    /// dans la phase tranquille — le test `index > 0` ne l'excluait pas.
+    #[test]
+    fn lmr_never_reduces_the_tt_move() {
+        let mv = Move::new(0, 1, 0);
+        assert!(!lmr_can_reduce(
+            &opts(),
+            mv,
+            mv,   // le coup de la TT
+            7,    // index > 0 (phase tranquille)
+            2,
+            false,
+            0,
+            100
+        ));
+    }
+
+    /// Le coup de la **PV** (ply 0) n'est **jamais** réduit.
+    #[test]
+    fn lmr_never_reduces_the_pv_move() {
+        let mv = Move::new(0, 1, 0);
+        assert!(!lmr_can_reduce(
+            &opts(), mv, Move::NONE, 5, /* ply */ 0, false, 0, 100
+        ));
+    }
+
+    /// Un coup **tactique** n'est jamais réduit, ni dans une **fenêtre
+    /// de mat**, ni en échec.
+    #[test]
+    fn lmr_never_reduces_a_tactical_or_mate_move() {
+        let mv = Move::new(0, 1, 0);
+        // une prise (le drapeau « capture » est le bit 2 des drapeaux)
+        let capture = Move::new(0, 1, 4);
+        assert!(!lmr_can_reduce(
+            &opts(),
+            capture,
+            Move::NONE,
+            5,
+            2,
+            false,
+            0,
+            100
+        ));
+        // une fenêtre de mat
+        assert!(!lmr_can_reduce(
+            &opts(),
+            mv,
+            Move::NONE,
+            5,
+            2,
+            false,
+            MATE - 10,
+            MATE
+        ));
+        // le trait est en échec
+        assert!(!lmr_can_reduce(
+            &opts(),
+            mv,
+            Move::NONE,
+            5,
+            2,
+            true,
+            0,
+            100
+        ));
+    }
+
+    /// L'option éteinte, rien n'est réduit.
+    #[test]
+    fn lmr_is_off_when_the_option_is_off() {
+        let mv = Move::new(0, 1, 0);
+        let off = Options::default();
+        assert!(!lmr_can_reduce(
+            &off, mv, Move::NONE, 5, 2, false, 0, 100
+        ));
+    }
+
+    /// Le **matériel lourd** : une tour ou une dame.
+    ///
+    /// Le null-move est désactivé sans matériel lourd : dans une finale
+    /// de pièces mineures, « passer » est un zugzwang — le null-move
+    /// rendrait `beta` sans chercher, et le moteur refuserait un coup
+    /// gagnant.
+    #[test]
+    fn the_heavy_material_is_a_rook_or_a_queen() {
+        // cavalier contre roi : pas de matériel lourd
+        let pos = Position::from_fen("8/8/8/4k3/8/8/8/K3N3 w - - 0 1").unwrap();
+        assert!(!has_heavy_material(&pos));
+        // fou contre roi : pas de matériel lourd
+        let pos = Position::from_fen("8/8/8/4k3/8/8/8/K3B3 w - - 0 1").unwrap();
+        assert!(!has_heavy_material(&pos));
+        // tour contre roi : matériel lourd
+        let pos = Position::from_fen("8/8/8/4k3/8/8/8/K3R3 w - - 0 1").unwrap();
+        assert!(has_heavy_material(&pos));
+        // dame contre roi : matériel lourd
+        let pos = Position::from_fen("8/8/8/4k3/8/8/8/K3Q3 w - - 0 1").unwrap();
+        assert!(has_heavy_material(&pos));
+        // pions seuls : pas de matériel lourd
+        let pos = Position::from_fen("8/8/8/4k3/8/8/4P3/K7 w - - 0 1").unwrap();
+        assert!(!has_heavy_material(&pos));
+    }
 }
