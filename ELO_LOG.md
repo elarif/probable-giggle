@@ -519,6 +519,33 @@ exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
 * **rapport** : `docs/ab/phase8-2026-10-23.md` — plan :
   `docs/ab/plan-heuristiques-2026-10-23.md`.
 
+## Revue de correctness — la borne de quiescence mesurée (2026-10-23)
+
+* **but** : la revue de correctness du 2026-10-23 (cf.
+  `docs/revue-2026-10-23.md`) a trouvé une **quiescence sans borne** :
+  sur une position riche en promotions, la profondeur 4 ne terminait pas
+  (2 000 000+ nœuds). Le correctif borne la série de prises à **8** —
+  c'est le seul changement de la revue qui modifie **ce que le moteur
+  joue**, il fallait donc le **mesurer**, pas le supposer ;
+* **protocole** : duel **interne** (l'adversaire prévu, CAPS-LiTE, est
+  hors service) : le **même** moteur, deux binaires, une seule
+  différence — la borne de quiescence (8 contre 64 prises) ; 200
+  parties, 200 ms/coup, livre ECO lichess (3 863 positions, graine
+  20261023), aucune adjudication, SPRT `elo0=0 elo1=5 alpha=0.05
+  beta=0.05` ;
+* **résultat** : **−6,95 ± 33,80 Elo** (200 parties, 69 v – 73 n – 58
+  nulles, LLR −0,10) — le SPRT **ne rejette pas** la borne ;
+* **débit** : sur 10 positions (profondeur 5), **−35 % de nœuds**
+  (422 210 contre 653 902) et des scores **identiques sur 9 positions**
+  (+20 cp sur le kiwipete) ;
+* **verdict** : la borne de quiescence est **neutre en force** et gagne
+  un tiers des nœuds. Elle est **conservée** ;
+* **réserve** : le duel est **interne** (même moteur, deux binaires) ;
+  il ne dit rien de la force de l'alpha-beta **absolu** — l'adversaire
+  externe (CAPS-LiTE) reste à reconstruire ;
+* **log** : `prt/rr/quiescence-borne.log` — PGN :
+  `prt/rr/quiescence-borne.pgn`.
+
 ## Phase PERF — la performance, mesurée (2026-10-23)
 
 * **but** : la phase AB8 a établi que le goulot est la **fonction de

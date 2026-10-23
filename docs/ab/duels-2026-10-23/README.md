@@ -63,3 +63,24 @@ annonçait 200 ms. Le script convertit désormais les millisecondes en
 secondes et journalise la conversion.
 
 Voir `docs/ab/phase8-2026-10-23.md` §4.1.
+
+## Le duel de la revue — la borne de quiescence (2026-10-23)
+
+| log | duel | résultat | Elo ± err | LLR |
+|---|---|---|---|---|
+| `quiescence-borne.log` | **borne de quiescence** : 8 prises contre 64 prises | 69 V – 58 D – 73 N (49,00 %) | −6,95 ± 33,80 | −0,10 (−3,5 %) |
+
+Protocole : **deux binaires du même moteur** (`/tmp/mychess-q8` contre
+`/tmp/mychess-q64`), une seule différence : la constante
+`MAX_QUIESCENCE_CAPTURES` (8 contre 64) ; `Search=alpha`,
+`st=0.200` (200 ms par coup), `timemargin=200`, livre ECO lichess en
+ordre aléatoire (graine 20261023), aucune adjudication, **200 parties**,
+concurrence 10, SPRT `elo0=0 elo1=5 alpha=0.05 beta=0.05`.
+
+C'est un duel **interne** : il ne dit rien de la force **absolue** de
+l'alpha-beta (l'adversaire externe, CAPS-LiTE, est hors service), mais
+il mesure **exactement** l'effet de la borne — le seul changement de la
+revue de correctness qui modifie ce que le moteur joue. Le verdict est
+**neutre en force**, pour **−35 % de nœuds**.
+
+Voir `docs/revue-2026-10-23.md` §5.1.

@@ -1,0 +1,504 @@
+Indexing opening suite...
+Started game 2 of 200 (q64 vs q8)
+Started game 7 of 200 (q8 vs q64)
+Started game 1 of 200 (q8 vs q64)
+Started game 10 of 200 (q64 vs q8)
+Started game 4 of 200 (q64 vs q8)
+Started game 8 of 200 (q64 vs q8)
+Started game 5 of 200 (q8 vs q64)
+Started game 6 of 200 (q64 vs q8)
+Started game 9 of 200 (q8 vs q64)
+[[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+Started game 3 of 200 (q8 vs q64)
+[[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[[[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+]
+]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+[slider path: magic (AuthenticAMD family 0x17 + bmi2+popcnt+movbe)]
+Finished game 2 (q64 vs q8): 0-1 {Black mates}
+Started game 11 of 200 (q8 vs q64)
+Finished game 1 (q8 vs q64): 0-1 {Black mates}
+Started game 12 of 200 (q64 vs q8)
+Finished game 8 (q64 vs q8): 0-1 {Black mates}
+Started game 13 of 200 (q8 vs q64)
+Finished game 7 (q8 vs q64): 1/2-1/2 {Draw by insufficient mating material}
+Started game 14 of 200 (q64 vs q8)
+Finished game 5 (q8 vs q64): 0-1 {Black mates}
+Started game 15 of 200 (q8 vs q64)
+Finished game 10 (q64 vs q8): 1-0 {White mates}
+Started game 16 of 200 (q64 vs q8)
+Finished game 3 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 17 of 200 (q8 vs q64)
+Finished game 4 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 18 of 200 (q64 vs q8)
+Finished game 9 (q8 vs q64): 1-0 {White mates}
+Started game 19 of 200 (q8 vs q64)
+Finished game 15 (q8 vs q64): 1-0 {White mates}
+Started game 20 of 200 (q64 vs q8)
+Finished game 11 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 21 of 200 (q8 vs q64)
+Finished game 12 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 22 of 200 (q64 vs q8)
+Finished game 13 (q8 vs q64): 1-0 {White mates}
+Started game 23 of 200 (q8 vs q64)
+Finished game 14 (q64 vs q8): 1-0 {White mates}
+Started game 24 of 200 (q64 vs q8)
+Finished game 16 (q64 vs q8): 0-1 {Black mates}
+Started game 25 of 200 (q8 vs q64)
+Finished game 21 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 26 of 200 (q64 vs q8)
+Finished game 20 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 27 of 200 (q8 vs q64)
+Finished game 24 (q64 vs q8): 0-1 {Black mates}
+Started game 28 of 200 (q64 vs q8)
+Finished game 27 (q8 vs q64): 0-1 {Black mates}
+Started game 29 of 200 (q8 vs q64)
+Finished game 23 (q8 vs q64): 1-0 {White mates}
+Started game 30 of 200 (q64 vs q8)
+Finished game 6 (q64 vs q8): 1/2-1/2 {Draw by insufficient mating material}
+Started game 31 of 200 (q8 vs q64)
+Finished game 25 (q8 vs q64): 0-1 {Black mates}
+Started game 32 of 200 (q64 vs q8)
+Finished game 17 (q8 vs q64): 1-0 {White mates}
+Started game 33 of 200 (q8 vs q64)
+Finished game 19 (q8 vs q64): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: 70.44 +/- 106.39, nElo: 107.22 +/- 152.27
+LOS: 91.62 %, DrawRatio: 60.00 %, PairsRatio: 3.00
+Games: 20, Wins: 8, Losses: 4, Draws: 8, Points: 12.0 (60.00 %)
+Ptnml(0-2): [0, 1, 6, 1, 2], WL/DD Ratio: 1.00
+LLR: 0.09 (3.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 34 of 200 (q64 vs q8)
+Finished game 26 (q64 vs q8): 0-1 {Black mates}
+Started game 35 of 200 (q8 vs q64)
+Finished game 22 (q64 vs q8): 1-0 {White mates}
+Started game 36 of 200 (q64 vs q8)
+Finished game 18 (q64 vs q8): 1-0 {White mates}
+Started game 37 of 200 (q8 vs q64)
+Finished game 30 (q64 vs q8): 1-0 {White mates}
+Started game 38 of 200 (q64 vs q8)
+Finished game 35 (q8 vs q64): 0-1 {Black mates}
+Started game 39 of 200 (q8 vs q64)
+Finished game 36 (q64 vs q8): 0-1 {Black mates}
+Started game 40 of 200 (q64 vs q8)
+Finished game 29 (q8 vs q64): 0-1 {Black mates}
+Started game 41 of 200 (q8 vs q64)
+Finished game 33 (q8 vs q64): 1-0 {White mates}
+Started game 42 of 200 (q64 vs q8)
+Finished game 28 (q64 vs q8): 1-0 {White mates}
+Started game 43 of 200 (q8 vs q64)
+Finished game 31 (q8 vs q64): 0-1 {Black mates}
+Started game 44 of 200 (q64 vs q8)
+Finished game 32 (q64 vs q8): 0-1 {Black mates}
+Started game 45 of 200 (q8 vs q64)
+Finished game 39 (q8 vs q64): 0-1 {Black mates}
+Started game 46 of 200 (q64 vs q8)
+Finished game 43 (q8 vs q64): 1-0 {White mates}
+Started game 47 of 200 (q8 vs q64)
+Finished game 34 (q64 vs q8): 1-0 {White mates}
+Started game 48 of 200 (q64 vs q8)
+Finished game 42 (q64 vs q8): 1-0 {White mates}
+Started game 49 of 200 (q8 vs q64)
+Finished game 41 (q8 vs q64): 1-0 {White mates}
+Started game 50 of 200 (q64 vs q8)
+Finished game 38 (q64 vs q8): 1/2-1/2 {Draw by insufficient mating material}
+Started game 51 of 200 (q8 vs q64)
+Finished game 47 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 52 of 200 (q64 vs q8)
+Finished game 37 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 53 of 200 (q8 vs q64)
+Finished game 45 (q8 vs q64): 1-0 {White mates}
+Started game 54 of 200 (q64 vs q8)
+Finished game 40 (q64 vs q8): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -16.56 +/- 73.41, nElo: -24.09 +/- 105.07
+LOS: 32.66 %, DrawRatio: 61.90 %, PairsRatio: 0.60
+Games: 42, Wins: 14, Losses: 16, Draws: 12, Points: 20.0 (47.62 %)
+Ptnml(0-2): [2, 3, 13, 1, 2], WL/DD Ratio: 2.25
+LLR: -0.05 (-1.5%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 55 of 200 (q8 vs q64)
+Finished game 48 (q64 vs q8): 1-0 {White mates}
+Started game 56 of 200 (q64 vs q8)
+Finished game 49 (q8 vs q64): 0-1 {Black mates}
+Started game 57 of 200 (q8 vs q64)
+Finished game 53 (q8 vs q64): 1-0 {White mates}
+Started game 58 of 200 (q64 vs q8)
+Finished game 54 (q64 vs q8): 1-0 {White mates}
+Started game 59 of 200 (q8 vs q64)
+Finished game 44 (q64 vs q8): 1/2-1/2 {Draw by insufficient mating material}
+Started game 60 of 200 (q64 vs q8)
+Finished game 51 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 61 of 200 (q8 vs q64)
+Finished game 46 (q64 vs q8): 1/2-1/2 {Draw by insufficient mating material}
+Started game 62 of 200 (q64 vs q8)
+Finished game 55 (q8 vs q64): 0-1 {Black mates}
+Started game 63 of 200 (q8 vs q64)
+Finished game 57 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 64 of 200 (q64 vs q8)
+Finished game 56 (q64 vs q8): 0-1 {Black mates}
+Started game 65 of 200 (q8 vs q64)
+Finished game 52 (q64 vs q8): 0-1 {Black mates}
+Started game 66 of 200 (q64 vs q8)
+Finished game 59 (q8 vs q64): 1-0 {White mates}
+Started game 67 of 200 (q8 vs q64)
+Finished game 62 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 68 of 200 (q64 vs q8)
+Finished game 66 (q64 vs q8): 1-0 {White mates}
+Started game 69 of 200 (q8 vs q64)
+Finished game 67 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 70 of 200 (q64 vs q8)
+Finished game 50 (q64 vs q8): 1/2-1/2 {Draw by insufficient mating material}
+Started game 71 of 200 (q8 vs q64)
+Finished game 68 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 72 of 200 (q64 vs q8)
+Finished game 63 (q8 vs q64): 0-1 {Black mates}
+Started game 73 of 200 (q8 vs q64)
+Finished game 64 (q64 vs q8): 0-1 {Black mates}
+Started game 74 of 200 (q64 vs q8)
+Finished game 70 (q64 vs q8): 0-1 {Black mates}
+Started game 75 of 200 (q8 vs q64)
+Finished game 69 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 76 of 200 (q64 vs q8)
+Finished game 61 (q8 vs q64): 1/2-1/2 {Draw by fifty moves rule}
+Started game 77 of 200 (q8 vs q64)
+Finished game 73 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 78 of 200 (q64 vs q8)
+Finished game 60 (q64 vs q8): 1-0 {White mates}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -0.00 +/- 53.02, nElo: 0.00 +/- 83.82
+LOS: 50.00 %, DrawRatio: 57.58 %, PairsRatio: 1.00
+Games: 66, Wins: 22, Losses: 22, Draws: 22, Points: 33.0 (50.00 %)
+Ptnml(0-2): [2, 5, 19, 5, 2], WL/DD Ratio: 2.17
+LLR: -0.01 (-0.2%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 79 of 200 (q8 vs q64)
+Finished game 74 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 80 of 200 (q64 vs q8)
+Finished game 76 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 81 of 200 (q8 vs q64)
+Finished game 72 (q64 vs q8): 0-1 {Black mates}
+Started game 82 of 200 (q64 vs q8)
+Finished game 71 (q8 vs q64): 0-1 {Black mates}
+Started game 83 of 200 (q8 vs q64)
+Finished game 58 (q64 vs q8): 1/2-1/2 {Draw by fifty moves rule}
+Started game 84 of 200 (q64 vs q8)
+Finished game 77 (q8 vs q64): 1-0 {White mates}
+Started game 85 of 200 (q8 vs q64)
+Finished game 78 (q64 vs q8): 1-0 {White mates}
+Started game 86 of 200 (q64 vs q8)
+Finished game 75 (q8 vs q64): 1-0 {White mates}
+Started game 87 of 200 (q8 vs q64)
+Finished game 80 (q64 vs q8): 0-1 {Black mates}
+Started game 88 of 200 (q64 vs q8)
+Finished game 81 (q8 vs q64): 0-1 {Black mates}
+Started game 89 of 200 (q8 vs q64)
+Finished game 86 (q64 vs q8): 1-0 {White mates}
+Started game 90 of 200 (q64 vs q8)
+Finished game 84 (q64 vs q8): 0-1 {Black mates}
+Started game 91 of 200 (q8 vs q64)
+Finished game 79 (q8 vs q64): 1-0 {White mates}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: 13.37 +/- 48.82, nElo: 21.28 +/- 77.10
+LOS: 70.57 %, DrawRatio: 58.97 %, PairsRatio: 1.29
+Games: 78, Wins: 27, Losses: 24, Draws: 27, Points: 40.5 (51.92 %)
+Ptnml(0-2): [2, 5, 23, 6, 3], WL/DD Ratio: 1.88
+LLR: 0.06 (2.1%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 92 of 200 (q64 vs q8)
+Finished game 65 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 93 of 200 (q8 vs q64)
+Finished game 89 (q8 vs q64): 0-1 {Black mates}
+Started game 94 of 200 (q64 vs q8)
+Finished game 93 (q8 vs q64): 1-0 {White mates}
+Started game 95 of 200 (q8 vs q64)
+Finished game 83 (q8 vs q64): 1-0 {White mates}
+Started game 96 of 200 (q64 vs q8)
+Finished game 92 (q64 vs q8): 1-0 {White mates}
+Started game 97 of 200 (q8 vs q64)
+Finished game 94 (q64 vs q8): 1-0 {White mates}
+Started game 98 of 200 (q64 vs q8)
+Finished game 90 (q64 vs q8): 1-0 {White mates}
+Started game 99 of 200 (q8 vs q64)
+Finished game 82 (q64 vs q8): 1/2-1/2 {Draw by insufficient mating material}
+Started game 100 of 200 (q64 vs q8)
+Finished game 91 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 101 of 200 (q8 vs q64)
+Finished game 85 (q8 vs q64): 1/2-1/2 {Draw by insufficient mating material}
+Started game 102 of 200 (q64 vs q8)
+Finished game 99 (q8 vs q64): 0-1 {Black mates}
+Started game 103 of 200 (q8 vs q64)
+Finished game 96 (q64 vs q8): 1-0 {White mates}
+Started game 104 of 200 (q64 vs q8)
+Finished game 101 (q8 vs q64): 1-0 {White mates}
+Started game 105 of 200 (q8 vs q64)
+Finished game 103 (q8 vs q64): 1-0 {White mates}
+Started game 106 of 200 (q64 vs q8)
+Finished game 102 (q64 vs q8): 1-0 {White mates}
+Started game 107 of 200 (q8 vs q64)
+Finished game 100 (q64 vs q8): 1-0 {White mates}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -10.86 +/- 48.90, nElo: -15.55 +/- 69.50
+LOS: 33.05 %, DrawRatio: 52.08 %, PairsRatio: 0.77
+Games: 96, Wins: 31, Losses: 34, Draws: 31, Points: 46.5 (48.44 %)
+Ptnml(0-2): [4, 9, 25, 6, 4], WL/DD Ratio: 2.12
+LLR: -0.07 (-2.4%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 108 of 200 (q64 vs q8)
+Finished game 87 (q8 vs q64): 0-1 {Black mates}
+Started game 109 of 200 (q8 vs q64)
+Finished game 104 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 110 of 200 (q64 vs q8)
+Finished game 97 (q8 vs q64): 0-1 {Black mates}
+Started game 111 of 200 (q8 vs q64)
+Finished game 108 (q64 vs q8): 0-1 {Black mates}
+Started game 112 of 200 (q64 vs q8)
+Finished game 98 (q64 vs q8): 0-1 {Black mates}
+Started game 113 of 200 (q8 vs q64)
+Finished game 88 (q64 vs q8): 1/2-1/2 {Draw by fifty moves rule}
+Started game 114 of 200 (q64 vs q8)
+Finished game 105 (q8 vs q64): 1-0 {White mates}
+Started game 115 of 200 (q8 vs q64)
+Finished game 106 (q64 vs q8): 1-0 {White mates}
+Started game 116 of 200 (q64 vs q8)
+Finished game 95 (q8 vs q64): 0-1 {Black mates}
+Started game 117 of 200 (q8 vs q64)
+Finished game 107 (q8 vs q64): 0-1 {Black mates}
+Started game 118 of 200 (q64 vs q8)
+Finished game 117 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 119 of 200 (q8 vs q64)
+Finished game 111 (q8 vs q64): 1-0 {White mates}
+Started game 120 of 200 (q64 vs q8)
+Finished game 110 (q64 vs q8): 1-0 {White mates}
+Started game 121 of 200 (q8 vs q64)
+Finished game 115 (q8 vs q64): 1-0 {White mates}
+Started game 122 of 200 (q64 vs q8)
+Finished game 113 (q8 vs q64): 0-1 {Black mates}
+Started game 123 of 200 (q8 vs q64)
+Finished game 114 (q64 vs q8): 0-1 {Black mates}
+Started game 124 of 200 (q64 vs q8)
+Finished game 119 (q8 vs q64): 1-0 {White mates}
+Started game 125 of 200 (q8 vs q64)
+Finished game 112 (q64 vs q8): 1-0 {White mates}
+Started game 126 of 200 (q64 vs q8)
+Finished game 120 (q64 vs q8): 1-0 {White mates}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -15.25 +/- 43.62, nElo: -22.44 +/- 63.78
+LOS: 24.52 %, DrawRatio: 54.39 %, PairsRatio: 0.73
+Games: 114, Wins: 38, Losses: 43, Draws: 33, Points: 54.5 (47.81 %)
+Ptnml(0-2): [5, 10, 31, 7, 4], WL/DD Ratio: 2.88
+LLR: -0.12 (-4.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 127 of 200 (q8 vs q64)
+Finished game 116 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 128 of 200 (q64 vs q8)
+Finished game 118 (q64 vs q8): 1-0 {White mates}
+Started game 129 of 200 (q8 vs q64)
+Finished game 125 (q8 vs q64): 0-1 {Black mates}
+Started game 130 of 200 (q64 vs q8)
+Finished game 126 (q64 vs q8): 0-1 {Black mates}
+Started game 131 of 200 (q8 vs q64)
+Finished game 123 (q8 vs q64): 0-1 {Black mates}
+Started game 132 of 200 (q64 vs q8)
+Finished game 124 (q64 vs q8): 0-1 {Black mates}
+Started game 133 of 200 (q8 vs q64)
+Finished game 121 (q8 vs q64): 1-0 {White mates}
+Started game 134 of 200 (q64 vs q8)
+Finished game 122 (q64 vs q8): 1-0 {White mates}
+Started game 135 of 200 (q8 vs q64)
+Finished game 130 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 136 of 200 (q64 vs q8)
+Finished game 109 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 137 of 200 (q8 vs q64)
+Finished game 128 (q64 vs q8): 1-0 {White mates}
+Started game 138 of 200 (q64 vs q8)
+Finished game 127 (q8 vs q64): 1-0 {White mates}
+Started game 139 of 200 (q8 vs q64)
+Finished game 132 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 140 of 200 (q64 vs q8)
+Finished game 139 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 141 of 200 (q8 vs q64)
+Finished game 135 (q8 vs q64): 1-0 {White mates}
+Started game 142 of 200 (q64 vs q8)
+Finished game 129 (q8 vs q64): 1-0 {White mates}
+Started game 143 of 200 (q8 vs q64)
+Finished game 136 (q64 vs q8): 1-0 {White mates}
+Started game 144 of 200 (q64 vs q8)
+Finished game 134 (q64 vs q8): 0-1 {Black mates}
+Started game 145 of 200 (q8 vs q64)
+Finished game 138 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 146 of 200 (q64 vs q8)
+Finished game 137 (q8 vs q64): 1-0 {White mates}
+Started game 147 of 200 (q8 vs q64)
+Finished game 133 (q8 vs q64): 1/2-1/2 {Draw by fifty moves rule}
+Started game 148 of 200 (q64 vs q8)
+Finished game 145 (q8 vs q64): 0-1 {Black mates}
+Started game 149 of 200 (q8 vs q64)
+Finished game 149 (q8 vs q64): 1-0 {White mates}
+Started game 150 of 200 (q64 vs q8)
+Finished game 131 (q8 vs q64): 1/2-1/2 {Draw by insufficient mating material}
+Started game 151 of 200 (q8 vs q64)
+Finished game 140 (q64 vs q8): 1/2-1/2 {Draw by stalemate}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -7.45 +/- 37.48, nElo: -11.48 +/- 57.55
+LOS: 34.79 %, DrawRatio: 54.29 %, PairsRatio: 0.88
+Games: 140, Wins: 47, Losses: 50, Draws: 43, Points: 68.5 (48.93 %)
+Ptnml(0-2): [5, 12, 38, 11, 4], WL/DD Ratio: 2.80
+LLR: -0.08 (-2.8%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 152 of 200 (q64 vs q8)
+Finished game 142 (q64 vs q8): 0-1 {Black mates}
+Started game 153 of 200 (q8 vs q64)
+Finished game 141 (q8 vs q64): 0-1 {Black mates}
+Started game 154 of 200 (q64 vs q8)
+Finished game 150 (q64 vs q8): 1-0 {White mates}
+Started game 155 of 200 (q8 vs q64)
+Finished game 143 (q8 vs q64): 1/2-1/2 {Draw by insufficient mating material}
+Started game 156 of 200 (q64 vs q8)
+Finished game 146 (q64 vs q8): 1-0 {White mates}
+Started game 157 of 200 (q8 vs q64)
+Finished game 148 (q64 vs q8): 1-0 {White mates}
+Started game 158 of 200 (q64 vs q8)
+Finished game 152 (q64 vs q8): 0-1 {Black mates}
+Started game 159 of 200 (q8 vs q64)
+Finished game 144 (q64 vs q8): 1/2-1/2 {Draw by insufficient mating material}
+Started game 160 of 200 (q64 vs q8)
+Finished game 147 (q8 vs q64): 1-0 {White mates}
+Started game 161 of 200 (q8 vs q64)
+Finished game 153 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 162 of 200 (q64 vs q8)
+Finished game 154 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 163 of 200 (q8 vs q64)
+Finished game 161 (q8 vs q64): 0-1 {Black mates}
+Started game 164 of 200 (q64 vs q8)
+Finished game 162 (q64 vs q8): 0-1 {Black mates}
+Started game 165 of 200 (q8 vs q64)
+Finished game 155 (q8 vs q64): 1-0 {White mates}
+Started game 166 of 200 (q64 vs q8)
+Finished game 158 (q64 vs q8): 1-0 {White mates}
+Started game 167 of 200 (q8 vs q64)
+Finished game 163 (q8 vs q64): 0-1 {Black mates}
+Started game 168 of 200 (q64 vs q8)
+Finished game 160 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 169 of 200 (q8 vs q64)
+Finished game 159 (q8 vs q64): 1-0 {White mates}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -8.91 +/- 35.01, nElo: -13.93 +/- 54.52
+LOS: 30.83 %, DrawRatio: 56.41 %, PairsRatio: 0.89
+Games: 156, Wins: 52, Losses: 56, Draws: 48, Points: 76.0 (48.72 %)
+Ptnml(0-2): [6, 12, 44, 12, 4], WL/DD Ratio: 2.67
+LLR: -0.11 (-3.6%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 170 of 200 (q64 vs q8)
+Finished game 157 (q8 vs q64): 1/2-1/2 {Draw by fifty moves rule}
+Started game 171 of 200 (q8 vs q64)
+Finished game 165 (q8 vs q64): 1-0 {White mates}
+Started game 172 of 200 (q64 vs q8)
+Finished game 151 (q8 vs q64): 0-1 {Black mates}
+Started game 173 of 200 (q8 vs q64)
+Finished game 156 (q64 vs q8): 1/2-1/2 {Draw by fifty moves rule}
+Started game 174 of 200 (q64 vs q8)
+Finished game 167 (q8 vs q64): 1-0 {White mates}
+Started game 175 of 200 (q8 vs q64)
+Finished game 166 (q64 vs q8): 1-0 {White mates}
+Started game 176 of 200 (q64 vs q8)
+Finished game 171 (q8 vs q64): 0-1 {Black mates}
+Started game 177 of 200 (q8 vs q64)
+Finished game 173 (q8 vs q64): 0-1 {Black mates}
+Started game 178 of 200 (q64 vs q8)
+Finished game 169 (q8 vs q64): 1-0 {White mates}
+Started game 179 of 200 (q8 vs q64)
+Finished game 177 (q8 vs q64): 1-0 {White mates}
+Started game 180 of 200 (q64 vs q8)
+Finished game 174 (q64 vs q8): 1-0 {White mates}
+Started game 181 of 200 (q8 vs q64)
+Finished game 175 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 182 of 200 (q64 vs q8)
+Finished game 170 (q64 vs q8): 0-1 {Black mates}
+Started game 183 of 200 (q8 vs q64)
+Finished game 172 (q64 vs q8): 1-0 {White mates}
+Started game 184 of 200 (q64 vs q8)
+Finished game 178 (q64 vs q8): 1-0 {White mates}
+Started game 185 of 200 (q8 vs q64)
+Finished game 179 (q8 vs q64): 0-1 {Black mates}
+Started game 186 of 200 (q64 vs q8)
+Finished game 184 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 187 of 200 (q8 vs q64)
+Finished game 183 (q8 vs q64): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 188 of 200 (q64 vs q8)
+Finished game 180 (q64 vs q8): 0-1 {Black mates}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -11.85 +/- 34.23, nElo: -17.84 +/- 51.33
+LOS: 24.79 %, DrawRatio: 55.68 %, PairsRatio: 0.86
+Games: 176, Wins: 59, Losses: 65, Draws: 52, Points: 85.0 (48.30 %)
+Ptnml(0-2): [8, 13, 49, 13, 5], WL/DD Ratio: 2.77
+LLR: -0.15 (-5.0%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Started game 189 of 200 (q8 vs q64)
+Finished game 182 (q64 vs q8): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 190 of 200 (q64 vs q8)
+Finished game 185 (q8 vs q64): 1-0 {White mates}
+Started game 191 of 200 (q8 vs q64)
+Finished game 181 (q8 vs q64): 1-0 {White mates}
+Started game 192 of 200 (q64 vs q8)
+Finished game 189 (q8 vs q64): 1-0 {White mates}
+Started game 193 of 200 (q8 vs q64)
+Finished game 186 (q64 vs q8): 0-1 {Black mates}
+Started game 194 of 200 (q64 vs q8)
+Finished game 176 (q64 vs q8): 1/2-1/2 {Draw by stalemate}
+Started game 195 of 200 (q8 vs q64)
+Finished game 191 (q8 vs q64): 1-0 {White mates}
+Started game 196 of 200 (q64 vs q8)
+Finished game 192 (q64 vs q8): 1-0 {White mates}
+Started game 197 of 200 (q8 vs q64)
+Finished game 197 (q8 vs q64): 0-1 {Black mates}
+Started game 198 of 200 (q64 vs q8)
+Finished game 190 (q64 vs q8): 0-1 {Black mates}
+Started game 199 of 200 (q8 vs q64)
+Finished game 188 (q64 vs q8): 0-1 {Black mates}
+Started game 200 of 200 (q64 vs q8)
+Finished game 164 (q64 vs q8): 1/2-1/2 {Draw by fifty moves rule}
+Finished game 195 (q8 vs q64): 0-1 {Black mates}
+Finished game 194 (q64 vs q8): 1-0 {White mates}
+Finished game 168 (q64 vs q8): 1/2-1/2 {Draw by fifty moves rule}
+Finished game 193 (q8 vs q64): 0-1 {Black mates}
+Finished game 198 (q64 vs q8): 1-0 {White mates}
+Finished game 196 (q64 vs q8): 0-1 {Black mates}
+Finished game 187 (q8 vs q64): 0-1 {Black mates}
+Finished game 199 (q8 vs q64): 1-0 {White mates}
+Finished game 200 (q64 vs q8): 1/2-1/2 {Draw by fifty moves rule}
+--------------------------------------------------
+Results of q8 vs q64 (0.2/move, 1t, NULL, eco_lichess.epd):
+Elo: -6.95 +/- 33.80, nElo: -9.93 +/- 48.15
+LOS: 34.30 %, DrawRatio: 53.00 %, PairsRatio: 0.96
+Games: 200, Wins: 69, Losses: 73, Draws: 58, Points: 98.0 (49.00 %)
+Ptnml(0-2): [10, 14, 53, 16, 7], WL/DD Ratio: 2.79
+LLR: -0.10 (-3.5%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------
+Finished match
+Total Time: 00:09:56 (hours:minutes:seconds)
+
