@@ -287,12 +287,19 @@ Deux résultats :
 
 Le **duel AB-vs-AB** (phase AB8b : le même binaire, une seule option qui
 change, `movetime 200 ms`, 40 parties) a été joué pour le null-move et
-pour le LMR : null-move **−43,7 ± 100,3 Elo** (17 V – 22 D – 1 N),
-LMR **+34,9 ± 95,3 Elo** (21 V – 17 D – 2 N). **Les deux sont non
-concluants** — à 40 parties la précision réelle est ± 100 Elo, pas
-± 45 Elo : le null-move est un **gain de débit** (−27 % de nœuds) dont
-la profondeur **ne se convertit pas en force** tant que la valeur est
-bruyante, et le LMR garde son verdict (**reverti**).
+pour le LMR : null-move **−0,0 ± 122,8 Elo** (19 V – 19 D – 2 N), LMR
+**+8,7 ± 71,1 Elo** (20 V – 19 D – 1 N). **Les deux sont non
+concluants** : le point estimate est plat et l'intervalle recouvre
+zéro. Le null-move est un **gain de débit** (−27 % de nœuds) dont la
+profondeur **ne se convertit pas en force** tant que la valeur est
+bruyante ; le LMR garde son verdict (**reverti**).
+
+Et l'avertissement que ces chiffres donnent eux-mêmes : le **même**
+protocole, rejoué sur une machine chargée, avait donné **−43,7** et
+**+34,9** Elo. L'écart entre deux exécutions (≈ 44 Elo) est du même
+ordre que l'écart que le duel prétend mesurer — **à 40 parties, ce
+protocole ne mesure rien** ; il faudrait le volume de la phase 5 (400
+parties par point) ou un SPRT.
 
 Au passage, un défaut d'instrument a été trouvé et corrigé :
 `tools/duel_ab.sh` passait `--time 200` à `fastchess -each st=`, or

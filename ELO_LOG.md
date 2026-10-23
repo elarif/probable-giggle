@@ -469,14 +469,21 @@ exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
   coûte **1 159 093 540 nœuds** avec du bruit contre ≈ 10 000 sans
   (facteur **100 000×**) ;
 * **les deux duels AB-vs-AB** (phase AB8b, joués le 2026-10-23 à
-  07:00) : null-move=1 contre null-move=0 → 17 V – 22 D – 1 N
-  (43,75 %) ⇒ **−43,7 ± 100,3 Elo** (LOS 18,7 %) ; LMR=1 contre
-  LMR=0 → 21 V – 17 D – 2 N (55,00 %) ⇒ **+34,9 ± 95,3 Elo** (LOS
-  77,0 %). **Les deux sont non concluants** : à 40 parties la
-  précision réelle est **± 100 Elo**, pas les ± 45 Elo qu'un calcul
-  « 50 % de nulles » ferait croire. Le null-move reste un **gain de
-  débit** (−27 % de nœuds), pas un gain de force démontré ; le LMR
-  reste **reverti** (aucun gain de force, +16 % de nœuds) ;
+  07:05 sur une machine **sans charge**, 92 % idle) : null-move=1
+  contre null-move=0 → 19 V – 19 D – 2 N (50,00 %) ⇒ **−0,0 ± 122,8
+  Elo** (LOS 50,0 %) ; LMR=1 contre LMR=0 → 20 V – 19 D – 1 N (51,25 %)
+  ⇒ **+8,7 ± 71,1 Elo** (LOS 59,6 %). **Les deux sont non
+  concluants** : le point estimate est plat et l'intervalle recouvre
+  zéro. Le null-move garde son **gain de débit** (−27 % de nœuds), pas
+  un gain de force ; le LMR garde son verdict (**reverti**) ;
+* **l'écart entre deux exécutions du même duel l'illustre** : rejoué
+  sur une machine **chargée** (5 cœurs occupés par le vieux run `st=200`
+  que l'arrêt avait laissé en vie), le même protocole donnait **−43,7
+  ± 100,3** (null-move) et **+34,9 ± 95,3** (LMR) ; sur machine calme,
+  **−0,0** et **+8,7**. L'écart entre les deux exécutions (≈ 44 Elo)
+  est du même ordre que l'écart que le duel prétend mesurer : **à ce
+  budget de 40 parties, le duel ne mesure rien** — il faudrait le
+  volume de la phase 5 (400 parties par point) ou un SPRT ;
 * **un défaut d'instrument corrigé en passant** : `tools/duel_ab.sh`
   passait `--time 200` à `fastchess -each st=`, or fastchess lit
   **`st=` en secondes** (« st=N — Movetime in seconds ») : le budget
