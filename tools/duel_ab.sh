@@ -14,10 +14,18 @@
 # Usage :
 #   tools/duel_ab.sh [--rounds N] [--a "AbNullMove=1"] [--b "AbNullMove=0"]
 #                    [--out LOG] [--concurrency N] [--seed N] [--time MS]
+#                    [--sprt]
 #
 # Exemple :
 #   tools/duel_ab.sh --rounds 20 --a "AbNullMove=1" --b "AbNullMove=0" \
 #       --out prt/rr/ab-nullmove.log
+#
+# `--sprt` ajoute le **protocole SPRT gelé** du dépôt
+# (`test.sh`, `docs/mcts/phase5-2026-10-22.md`) : `elo0=0 elo1=5
+# alpha=0.05 beta=0.05`. Le verdict est alors **binaire** — « le
+# candidat (A) est-il meilleur que la référence (B) ? » — au lieu
+# d'une estimation d'Elo. C'est le protocole qui a produit l'échelle
+# Elo des phases 4 et 5 ; il n'est pas modifié ici.
 set -euo pipefail
 
 ROUNDS=20
@@ -25,6 +33,8 @@ CONCURRENCY=5
 SEED=20261023
 TIME_MS=200
 TIMEMARGIN=200
+SPRT=""
+SPRT_ARGS=()
 OPT_A=""
 OPT_B=""
 OUT="prt/rr/ab-duel.log"
@@ -39,6 +49,7 @@ while [[ $# -gt 0 ]]; do
         --seed) SEED="$2"; shift 2 ;;
         --time) TIME_MS="$2"; shift 2 ;;
         --timemargin) TIMEMARGIN="$2"; shift 2 ;;
+        --sprt) SPRT_ARGS=(-sprt elo0=0 elo1=5 alpha=0.05 beta=0.05); SPRT="elo0=0 elo1=5 alpha=0.05 beta=0.05"; shift ;;
         --a) OPT_A="$2"; shift 2 ;;
         --b) OPT_B="$2"; shift 2 ;;
         --out) OUT="$2"; shift 2 ;;
@@ -108,6 +119,7 @@ B_OPTS="$(opts_to_fastchess "$OPT_B")"
     echo "# book : ${BOOK} (ordre aleatoire, graine ${SEED})"
     echo "# rondes : ${ROUNDS} x 2 couleurs par paire"
     echo "# temps : ${TIME_MS} ms par coup (fastchess st=${ST_SEC}s, timemargin=${TIMEMARGIN} ms) ; adjudication : aucune"
+    echo "# sprt : ${SPRT:-<aucun — Elo estime, verdict non binaire>}"
     echo "# hote : $(uname -srm) — $(nproc) coeurs"
     echo "# command : fastchess ${A_OPTS} vs ${B_OPTS}"
 } | tee "$OUT_ABS"
@@ -127,4 +139,5 @@ fastchess \
     -each proto=uci "st=${ST_SEC}" "timemargin=${TIMEMARGIN}" \
     -openings file="$BOOK_ABS" format=epd order=random \
     -rounds "$ROUNDS" -games 2 -concurrency "$CONCURRENCY" -srand "$SEED" \
+    "${SPRT_ARGS[@]}" \
     2>&1 | tee -a "$OUT_ABS"
