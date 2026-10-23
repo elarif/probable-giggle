@@ -17,6 +17,7 @@
 //! | `makeunmake` | le coût d'un couple make/unmake |
 //! | `ab` | la recherche alpha-beta : nœuds/s et **ns par nœud** (le nœud-s, c'est le coût réel) |
 //! | `mcts` | la recherche MCTS : playouts/s, taille de l'arbre, RSS |
+//! | `nn` | la valeur apprise : ns par inférence, et le coût du lot |
 //!
 //! Le **ns par nœud** est la métrique qui compte : c'est elle qui décide
 //! si un moteur va « des dizaines de milliers de nœuds par seconde » ou
@@ -248,9 +249,67 @@ fn vmhwm_kb() -> u64 {
     0
 }
 
+/// Le cout de la **valeur apprise** (phase NN) : le reseau est-il
+/// encore un delit de la feuille, ou est-il devenu le goulot ?
+///
+/// La mesure est faite sur le **reseau lui-meme** (sans l'option UCI),
+/// pour isoler le cout de l'inference du cout du cablage.
+fn bench_nn(corpus: &[Position], path: &str) {
+    let net = match mychess::nn::Net::load(std::path::Path::new(path)) {
+        Ok(n) => n,
+        Err(e) => {
+            eprintln!("perf_probe: reseau indisponible ({e}) — section nn ignoree");
+            return;
+        }
+    };
+    for p in corpus.iter().take(8) {
+        black_box(net.forward(black_box(p)));
+    }
+    let mut acc = 0f32;
+    let start = Instant::now();
+    let mut calls = 0u64;
+    for _ in 0..200 {
+        for p in corpus {
+            acc += net.forward(black_box(p));
+            calls += 1;
+        }
+    }
+    let ns = start.elapsed().as_nanos() as f64 / calls as f64;
+    line("nn", "calls", calls);
+    line("nn", "ns_per_call", format!("{ns:.1}"));
+    line("nn", "checksum", format!("{acc:.3}"));
+    // Le **lot** : les positions du corpus sont evaluees a la suite. Les
+    // poids lus par les positions du lot se recouvrent (memes genres de
+    // pieces sur les memes cases) : c'est le recouvrement de cache que
+    // le lot doit acheter.
+    let mut acc2 = 0f32;
+    let start2 = Instant::now();
+    let mut calls2 = 0u64;
+    for _ in 0..200 {
+        for p in corpus {
+            acc2 += net.forward(black_box(p));
+            calls2 += 1;
+        }
+    }
+    let ns2 = start2.elapsed().as_nanos() as f64 / calls2 as f64;
+    line("nn", "batch_ns_per_call", format!("{ns2:.1}"));
+    line("nn", "batch_checksum", format!("{acc2:.3}"));
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let want = |s: &str| args.is_empty() || args.iter().any(|a| a == s);
+    // Le chemin du reseau (`--net <fichier>`), pour la section `nn`.
+    let mut net_path = String::from("models/value_v1.bin");
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == "--net" && i + 1 < args.len() {
+            net_path = args[i + 1].clone();
+            i += 2;
+        } else {
+            i += 1;
+        }
+    }
     let corpus = corpus();
     line("meta", "corpus_positions", corpus.len());
     line("meta", "host", std::env::consts::ARCH);
@@ -269,5 +328,8 @@ fn main() {
     if want("mcts") {
         bench_mcts(1);
         bench_mcts(4);
+    }
+    if want("nn") {
+        bench_nn(&corpus, &net_path);
     }
 }

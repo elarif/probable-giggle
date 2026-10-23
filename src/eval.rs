@@ -320,6 +320,25 @@ pub fn eval_for_mover(pos: &Position) -> i32 {
     }
 }
 
+/// L'évaluation **par lot** (phase NN, tranche N0).
+///
+/// C'est le **contrat** de l'interface par lot : un lot de positions est
+/// évalué, et chaque valeur est **exactement** celle de
+/// [`eval_for_mover`] pour la position correspondante. Le contrat est
+/// volontairement trivial — le lot est évalué position par position —
+/// parce que c'est lui que l'inférence SIMD du réseau consommera : le
+/// réseau lit un lot de positions et rend un lot de valeurs, avec la
+/// **même convention de signe** que l'évaluation statique (positif = le
+/// trait est meilleur).
+///
+/// Ce contrat est vérifié par un test d'identité (`eval_batch` contre
+/// `eval_for_mover`) : sans lui, le réseau et l'évaluation statique
+/// pourraient diverger de convention, et plus aucun test du dépôt ne
+/// comparerait les deux.
+pub fn eval_batch(positions: &[Position]) -> Vec<i32> {
+    positions.iter().map(eval_for_mover).collect()
+}
+
 /// Conservative insufficient-material test (v1): no pawns/rooks/queens on
 /// board and at most one minor piece per side — K vs K, K+minor vs K are
 /// dead positions (draw). K+B/K+N vs K+B/K+N still possible mates are NOT
@@ -396,6 +415,25 @@ mod tests {
                 eval_white(&pos),
                 eval_white_reference(&pos),
                 "la valeur a changé sur une position du corpus"
+            );
+        }
+    }
+
+    /// **Le contrat par lot** (phase NN, tranche N0) : `eval_batch` rend
+    /// exactement les mêmes valeurs que `eval_for_mover`, position par
+    /// position. C'est le gate de la tranche N0 : sans lui, le réseau
+    /// pourrait être câblé avec une convention différente de celle de
+    /// l'évaluation statique, et les deux ne seraient plus comparables.
+    #[test]
+    fn eval_batch_is_identical_to_eval_for_mover() {
+        let positions = corpus(1_000);
+        let batch = eval_batch(&positions);
+        assert_eq!(batch.len(), positions.len());
+        for (i, pos) in positions.iter().enumerate() {
+            assert_eq!(
+                batch[i],
+                eval_for_mover(pos),
+                "le lot diverge de l'évaluation unitaire sur la position {i}"
             );
         }
     }

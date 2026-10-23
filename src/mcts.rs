@@ -94,6 +94,34 @@ const EVAL_Q_CP_SCALE: f32 = 1.0 / 1000.0;
 const EVAL_Q_CLAMP: f32 = 1.0;
 
 /// Deterministic RNG (xorshift64*), seeded per search.
+///
+/// # Le triple de décalages (corrigé le 2026-10-23)
+///
+/// Le xorshift64* canonique est
+/// `x ^= x >> 12; x ^= x << 25; x ^= x >> 27;` — le décalage du milieu
+/// est un **décalage à gauche**. La version qui était dans ce fichier
+/// (`x ^= x >> 25`) n'était **pas** un xorshift64* : la transformation
+/// n'était pas un état réversible, et le générateur avait une **période
+/// de 4** (quatre valeurs, répétées indéfiniment). C'est un **bug prouvé**
+/// (un test de non-répétition le met en évidence), pas une opinion :
+///
+/// ```text
+/// 3154547314117558073, 2506398873287524326,
+/// 468725656381219356, 5192220531023863043,   <- et on recommence
+/// ```
+///
+/// La conséquence n'était pas cosmétique : le tirage « au hasard » du
+/// MCTS (le choix parmi les enfants non visités) et la perturbation
+/// Gumbel de la racine ne tiraient que **quatre** valeurs. C'est ce qui
+/// a été trouvé en cherchant à entraîner le réseau de valeur : un
+/// corpus d'auto-play collecté avec ce générateur n'avait **aucune**
+/// diversité, et le réseau n'apprenait rien (il n'y avait pas de signal
+/// à apprendre, seulement quatre positions à caser).
+///
+/// Le core gelé (`vcore-1.0`) n'est **pas** touché : `position`,
+/// `movegen`, `types` et `zobrist` ne contiennent aucun générateur.
+/// Le changement de comportement du MCTS est en revanche **mesuré** par
+/// un duel (voir `docs/nn/`).
 pub struct Rng(u64);
 
 impl Rng {
@@ -108,7 +136,7 @@ impl Rng {
     pub fn next_u64(&mut self) -> u64 {
         let mut x = self.0;
         x ^= x >> 12;
-        x ^= x >> 25;
+        x ^= x << 25;
         x ^= x >> 27;
         self.0 = x;
         x.wrapping_mul(0x2545_F491_4F6C_DD1D)
@@ -878,7 +906,11 @@ fn repetition_draw(pos: &Position, hist: &[u64]) -> bool {
 /// (checked first — see [`leaf_value`]).
 #[inline]
 pub fn eval_normalized(pos: &Position) -> f32 {
-    (eval::eval_for_mover(pos) as f32 * EVAL_Q_CP_SCALE).clamp(-EVAL_Q_CLAMP, EVAL_Q_CLAMP)
+    // Phase NN : la feuille est la valeur **apprise** quand le réseau est
+    // activé, l'évaluation statique sinon (le défaut : le comportement
+    // d'avant la phase, bit-à-bit). Le pont centipions est le même
+    // dans les deux cas : l'échelle des Q du MCTS ne change pas.
+    (crate::nn::leaf_cp(pos) as f32 * EVAL_Q_CP_SCALE).clamp(-EVAL_Q_CLAMP, EVAL_Q_CLAMP)
 }
 
 /// The A1 leaf contract, one function so the unit tests exercise the exact
@@ -949,6 +981,33 @@ pub fn terminal_value(pos: &Position, hist: &[u64]) -> Option<f32> {
 mod tests {
     use super::*;
     use crate::mcts::arena::F_EXPANDED;
+
+    /// **Le générateur doit avoir une période longue.**
+    ///
+    /// C'est le test de non-répétition qui a démontré le bug du
+    /// 2026-10-23 : le triple de décalages avait un `>> 25` au lieu d'un
+    /// `<< 25`, et le générateur ne produisait que **quatre** valeurs
+    /// répétées. Toute la phase NN (le corpus d'auto-play, la
+    /// reproductibilité) en dépendait.
+    #[test]
+    fn the_rng_has_a_long_period() {
+        let mut rng = Rng::new(20261023);
+        let mut seen = std::collections::HashSet::new();
+        for _ in 0..10_000 {
+            seen.insert(rng.next_u64());
+        }
+        assert_eq!(seen.len(), 10_000, "le RNG a une période courte");
+    }
+
+    /// Le générateur est **déterministe** : même graine, même suite.
+    #[test]
+    fn the_rng_is_deterministic() {
+        let mut a = Rng::new(7);
+        let mut b = Rng::new(7);
+        for _ in 0..1000 {
+            assert_eq!(a.next_u64(), b.next_u64());
+        }
+    }
 
     /// Run a search and hand the arena back, for the invariant checks.
     fn build_arena(pos: &Position, hist: &[u64], seed: u64, nodes: u64) -> Arena {

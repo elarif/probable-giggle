@@ -377,7 +377,7 @@ impl<'a> Ctx<'a> {
             }
         }
         if ply + 2 >= MAX_PLY {
-            return eval::eval_for_mover(&self.pos);
+            return crate::nn::leaf_cp(&self.pos);
         }
 
         // Une fenêtre **nulle** (largeur 1) ne donne qu'une **borne** : le
@@ -501,7 +501,7 @@ impl<'a> Ctx<'a> {
             && !mate_window
             && !self.has_capture()
         {
-            let stand = eval::eval_for_mover(&self.pos);
+            let stand = crate::nn::leaf_cp(&self.pos);
             if stand - FUTILITY_MARGIN >= beta {
                 // La borne n'est **pas** stockée : elle repose sur
                 // l'évaluation statique, pas sur une recherche. La
@@ -525,7 +525,7 @@ impl<'a> Ctx<'a> {
             && !mate_window
             && !self.has_capture()
         {
-            let stand = eval::eval_for_mover(&self.pos);
+            let stand = crate::nn::leaf_cp(&self.pos);
             if stand + RAZOR_MARGIN < alpha {
                 let s = self.negamax(alpha, alpha + 1, depth - 1, ply);
                 if self.aborted {
@@ -795,7 +795,7 @@ impl<'a> Ctx<'a> {
             }
         }
         if ply + 2 >= MAX_PLY {
-            return (eval::eval_for_mover(&self.pos), Move::NONE, Flag::Exact);
+            return (crate::nn::leaf_cp(&self.pos), Move::NONE, Flag::Exact);
         }
 
         // L'alpha d'entrée : il sert à distinguer un **échec** (le score
@@ -819,7 +819,7 @@ impl<'a> Ctx<'a> {
         // honest thing to show — there is no capture to play.
         let mut best_move = Move::NONE;
         if !in_check {
-            let stand = eval::eval_for_mover(&self.pos);
+            let stand = crate::nn::leaf_cp(&self.pos);
             if stand >= beta {
                 return (stand, Move::NONE, Flag::Lower);
             }

@@ -27,6 +27,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 const DEFAULT_SEED: u64 = 0x1F2E_3D4C_5B6A_7988;
 const DEFAULT_MAX_PLAYOUT_PLY: u32 = 100;
+/// Le chemin **par défaut** du fichier de poids de la valeur apprise
+/// (phase NN). Un chemin relatif est relatif au répertoire courant du
+/// moteur : un duel doit donc passer un chemin **absolu**.
+const DEFAULT_NN_FILE: &str = "models/value_v1.bin";
 const NODE_BUDGET_SENTINEL: u64 = u64::MAX / 4;
 
 /// **Phase 5 — marge de temps.** Le budget de réflexion est toujours
@@ -86,6 +90,9 @@ pub struct UciState {
     /// Phase AB8 : les **options de recherche** de l'alpha-beta — chaque
     /// heuristique est activable **seule**, pour être mesurée seule.
     ab_options: ab::Options,
+    /// Phase NN : le chemin du fichier de poids de la valeur apprise.
+    /// Il doit être fixé **avant** `EvalNN=1`.
+    nn_file: String,
     worker: Option<std::thread::JoinHandle<()>>,
     stop: Arc<AtomicBool>,
 }
@@ -107,7 +114,9 @@ impl Default for UciState {
             search: SearchKind::default(),
             noise_cp: 0,
             noise_seed: crate::eval::DEFAULT_NOISE_SEED,
-            ab_options: ab::Options::default(),            worker: None,
+            ab_options: ab::Options::default(),
+            nn_file: DEFAULT_NN_FILE.to_string(),
+            worker: None,
             stop: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -203,6 +212,16 @@ fn handle(st: &mut UciState, line: &str) -> bool {
             out_line("option name AbRazoring type spin default 0 min 0 max 1");
             out_line("option name AbFutility type spin default 0 min 0 max 1");
             out_line("option name AbLmr type spin default 0 min 0 max 1");
+            // Phase NN : la **valeur apprise**. `EvalNN` vaut 0 par
+            // défaut : le moteur se comporte alors **bit-à-bit** comme
+            // avant la phase (la valeur statique reste la référence).
+            // `EvalNNFile` est le chemin du fichier de poids ; il doit
+            // être fixé **avant** `EvalNN=1`.
+            out_line("option name EvalNN type spin default 0 min 0 max 1");
+            out_line(&format!(
+                "option name EvalNNFile type string default {}",
+                st.nn_file
+            ));
             out_line("uciok");
         }
         Some("isready") => {
@@ -473,6 +492,26 @@ fn set_option(st: &mut UciState, toks: &[&str]) {
         ("AbRazoring", _) => st.ab_options.razoring = parse_bool(&v, st.ab_options.razoring),
         ("AbFutility", _) => st.ab_options.futility = parse_bool(&v, st.ab_options.futility),
         ("AbLmr", _) => st.ab_options.lmr = parse_bool(&v, st.ab_options.lmr),
+        // Phase NN : la valeur apprise. `EvalNN=1` **charge** le réseau
+        // (depuis `EvalNNFile`) et l'active ; `EvalNN=0` le décharge et
+        // rend la feuille à l'évaluation statique — bit-à-bit comme
+        // avant la phase. Un échec de chargement **n'arrête pas** le
+        // moteur : il reste sur la valeur statique, et le dit.
+        ("EvalNN", _) => {
+            let on = parse_bool(&v, false);
+            if on {
+                let path = st.nn_file.clone();
+                match crate::nn::load_and_enable(std::path::Path::new(&path)) {
+                    Ok(()) => eprintln!("uci: valeur apprise active ({path})"),
+                    Err(e) => eprintln!("uci: valeur apprise indisponible ({e}) — feuille statique"),
+                }
+            } else {
+                crate::nn::unload();
+            }
+        }
+        ("EvalNNFile", _) => {
+            st.nn_file = v.trim().to_string();
+        }
         (name, value) => eprintln!("uci: ignored option {name:?} = {value:?}"),
     }
 }

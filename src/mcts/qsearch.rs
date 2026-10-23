@@ -89,7 +89,6 @@
 //! sémantique, la sonde `examples/leaf_probe` s'appuie dessus, et
 //! l'option UCI `LeafQ` permet de reproduire la mesure.
 
-use crate::eval;
 use crate::movegen::{MoveList, generate_captures, has_legal_move};
 use crate::position::Position;
 use crate::tables::{RANK_1, RANK_8};
@@ -155,7 +154,7 @@ fn may_exchange(pos: &Position, us: Color) -> bool {
 /// Un mat ou une pat **découverts dans la chaîne** sont détectés : le
 /// mat vaut `MATE_CP` pour le camp qui mate, la pat vaut `0`.
 pub fn qvalue(pos: &Position, depth: u32) -> i32 {
-    let stand_pat = eval::eval_for_mover(pos);
+    let stand_pat = crate::nn::leaf_cp(pos);
     if depth == 0 {
         return stand_pat;
     }
@@ -209,6 +208,7 @@ fn qvalue_after(pos: &Position, depth: u32) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::eval;
 
     fn fen(s: &str) -> Position {
         Position::from_fen(s).expect("valid FEN")
@@ -291,7 +291,7 @@ mod tests {
     /// La version **sans** le filtre rapide : elle genere toujours les
     /// captures.
     fn qvalue_unfiltered(pos: &Position, depth: u32) -> i32 {
-        let stand_pat = eval::eval_for_mover(pos);
+        let stand_pat = crate::nn::leaf_cp(pos);
         if depth == 0 {
             return stand_pat;
         }

@@ -551,6 +551,52 @@ exacte mesurée post-M4 (baseline-A criterion revalidée, mention post-M4).
   compacte — le goulot est mémoire : 863 208 arêtes = 17 Mo), P5 (arbre
   MCTS partagé lock-free — le prérequis du lot), P6 (phase NN).
 
+## Phase NN — la valeur apprise (2026-10-23)
+
+* **but** : la phase AB8 a montré que le goulot est la **fonction de
+  valeur** ; la phase PERF a donné le débit ; la phase NN remplace la
+  valeur statique par une valeur **apprise**. Le plan est
+  `docs/perf/plan-nn-2026-10-23.md`, le compte rendu
+  `docs/nn/phase-nn-2026-10-23.md` ;
+* **un bug trouvé en route, qui invalide tout le reste** : le
+  générateur du MCTS (`mcts::Rng`, un xorshift64\* annoncé) portait
+  `x ^= x >> 25` au lieu de `x ^= x << 25`. Trois décalages à droite ne
+  font pas un xorshift64\* : l'état n'est pas réversible et le
+  générateur avait une **période de 4** — quatre valeurs répétées
+  indéfiniment. Le tirage « au hasard » du MCTS (le choix parmi les
+  enfants non visités) et la perturbation Gumbel de la racine ne
+  tiraient donc que quatre valeurs. Corrigé, avec deux tests de
+  non-régression (10 000 tirages distincts, déterminisme) ;
+* **N0 — le contrat par lot** : `eval::eval_batch` rend exactement les
+  mêmes valeurs que `eval_for_mover` (test d'identité, 1 000
+  positions) ;
+* **N1 — le collecteur de corpus** (`examples/gen_positions`) :
+  auto-play MCTS, graine fixe, dump déterministe (zobrist + FEN +
+  résultat + ply + partie) ; **deux exécutions → fichiers identiques** ;
+  les parties **sans résultat sont jetées** (pas d'arbitrage par
+  l'éval statique — sinon la mesure ne mesurerait plus rien) ;
+* **N2 — le modèle** (`src/nn.rs`) : perceptron à une couche cachée
+  (64 unités, ReLU), entrée **creuse** (12 plans de pièces, seules les
+  ~32 cases occupées sont lues), **49 345 paramètres**, sortie linéaire
+  découpée à ±1, AVX2 **détecté à l'exécution** (repli scalaire, même
+  résultat), format de fichier versionné ;
+* **N3 — l'entraînement** (`examples/train_nn`) : Adam écrit à la main,
+  découpe train/test **par partie**, vérification numérique du gradient
+  (`--check-grad`) ;
+* **le prix à payer** : la valeur apprise coûte **−18 % de débit** à
+  la feuille (478 848 → 390 016 nœuds en 500 ms sur la position de
+  référence) ;
+* **le résultat technique, mesuré** : avec l'étiquette « résultat de
+  partie », le réseau **n'améliore pas** l'évaluation statique — et la
+  raison est mesurée, pas supposée : le résultat de partie est une
+  annotation **très** bruyante (sa variance autour de la vraie valeur
+  est de l'ordre de 0,5 pour une position équilibrée), et
+  l'évaluation statique **déjà calibrée** est **au plancher de ce
+  bruit** (RMSE 0,69 sur le test). Un réseau de 49 345 paramètres
+  n'a pas de signal à extraire de là. L'étiquette a donc changé :
+  c'est désormais la **valeur de la recherche** (la racine du MCTS),
+  qui est une moyenne sur l'arbre et non le résultat final ;
+
 ## Instruments de mesure (état au 2026-10-22)
 
 Le journal est **alimenté** : les maillons manquants ont été fournis.

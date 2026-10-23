@@ -376,6 +376,57 @@ en 16,3 ms au pire. Plan et rapport :
 `docs/superpowers/plans/2026-10-22-mcts-phase5-feuille-quiescence.md` et
 `docs/mcts/phase5-2026-10-22.md`.
 
+### Phase NN — la valeur apprise (2026-10-23)
+
+La phase NN remplace la **fonction de valeur** statique (matériel + PST
+PeSTO-lite) par une valeur **apprise**. C'est la phase que les phases
+AB8 et PERF désignent comme la voie : AB8 a mesuré que le goulot du
+projet n'est pas l'algorithme mais la valeur (erreur ≈ 490 cp), et que
+sur une valeur aussi bruyante **aucune** heuristique d'élagage ne paie
+en force.
+
+**Ce que la phase apporte, en code :**
+
+* `src/nn.rs` — un perceptron à une couche cachée (64 unités, ReLU),
+  **CPU-only**, sans dépendance : entrée **creuse** (12 plans de pièces,
+  seules les ~32 cases occupées sont lues → la première couche est une
+  table de positions apprise), **49 345 paramètres**, sortie linéaire
+  découpée à ±1, inférence **AVX2 détecté à l'exécution** avec repli
+  scalaire (même résultat, seul le débit change) ;
+* `eval::eval_batch` — le **contrat par lot** (identité garantie avec
+  `eval_for_mover` par un test) ;
+* `examples/gen_positions` — le collecteur de corpus (auto-play MCTS,
+  graine fixe, sortie déterministe) ;
+* `examples/train_nn` — l'entraînement (Adam écrit à la main, découpe
+  train/test **par partie**, vérification numérique du gradient) ;
+* l'option UCI `EvalNN` (**0 par défaut**) : le moteur se comporte
+  **bit-à-bit** comme avant tant qu'elle n'est pas activée.
+
+**Un bug trouvé en route, qui change tout** : le générateur du MCTS
+(`mcts::Rng`, un xorshift64\* annoncé) portait `x ^= x >> 25` au lieu
+de `x ^= x << 25`. Trois décalages à droite ne font pas un xorshift64\* :
+l'état n'est pas réversible, et le générateur avait une **période de
+4** — quatre valeurs répétées indéfiniment. Le tirage « au hasard » du
+MCTS ne tirait donc que quatre valeurs, et le corpus d'auto-play n'avait
+aucune diversité. Corrigé, avec deux tests de non-régression.
+
+**Ce que la phase montre, de mesuré** : avec l'étiquette « résultat de
+partie », la valeur apprise **n'améliore pas** l'évaluation statique, et
+la raison est mesurée : le résultat de partie est une annotation très
+bruyante (variance ≈ 0,5 autour de la vraie valeur pour une position
+équilibrée), et l'évaluation statique **déjà calibrée** est **au
+plancher de ce bruit**. L'étiquette a donc changé : c'est désormais la
+**valeur de la recherche** (la racine du MCTS), qui est une moyenne sur
+l'arbre.
+
+**Ce que la valeur apprise coûte** : −18 % de débit à la feuille
+(478 848 → 390 016 nœuds en 500 ms). C'est le prix de l'inférence, et
+c'est lui qui rend les tranches PERF P4 (arène compacte) et P5 (arbre
+partagé) nécessaires.
+
+Plan : `docs/perf/plan-nn-2026-10-23.md` — compte rendu :
+`docs/nn/phase-nn-2026-10-23.md`.
+
 ### Niveau Elo absolu (calibration contre Stockfish)
 
 L'échelle SPRT ci-dessus mesure des **écarts** entre versions. Pour situer
