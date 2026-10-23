@@ -1,15 +1,15 @@
 {
     "resign": {
-        "move_count": 3,
-        "score": 600,
+        "move_count": 1,
+        "score": 0,
         "twosided": false,
-        "enabled": true
+        "enabled": false
     },
     "draw": {
-        "move_number": 40,
-        "move_count": 8,
-        "score": 10,
-        "enabled": true
+        "move_number": 0,
+        "move_count": 1,
+        "score": 0,
+        "enabled": false
     },
     "maxmoves": {
         "move_count": 1,
@@ -32,9 +32,9 @@
         "additional_lines_rgx": [],
         "event_name": "Fastchess Tournament",
         "site": "?",
-        "file": "",
+        "file": "prt/rr/movegen-gate.pgn",
         "notation": 0,
-        "append_file": true,
+        "append_file": false,
         "track_nodes": false,
         "track_seldepth": false,
         "track_nps": false,
@@ -51,16 +51,16 @@
         "append_file": true
     },
     "sprt": {
-        "alpha": 0.05,
-        "beta": 0.05,
+        "alpha": 0.0,
+        "beta": 0.0,
         "elo0": 0.0,
-        "elo1": 5.0,
+        "elo1": 0.0,
         "model": "normalized",
-        "enabled": true
+        "enabled": false
     },
     "config_name": "config.json",
     "output": 0,
-    "seed": 10693101728863946086,
+    "seed": 20261023,
     "variant": 0,
     "type": 0,
     "gauntlet_seeds": 1,
@@ -69,8 +69,8 @@
     "wait": 0,
     "autosaveinterval": 20,
     "games": 2,
-    "rounds": 400,
-    "concurrency": 5,
+    "rounds": 200,
+    "concurrency": 10,
     "force_concurrency": false,
     "recover": false,
     "noswap": false,
@@ -89,24 +89,24 @@
     },
     "engines": [
         {
-            "name": "cand",
+            "name": "apres",
             "dir": "",
-            "cmd": "/home/elarif/mychess/target/release/mychess",
+            "cmd": "target/release/mychess",
             "args": "uci",
             "restart": false,
             "options": [
                 [
-                    "LeafQ",
-                    "1"
+                    "Search",
+                    "alpha"
                 ]
             ],
             "limit": {
                 "tc": {
-                    "increment": 80,
-                    "fixed_time": 0,
-                    "time": 8000,
+                    "increment": 0,
+                    "fixed_time": 200,
+                    "time": 0,
                     "moves": 0,
-                    "timemargin": 0
+                    "timemargin": 200
                 },
                 "nodes": 0,
                 "plies": 0
@@ -114,19 +114,24 @@
             "variant": 0
         },
         {
-            "name": "base",
+            "name": "avant",
             "dir": "",
-            "cmd": "/home/elarif/mychess/.worktrees/phase4-ref/target/release/mychess",
+            "cmd": "/tmp/mychess-avant-movegen",
             "args": "uci",
             "restart": false,
-            "options": [],
+            "options": [
+                [
+                    "Search",
+                    "alpha"
+                ]
+            ],
             "limit": {
                 "tc": {
-                    "increment": 80,
-                    "fixed_time": 0,
-                    "time": 8000,
+                    "increment": 0,
+                    "fixed_time": 200,
+                    "time": 0,
                     "moves": 0,
-                    "timemargin": 0
+                    "timemargin": 200
                 },
                 "nodes": 0,
                 "plies": 0
@@ -135,16 +140,16 @@
         }
     ],
     "stats": {
-        "cand vs base": {
-            "wins": 1,
-            "losses": 229,
-            "draws": 130,
-            "penta_WW": 0,
-            "penta_WD": 1,
+        "apres vs avant": {
+            "wins": 60,
+            "losses": 0,
+            "draws": 0,
+            "penta_WW": 30,
+            "penta_WD": 0,
             "penta_WL": 0,
-            "penta_DD": 27,
-            "penta_LD": 75,
-            "penta_LL": 77
+            "penta_DD": 0,
+            "penta_LD": 0,
+            "penta_LL": 0
         }
     }
 }
