@@ -24,6 +24,7 @@ ROUNDS=20
 CONCURRENCY=5
 SEED=20261023
 TIME_MS=200
+TIMEMARGIN=200
 OPT_A=""
 OPT_B=""
 OUT="prt/rr/ab-duel.log"
@@ -37,6 +38,7 @@ while [[ $# -gt 0 ]]; do
         --concurrency) CONCURRENCY="$2"; shift 2 ;;
         --seed) SEED="$2"; shift 2 ;;
         --time) TIME_MS="$2"; shift 2 ;;
+        --timemargin) TIMEMARGIN="$2"; shift 2 ;;
         --a) OPT_A="$2"; shift 2 ;;
         --b) OPT_B="$2"; shift 2 ;;
         --out) OUT="$2"; shift 2 ;;
@@ -44,6 +46,12 @@ while [[ $# -gt 0 ]]; do
         *) echo "option inconnue : $1" >&2; exit 2 ;;
     esac
 done
+
+# **fastchess lit `st=` en SECONDES** (et non en millisecondes :
+# `fastchess -help` : « st=N - Movetime in seconds »). Passer 200
+# directement donnerait 200 s par coup, soit un facteur 1000 — un duel
+# qui ne finit pas et un journal qui ment sur le budget.
+ST_SEC="$(awk -v ms="$TIME_MS" 'BEGIN { printf "%.3f", ms / 1000 }')"
 
 if ! command -v fastchess >/dev/null 2>&1; then
     echo "fastchess est introuvable (il est compilé dans ~/.local/bin — cf. ELO_LOG.md)" >&2
@@ -99,7 +107,7 @@ B_OPTS="$(opts_to_fastchess "$OPT_B")"
     echo "# B : ${OPT_B:-<defaut>}"
     echo "# book : ${BOOK} (ordre aleatoire, graine ${SEED})"
     echo "# rondes : ${ROUNDS} x 2 couleurs par paire"
-    echo "# temps : ${TIME_MS} ms par coup ; adjudication : aucune"
+    echo "# temps : ${TIME_MS} ms par coup (fastchess st=${ST_SEC}s, timemargin=${TIMEMARGIN} ms) ; adjudication : aucune"
     echo "# hote : $(uname -srm) — $(nproc) coeurs"
     echo "# command : fastchess ${A_OPTS} vs ${B_OPTS}"
 } | tee "$OUT_ABS"
@@ -108,7 +116,7 @@ PGN_ARGS=()
 if [[ -n "$PGN" ]]; then
     PGN_ABS="$(abs_path "$PGN")"
     mkdir -p "$(dirname "$PGN_ABS")"
-    PGN_ARGS=(-pgnout "$PGN_ABS")
+    PGN_ARGS=(-pgnout "file=$PGN_ABS" notation=san append=false)
 fi
 
 cd "$OUT_DIR"
@@ -116,7 +124,7 @@ fastchess \
     "${PGN_ARGS[@]}" \
     -engine name=a cmd="$MYCHESS_ABS" args="uci" option.Search=alpha ${A_OPTS} \
     -engine name=b cmd="$MYCHESS_ABS" args="uci" option.Search=alpha ${B_OPTS} \
-    -each proto=uci "st=${TIME_MS}" \
+    -each proto=uci "st=${ST_SEC}" "timemargin=${TIMEMARGIN}" \
     -openings file="$BOOK_ABS" format=epd order=random \
     -rounds "$ROUNDS" -games 2 -concurrency "$CONCURRENCY" -srand "$SEED" \
     2>&1 | tee -a "$OUT_ABS"
