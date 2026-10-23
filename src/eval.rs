@@ -131,6 +131,26 @@ pub fn noise_offset(pos: &Position) -> i32 {
     (u * cp as f64).round() as i32
 }
 
+/// Le bruit **côté trait** : c'est le bruit tel que la feuille le voit.
+///
+/// [`noise_offset`] est exprimé dans le cadre « Blanc » (le bruit
+/// appartient au plateau, pas au camp au trait) ; la valeur, elle, est
+/// côté trait. Cette fonction fait la conversion, comme
+/// [`eval_for_mover`] la fait pour l'évaluation.
+///
+/// Elle existe pour que le bruit reste un **instrument de mesure** même
+/// quand la feuille est la **valeur apprise** : sans elle, `EvalNN=1`
+/// désactivait silencieusement le bruit (la phase AB7 perdait son
+/// dispositif de mesure).
+pub fn noise_for_mover(pos: &Position) -> i32 {
+    let n = noise_offset(pos);
+    if pos.side == Color::White {
+        n
+    } else {
+        -n
+    }
+}
+
 pub const MAT_PAWN: i32 = 100;
 pub const MAT_KNIGHT: i32 = 300;
 pub const MAT_BISHOP: i32 = 300;

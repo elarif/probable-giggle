@@ -67,6 +67,10 @@ pub const NN_CP_SCALE: f32 = 1000.0;
 const FORMAT_VERSION: u32 = 1;
 const MAGIC: &[u8; 8] = b"MYCHESSN";
 
+/// La taille de l'en-tête du fichier de poids : magic (8) + version (4) +
+/// taille de la couche cachée (4) + drapeaux (4).
+const HEADER_LEN: usize = 20;
+
 /// Le réseau de valeur.
 #[derive(Clone, Debug)]
 pub struct Net {
@@ -241,13 +245,29 @@ impl Net {
         {
             std::fs::create_dir_all(dir).map_err(|e| format!("création de {} : {e}", dir.display()))?;
         }
-        std::fs::write(path, &buf).map_err(|e| format!("écriture de {} : {e}", path.display()))
+        // **Écriture atomique** : un fichier temporaire puis un renommage.
+        // Une écriture interrompue (disque plein, kill) laissait un `.bin`
+        // **tronqué** sur le disque — et le chargement de ce fichier
+        // panique (le bug corrigé ci-dessus). Le renommage est atomique :
+        // le fichier final est soit l'ancien, soit le nouveau, jamais un
+        // demi-fichier.
+        let tmp = path.with_extension("bin.tmp");
+        std::fs::write(&tmp, &buf).map_err(|e| format!("écriture de {} : {e}", tmp.display()))?;
+        std::fs::rename(&tmp, path).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            format!("renommage de {} : {e}", tmp.display())
+        })?;
+        Ok(())
     }
 
     /// Lit un réseau depuis un fichier.
     pub fn load(path: &std::path::Path) -> Result<Net, String> {
         let buf = std::fs::read(path).map_err(|e| format!("lecture de {} : {e}", path.display()))?;
-        if buf.len() < 16 || &buf[0..8] != MAGIC {
+        // L'en-tête fait **20 octets** (magic 8, version 4, couche cachée 4,
+        // drapeaux 4) : le garde doit couvrir *tout* l'en-tête, sinon la
+        // lecture des drapeaux (`buf[16..20]`) panique sur un fichier
+        // tronqué — un panic dans le worker UCI tue le moteur.
+        if buf.len() < HEADER_LEN || &buf[0..8] != MAGIC {
             return Err(format!("{} n'est pas un fichier de poids (magic invalide)", path.display()));
         }
         let version = u32::from_le_bytes(buf[8..12].try_into().unwrap());
@@ -260,13 +280,24 @@ impl Net {
             return Err(format!("taille de couche cachée invalide : {hidden}"));
         }
         let need = 4 * (PLANES * SQ * hidden + hidden + 2 * hidden + hidden + 1);
-        if buf.len() < 20 + need {
+        if buf.len() < HEADER_LEN + need {
             return Err(format!(
                 "fichier tronqué : {} octets, {need} attendus",
-                buf.len() - 20
+                buf.len() - HEADER_LEN
             ));
         }
-        let mut off = 20usize;
+        if buf.len() > HEADER_LEN + need {
+            // Un fichier **plus long** que l'attendu est refusé aussi : un
+            // `.bin` semi-écrasé (l'ancien derrière le nouveau) se
+            // chargeait « ok » et le moteur jouait avec des poids qui
+            // n'étaient pas ceux du fichier.
+            return Err(format!(
+                "fichier trop long : {} octets, {} attendus",
+                buf.len() - HEADER_LEN,
+                need
+            ));
+        }
+        let mut off = HEADER_LEN;
         let mut read_arr = |n: usize| -> Vec<f32> {
             let mut v = Vec::with_capacity(n);
             for _ in 0..n {
@@ -280,6 +311,29 @@ impl Net {
         let w_side = read_arr(2 * hidden);
         let w2 = read_arr(hidden);
         let b2 = f32::from_le_bytes(buf[off..off + 4].try_into().unwrap());
+        // **Des poids finis** : un `NaN` ou un `inf` dans le fichier
+        // rendait la valeur du réseau `NaN`, et le pont vers les
+        // centipions (`(NaN * 1000.0).round() as i32`) rendait **0** —
+        // le moteur évaluait alors *toute* position à égalité, en
+        // silence. Un fichier corrompu doit être **refusé**.
+        let non_finite = |name: &str, arr: &[f32]| -> Option<String> {
+            arr.iter()
+                .position(|v| !v.is_finite())
+                .map(|i| format!("poids non fini dans {name} (indice {i})"))
+        };
+        for (name, arr) in [
+            ("w1", &w1),
+            ("b1", &b1),
+            ("w_side", &w_side),
+            ("w2", &w2),
+        ] {
+            if let Some(msg) = non_finite(name, arr) {
+                return Err(msg);
+            }
+        }
+        if !b2.is_finite() {
+            return Err("poids non fini dans b2".to_string());
+        }
         Ok(Net {
             w1,
             b1,
@@ -344,7 +398,7 @@ fn has_avx2() -> bool {
 /// déterministe et l'ordre est le même) — le SIMD ne change que le
 /// débit.
 #[inline]
-fn add_slice(dst: &mut [f32], src: &[f32]) {
+pub fn add_slice(dst: &mut [f32], src: &[f32]) {
     debug_assert_eq!(dst.len(), src.len());
     #[cfg(target_arch = "x86_64")]
     {
@@ -357,6 +411,19 @@ fn add_slice(dst: &mut [f32], src: &[f32]) {
             return;
         }
     }
+    add_slice_scalar(dst, src);
+}
+
+/// `dst += src`, **sans** SIMD : le chemin de repli, et le **témoin**
+/// du test de propriété.
+///
+/// Il est `pub` pour que le test puisse comparer le chemin SIMD au
+/// chemin scalaire **bit à bit** : l'invariant « le SIMD ne change que
+/// le débit, jamais le résultat » n'était écrit nulle part, et c'est
+/// exactement le genre d'invariant qui se casse en silence (un
+/// changement de l'ordre des additions, une contraction FMA).
+pub fn add_slice_scalar(dst: &mut [f32], src: &[f32]) {
+    debug_assert_eq!(dst.len(), src.len());
     for (d, s) in dst.iter_mut().zip(src.iter()) {
         *d += *s;
     }
@@ -434,6 +501,14 @@ pub fn value_cp(pos: &Position) -> Option<i32> {
     let guard = NET.read().ok()?;
     let net = guard.as_ref()?;
     let v = net.value(pos);
+    if !v.is_finite() {
+        // Défense en profondeur : un réseau chargé refuse déjà les poids
+        // non finis, mais si la valeur l'est malgré tout, on **ne rend
+        // pas** 0 (le pont `as i32` d'un NaN vaut 0 — le moteur
+        // évaluerait alors toute position à égalité). On rend `None` :
+        // la feuille retombe sur l'évaluation statique.
+        return None;
+    }
     Some((v * NN_CP_SCALE).round() as i32)
 }
 
@@ -450,7 +525,7 @@ pub fn value_cp(pos: &Position) -> Option<i32> {
 #[inline]
 pub fn leaf_cp(pos: &Position) -> i32 {
     match value_cp(pos) {
-        Some(cp) => cp,
+        Some(cp) => cp + crate::eval::noise_for_mover(pos),
         None => crate::eval::eval_for_mover(pos),
     }
 }
@@ -495,8 +570,7 @@ mod tests {
     /// Les deux chemins de la forward (par position, par liste de pièces)
     /// doivent rendre **la même** valeur, bit à bit.
     #[test]
-    fn forward_and_forward_pieces_agree() {
-        let net = Net::random(0xC0FFEE, HIDDEN);
+    fn forward_and_forward_pieces_agree() {        let net = Net::random(0xC0FFEE, HIDDEN);
         for pos in positions() {
             let a = net.forward(&pos);
             let b = net.forward_pieces(&pieces_of(&pos), pos.side == Color::White);
@@ -597,5 +671,108 @@ mod tests {
         pos.side = Color::Black;
         let black = net.forward(&pos);
         assert!(black > white, "la feature « trait » n'influence pas la valeur");
+    }
+
+    // ---- La robustesse du chargement (revue du 2026-10-23) ---------------
+    //
+    // Le chargement d'un fichier de poids est une **frontière d'entrée** :
+    // le fichier vient du disque, il peut être tronqué, trop long, ou
+    // contenir un `NaN`. Le contrat est : **jamais de panic**, toujours
+    // un `Err` clair. Le bug que ce test verrouille : un fichier tronqué
+    // entre 16 et 19 octets faisait panic le worker UCI
+    // (`buf[16..20]` hors bornes) — et un panic dans le worker tue le
+    // moteur, sans `bestmove`.
+
+    /// Un dossier temporaire **propre à un test**.
+    ///
+    /// Les tests s'exécutent **en parallèle** : un dossier partagé
+    /// serait une course — un test qui supprime le dossier au moment
+    /// où un autre y écrit fait échouer le second (erreur de
+    /// lecture, « le fichier n'existe pas »), au hasard et selon
+    /// l'ordonnanceur. Le nom est donc **unique**.
+    fn tmp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("mychess-nn-{name}"));
+        std::fs::remove_dir_all(&dir).ok();
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// Un fichier **tronqué** (à toute longueur) est **refusé**, sans
+    /// panic.
+    #[test]
+    fn a_truncated_weights_file_is_refused_without_panicking() {
+        let net = Net::random(0x1234, HIDDEN);
+        let dir = tmp_dir("a_truncated_weights_file_is_refused_without_panicking");
+        std::fs::create_dir_all(&dir).unwrap();
+        let good = dir.join("good.bin");
+        net.save(&good).unwrap();
+        let bytes = std::fs::read(&good).unwrap();
+
+        for cut in [0usize, 1, 8, 15, 16, 17, 18, 19, 20, 21, 64, 1000] {
+            let path = dir.join(format!("tronque-{cut}.bin"));
+            std::fs::write(&path, &bytes[..cut.min(bytes.len())]).unwrap();
+            let res = std::panic::catch_unwind(|| Net::load(&path));
+            assert!(res.is_ok(), "le chargement a PANIQUÉ sur un fichier de {cut} octets");
+            assert!(
+                res.unwrap().is_err(),
+                "un fichier de {cut} octets a été accepté"
+            );
+        }
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// Un fichier **trop long** est refusé : un `.bin` semi-écrasé
+    /// (l'ancien derrière le nouveau) ne doit pas se charger « ok ».
+    #[test]
+    fn a_too_long_weights_file_is_refused() {
+        let net = Net::random(0x4321, HIDDEN);
+        let dir = tmp_dir("a_too_long_weights_file_is_refused");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("trop_long.bin");
+        let mut bytes = Vec::new();
+        net.save(&path).unwrap();
+        bytes.extend_from_slice(&std::fs::read(&path).unwrap());
+        bytes.extend_from_slice(&[0u8; 17]);
+        std::fs::write(&path, &bytes).unwrap();
+        assert!(Net::load(&path).is_err(), "un fichier trop long a été accepté");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// Des poids **non finis** (`NaN`, `inf`) sont refusés : sinon la
+    /// valeur du réseau vaut `NaN`, le pont vers les centipions rend
+    /// **0**, et le moteur évalue toute position à égalité — en silence.
+    #[test]
+    fn a_non_finite_weight_is_refused() {
+        let dir = tmp_dir("a_non_finite_weight_is_refused");
+        std::fs::create_dir_all(&dir).unwrap();
+        for bad in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            let mut net = Net::random(0x99, HIDDEN);
+            net.w1[0] = bad;
+            let path = dir.join("non_fini.bin");
+            net.save(&path).unwrap();
+            assert!(
+                Net::load(&path).is_err(),
+                "un poids non fini ({bad}) a été accepté"
+            );
+        }
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// L'**écriture** est atomique : il ne reste jamais de fichier
+    /// temporaire, et le fichier final est complet.
+    #[test]
+    fn the_write_is_atomic() {
+        let net = Net::random(0xABCD, HIDDEN);
+        let dir = tmp_dir("the_write_is_atomic");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("atomique.bin");
+        net.save(&path).unwrap();
+        assert!(path.exists(), "le fichier n'a pas été écrit");
+        assert!(
+            !dir.join("atomique.bin.tmp").exists(),
+            "un fichier temporaire a été laissé derrière"
+        );
+        assert!(Net::load(&path).is_ok());
+        std::fs::remove_dir_all(&dir).ok();
     }
 }
