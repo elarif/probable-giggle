@@ -409,14 +409,34 @@ impl<'a> Ctx<'a> {
         // Les coups légaux : le mat et le pat se décident **ici** (avant
         // les règles de nulle : un mat gagné au 100e demi-coup est un
         // mat, pas une nulle — même convention que `mcts::terminal_value`).
+        //
+        // La génération est **échelonnée** : les coups **tactiques**
+        // (prises, promotions) d'abord, les coups **tranquilles** ensuite
+        // — et ceux-ci ne sont générés que si les tactiques n'ont pas
+        // suffi. Le générateur produisait jusqu'à 35 coups tranquilles
+        // inutiles à *chaque* nœud, alors que la plupart des nœuds
+        // coupent sur le premier coup.
         let mut list = MoveList::new();
-        movegen::generate(&self.pos, &mut list, GenKind::All);
-        if list.is_empty() {
-            return if self.pos.in_check(self.pos.side) {
-                -mate_at_ply
-            } else {
-                0
-            };
+        movegen::generate(&self.pos, &mut list, GenKind::CapturesOnly);
+        let n_tactical = list.len();
+        // Les coups tranquilles sont-ils déjà dans la liste ? (oui si
+        // la position n'a aucun coup tactique : il faut alors les
+        //_generate_ pour décider si la position est jouable.)
+        let mut quiets_done = false;
+        let mut phase_end;
+        if n_tactical == 0 {
+            movegen::generate(&self.pos, &mut list, GenKind::QuietsOnly);
+            if list.is_empty() {
+                return if self.pos.in_check(self.pos.side) {
+                    -mate_at_ply
+                } else {
+                    0
+                };
+            }
+            quiets_done = true;
+            phase_end = list.len();
+        } else {
+            phase_end = n_tactical;
         }
 
         // Les règles de nulle.
@@ -608,43 +628,38 @@ impl<'a> Ctx<'a> {
         // `&mut self.scores[ply]`) : ce sont trois champs disjoints.
         let n = list.len();
         debug_assert!(n <= MOVE_CAP, "plus de coups que le tampon d'ordre");
-        let use_history = self.opts.history;
-        {
-            let pos = &self.pos;
-            let history = &self.history;
-            let scores = &mut self.scores[ply];
-            for i in 0..n {
-                let mv = list.get(i);
-                let mut sc = mvv_lva(pos, mv);
-                if mv == tt_best && tt_best != Move::NONE {
-                    sc += 1_000_000;
-                } else if mv == killer0 || mv == killer1 {
-                    sc += 50_000;
-                } else if use_history && !mv.is_capture() {
-                    sc += (history[history_index(mv)] as i32) / 8;
-                }
-                scores[i] = sc;
-            }
-        }
         let mut order = [0u8; MOVE_CAP];
-        for i in 0..n {
-            order[i] = i as u8;
-        }
-        {
-            let scores = &self.scores[ply];
-            order[..n].sort_unstable_by(|&a, &b| {
-                scores[b as usize]
-                    .cmp(&scores[a as usize])
-                    .then(a.cmp(&b))
-            });
-        }
+        self.score_and_order(ply, &list, 0, phase_end, &mut order, tt_best, killer0, killer1);
 
         let alpha_orig = alpha;
         let mut best_score = -MATE - 1;
         let mut best_move = Move::NONE;
         let mut flag = Flag::Upper;
 
-        for (index, &idx) in order[..n].iter().enumerate() {
+        // La boucle parcourt les coups **par phases** : les tactiques
+        // d'abord, puis — si aucune coupe n'est survenue — les
+        // tranquilles, générés à la demande.
+        let mut index = 0usize;
+        loop {
+            if index == phase_end {
+                // La phase est épuisée : on passe aux coups tranquilles.
+                if quiets_done {
+                    break;
+                }
+                quiets_done = true;
+                let start = list.len();
+                movegen::generate(&self.pos, &mut list, GenKind::QuietsOnly);
+                let end = list.len();
+                if end == start {
+                    break;
+                }
+                self.score_and_order(ply, &list, start, end, &mut order, tt_best, killer0, killer1);
+                phase_end = end;
+                if index == phase_end {
+                    break;
+                }
+            }
+            let idx = order[index];
             let mv = list.get(idx as usize);
             let key_here = self.pos.zobrist;
             let undo = self.pos.make(mv);
@@ -741,6 +756,8 @@ impl<'a> Ctx<'a> {
                 }
                 break;
             }
+            // Le coup suivant de la phase.
+            index += 1;
         }
 
         // Le drapeau de la TT : une fenêtre **nulle** ne donne qu'une
@@ -901,6 +918,57 @@ impl<'a> Ctx<'a> {
         (alpha, best_move, flag)
     }
 
+
+    /// Score et trie les coups `list[start..end]` : `order[start..end]`
+    /// reçoit les **indices** des coups, triés par score décroissant —
+    /// et, à score égal, par indice croissant : l'ordre est donc
+    /// **total**, et le tri *instable* donne le même résultat qu'un tri
+    /// stable.
+    ///
+    /// La méthode est appelée **une fois par phase** (tactique, puis
+    /// tranquille) : c'est ce qui permet de ne générer les coups
+    /// tranquilles qu'à la demande.
+    fn score_and_order(
+        &mut self,
+        ply: usize,
+        list: &MoveList,
+        start: usize,
+        end: usize,
+        order: &mut [u8],
+        tt_best: Move,
+        killer0: Move,
+        killer1: Move,
+    ) {
+        let use_history = self.opts.history;
+        {
+            let pos = &self.pos;
+            let history = &self.history;
+            let scores = &mut self.scores[ply];
+            for i in start..end {
+                let mv = list.get(i);
+                let mut sc = mvv_lva(pos, mv);
+                if mv == tt_best && tt_best != Move::NONE {
+                    sc += 1_000_000;
+                } else if mv == killer0 || mv == killer1 {
+                    sc += 50_000;
+                } else if use_history && !mv.is_capture() {
+                    sc += (history[history_index(mv)] as i32) / 8;
+                }
+                scores[i] = sc;
+            }
+        }
+        for i in start..end {
+            order[i] = i as u8;
+        }
+        {
+            let scores = &self.scores[ply];
+            order[start..end].sort_unstable_by(|&a, &b| {
+                scores[b as usize]
+                    .cmp(&scores[a as usize])
+                    .then(a.cmp(&b))
+            });
+        }
+    }
 
     /// Le **coup gratuit** (null-move) : le trait passe son tour.
     ///
